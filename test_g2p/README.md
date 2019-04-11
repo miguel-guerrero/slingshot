@@ -22,13 +22,13 @@ A dictionary containing all passed down parameters
 
 ## As mandatory outputs:
 
-*paramDict*: 
+**paramDict**: 
 
 The user should merge passedParamDict and default parameters
 into this one representing the final set of parameters including
 overrides
 
-*name*: 
+**name**: 
 
 The uniquified name of the module. It is usually computed as a base name
 and as a function of all the parameters passed and defaults.
@@ -46,7 +46,7 @@ An example of the recommended fool proof way of getting the above:
     base name in alphabetical order as name-value pairs
 
 
-*IOs*: 
+**IOs**: 
 
 A list filled up by the user with all IOs of the module. Use following
 constructors to create them:
@@ -57,7 +57,7 @@ constructors to create them:
 Use g.vlogIO(IOs) to generate associated code in the right place
 
 
-*result*: 
+**result**: 
 
 It is internally managed and will be overwritten if given a value by the
 user, when the generation of the module ends it gets a copy of the 
@@ -77,7 +77,7 @@ as:
 
 ## As optional outputs:
 
-*userResult*: 
+**userResult**: 
 
 to be filled by the user with whatever information needs
 to carry to the parent. It defaults to an instance of
