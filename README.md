@@ -61,7 +61,7 @@ It is composed of the following interelated and interoperating modules:
     pre-processor style code in python. A descendent of Genesis2
     but not intended to be feature complete or backwards compatible.
 
-- Chip: (Contruction of Hardware In Python Only)
+- Chipo: (Contruction of Hardware In Python Only)
 
     Started as an API to encapsulate comon operations in G2P, evolved into an API
     to build an AST before being dumped as text into G2P and finally evolved into
