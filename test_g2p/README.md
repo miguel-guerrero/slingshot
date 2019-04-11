@@ -61,7 +61,7 @@ Use g.vlogIO(IOs) to generate associated code in the right place
 
 It is internally managed and will be overwritten if given a value by the
 user, when the generation of the module ends it gets a copy of the 
-following object:
+following object. The user shouldn't write it, it is intended as an output.
 
         g.Module(name, IOs, paramDict, instances.thisLevel(), userResult)
 
@@ -70,7 +70,7 @@ this level of hierarchy by using
     
         instances.new(basename, passParamDict)
     
-and tracks everything instantiated. Thos instances are available as a list
+and tracks everything instantiated. Those instances are available as a list
 as:
 
         instances.thisLevel()
