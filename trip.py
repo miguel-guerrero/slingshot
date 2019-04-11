@@ -248,20 +248,20 @@ if __name__=='__main__':
             except ValueError:
                 return s
 
-    def mainCmdParser(parser, **extra):
+    def mainCmdParser(parser):
         parser.add_argument("templateFile",       
                             help="template file to be expanded",  
-                            type=str, **extra)
-        parser.add_argument("--paramFile",  "-p", 
+                            type=str)
+        parser.add_argument("--paramFile", "-p", 
                             help="parameter file", 
-                            type=str, **extra)
-        parser.add_argument("--outFile",    "-o", 
+                            type=str)
+        parser.add_argument("--outFile", "-o", 
                             help="output file, defaults to stdout", 
-                            type=FileType('w'), default='-', **extra)
-        parser.add_argument("--keyValues",  "-k", 
-                            help="key=value pairs", nargs='+', 
-                            default=[])
-        parser.add_argument('--verbose',    "-v", 
+                            type=FileType('w'), default='-')
+        parser.add_argument("--keyValues", "-k", 
+                            help="key=value pairs", 
+                            nargs='+', default=[])
+        parser.add_argument('--verbose', "-v", 
                             help="print output tripio on stderr", 
                             default=False, action='store_true')
         args = parser.parse_args()
