@@ -1,0 +1,34 @@
+<%
+    defaultParamDict = {'CNT':8, 'WIDTH':32, 'HAS_CIN':0}
+    name, paramDict, params = g.processParams('multi_adder3', passedParamDict, defaultParamDict)
+
+    for i in range(params.CNT):
+         IOs += [ g.Input(f'a{i}', params.WIDTH),
+                  g.Input(f'b{i}', params.WIDTH),
+                  g.Output(f'sum{i}', params.WIDTH+1)]
+         if params.HAS_CIN:
+             IOs.append(g.Input(f'cin{i}'))
+%>
+// paramDict ${paramDict}
+
+module ${name} (
+    ${g.vlogIO(IOs)}
+);
+<% area = 0 %>
+% for i in range(params.CNT):
+<% ins = instances.new('adder', {'WIDTH':16}) %>
+
+    ${ins.module.name} ${ins.insName} (
+        .a(a${i}),
+        .b(b${i}),
+        .sum(sum${i})
+        % if params.HAS_CIN:
+       ,cin(cin${i})
+        % endif
+    );
+<% area += ins.module.userResult.area %>
+% endfor
+
+// area = ${area} gathered from lower hierarchy
+endmodule
+

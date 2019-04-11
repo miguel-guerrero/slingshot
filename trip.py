@@ -1,0 +1,278 @@
+#!/usr/bin/env python3 
+#------------------------------------------------------------------------------
+# Copyright (c) 2018-Present, Miguel A. Guerrero
+# All rights reserved.
+#
+# This is free software released under GNU Lesser GPL license version 3.0 (LGPL 3.0)
+#
+# See http://www.gnu.org/licenses/lgpl-3.0.txt for a full text
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
+# OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Please send bugs and suggestions to: miguel.a.guerrero@gmail.com
+#-------------------------------------------------------------------------------
+import re
+import sys 
+import json
+
+#-------------------------------------------------------------------------------
+# Given a line replace code in between delimLeft and delimRight into { and }
+# that can be easilly evaluated as an f'string. If any single { or } is found
+# quote it as {{ and }} as it was inteded to be sent as-is to the output
+#-------------------------------------------------------------------------------
+class UnexpectedDelimException(Exception):
+    def __init__(self, col, line, delim):
+        self.col = col
+        self.line = line
+        self.delim = delim
+    def __str__(self):
+        return  f"ERROR unexpected delimiter {self.delim} at column {self.col+1}\n" +\
+                f"LINE: {self.line}\n      " + "-"*(self.col-1) + "^"
+                                                                               
+class UnterminatedExprException(Exception):
+    def __init__(self, line):
+        self.line = line
+    def __str__(self):
+        return f"ERROR unterminated expression LINE: {self.line}"
+
+def quote(line, delimLeft, delimRight):
+    lenL = len(delimLeft)    
+    lenR = len(delimRight)    
+    newLine = ''
+    lastDelim = skip = 0
+    insideExpr = False
+    for i, currChar in enumerate(line):
+        if skip > 0:
+            skip -= 1
+        else:
+            if not insideExpr:
+                if line[i:i+lenL] == delimLeft:
+                    insideExpr = True
+                    newLine += '{'
+                    skip = lenL-1
+                else:
+                    if currChar in '{}':
+                        newLine += currChar*2 #quote it
+                    else:
+                        newLine += currChar   #copy it
+            else:
+                if line[i:i+lenR] == delimRight:
+                    insideExpr = False
+                    newLine += '}'
+                    skip = lenR-1
+                elif line[i:i+lenL] == delimLeft:
+                    raise UnexpectedDelimException(i+1, line, delimLeft)
+                else:
+                    newLine += currChar
+    if insideExpr:
+        raise UnterminatedExprException(line)
+    return newLine
+
+#-------------------------------------------------------------------------------
+# Generate the intermediate python code that when executed will generate the
+# redered template
+#-------------------------------------------------------------------------------
+def genPython(
+        lines, paramFile=None, tripio={}, leading='% ', 
+        leftExprDelim='${', rightExprDelim='}', 
+        leftBlkDelim='<%', rightBlkDelim='%>', lineOffset=0):
+
+    modName = 'trip'
+    prevPrefix = prefix = ''
+    buf = []
+    out = []
+    needIndent = False
+    indent = 4*" "
+
+    def lineLoc(line, lineNum):
+        pad = max(100-len(line), 0)
+        return line + ' '*pad + f' # user line {lineNum}'
+
+    def indentList(lst, ind):
+        return [ind + line for line in lst]
+
+    def flushBuffer():
+        if needIndent:
+            if len(prefix) > len(prevPrefix):
+                newBuf = indentList(buf, prefix)
+            elif len(prefix) < len(prevPrefix):
+                newBuf = indentList(buf, prevPrefix + indent)
+            else:
+                newBuf = indentList(buf, prefix + indent)
+        else:
+            newBuf = indentList(buf, prevPrefix)
+        return out + newBuf, []
+
+    #serialize tripio dictionary and let the generated code load it
+    import pickle
+    tripioSer = pickle.dumps(tripio)
+    out.append(f'import pickle')
+    out.append(f'tripio=pickle.loads({tripioSer})')
+    out.append(f'# tripio={tripio}')
+    #param struct will contain parameters from file with potential
+    #overrides from the tripio dictionary
+    if paramFile:
+        out.append(f'import {modName}')
+        out.append(f'param={modName}.jsonToObj("{paramFile}")')
+    else:
+        out.append(f'class Param:')
+        out.append(f'    pass')
+        out.append(f'param=Param()')
+    for k, v in tripio.items():
+        out.append(f"param.{k}={repr(v)}")
+    out.append('end=endfor=endif=None')
+    out.append('emitLines=[]')
+    out.append('def emit(s): global emitLines; emitLines.append(s)')
+    out.append(f'#--- {modName} payload code begins ---')
+
+    inPythonMode = False
+    lines.append(leading) #this will force a final flush
+    for i, line in enumerate(lines):
+        line = line.rstrip('\n') # remove \n
+        if inPythonMode:
+            if re.match(rightBlkDelim+'$', line):
+                inPythonMode = False
+                out.append('# python end')
+            else:
+                out.append(line)
+        else:
+            if re.match(leftBlkDelim+'$', line):
+                inPythonMode = True
+                out, buf = flushBuffer()
+                out.append('# python start')
+            else:
+                if re.match(leading, line):
+                    line = line[len(leading):] #skip leading marker
+                    #find indentation (allows spaces and dots) and clean dots
+                    indentMatch = re.match(r'[ \.]*', line);
+                    if indentMatch:
+                        prevPrefix = prefix
+                        prefix = ' ' * len(indentMatch.group())
+                        line = re.sub(r'^[ \.]+', prefix, line)
+                    #flush buffered lines (we needed to see indent of the next)
+                    if buf:
+                        out, buf = flushBuffer()
+                    out.append(line)
+                    needIndent = re.search(r':\s*$', line) is not None
+                else:
+                    line = quote(line, leftExprDelim, rightExprDelim)
+                    buf.append(f"emit(f'{line}')")
+
+    lineOffset += len(out) - len(lines)
+    out.append((f'#--- {modName} payload code ends ---'))
+    out.append(('_render = "\\n".join(emitLines)'))
+    out.append(('_return = tripio'))
+    return [lineLoc(line, i-lineOffset+1) for i, line in enumerate(out)]
+
+#Used by the generated python prefix code
+def jsonToObj(filename):
+    class JSONObject:
+        def __init__(self, dict):
+            vars(self).update(dict)
+
+    with open(filename) as fjson:
+        s=fjson.read()
+    return json.loads(s, object_hook=JSONObject)
+
+#-------------------------------------------------------------------------------
+# Given a python string, execute it and return the content of its _render
+# variable. In our case we use _render to hold all emitted lines after
+# executing the preprocessing step
+#-------------------------------------------------------------------------------
+def execScript(program, tripio):
+    _render = None
+    loc = locals()
+    exec(program, loc)
+    return loc['_render'], loc['tripio']
+
+#-------------------------------------------------------------------------------
+# Render a template string. if there is an error create an itermediate script
+# to help debugging
+#-------------------------------------------------------------------------------
+def genInterm(program, intermFile):
+    with open(intermFile, 'w') as f:
+        f.write(f'{program}\nprint(_render, end="")')
+
+def render(templateStr, paramFile=None, tripio={}, 
+           intermFile="__from_string__.debug.py", lineOffset=0):
+
+    inputLst = templateStr.split('\n')
+    pythoCodeLst = genPython(inputLst, paramFile, tripio, lineOffset=lineOffset)
+    program = '\n'.join(pythoCodeLst)
+
+    out = rc = None
+    try:
+        out, rc = execScript(program, tripio)
+        #genInterm(program, intermFile)
+    except Exception as ex:
+        #if there is an error, generate code for debug
+        import traceback
+        excMsg = re.sub('<string>', intermFile, traceback.format_exc(0))
+        print(f"An ERROR occurred, run 'python3 {intermFile}' to debug", 
+              file=sys.stderr)
+        print(excMsg, file=sys.stderr)
+        genInterm(program, intermFile)
+        raise
+    return out, rc
+
+#-------------------------------------------------------------------------------
+# Wrapper for render when the template is in a file
+#-------------------------------------------------------------------------------
+def renderFile(templateFile, paramFile=None, tripio={}, lineOffset=0):
+    with open(templateFile) as f:
+        templateStr = f.read().rstrip()
+    return render(templateStr, paramFile, tripio, 
+                  intermFile=templateFile+'.debug.py', lineOffset=lineOffset)
+
+#-------------------------------------------------------------------------------
+#                                   MAIN
+#-------------------------------------------------------------------------------
+if __name__=='__main__':
+    from  argparse import ArgumentParser, FileType
+
+    def numberOrStr(s):
+        try:
+            return int(s)
+        except ValueError:
+            try:
+                return float(s)
+            except ValueError:
+                return s
+
+    def mainCmdParser(parser, **extra):
+        parser.add_argument("templateFile",       
+                            help="template file to be expanded",  
+                            type=str, **extra)
+        parser.add_argument("--paramFile",  "-p", 
+                            help="parameter file", 
+                            type=str, **extra)
+        parser.add_argument("--outFile",    "-o", 
+                            help="output file, defaults to stdout", 
+                            type=FileType('w'), default='-', **extra)
+        parser.add_argument("--keyValues",  "-k", 
+                            help="key=value pairs", nargs='+', 
+                            default=[])
+        parser.add_argument('--verbose',    "-v", 
+                            help="print output tripio on stderr", 
+                            default=False, action='store_true')
+        args = parser.parse_args()
+        args.keyValues = dict(kv.split('=') for kv in args.keyValues)
+        args.keyValues = {k:numberOrStr(v) for k, v in args.keyValues.items()}
+        return args
+
+    args = mainCmdParser(ArgumentParser())
+
+    out, rc = renderFile(args.templateFile, args.paramFile, tripio=args.keyValues)
+    args.outFile.write(out)
+    if args.verbose:
+        print(f'// rc = {rc}', file=sys.stderr)
+

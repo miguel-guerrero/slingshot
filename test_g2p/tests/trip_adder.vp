@@ -1,0 +1,32 @@
+// passedParamDict {{passedParamDict}}
+<%
+defaultParamDict = {'WIDTH':32, 'HAS_CIN':0}
+name, paramDict, params = g.processParams('trip_adder', passedParamDict, defaultParamDict)
+
+IOs = [g.Input('a', params.WIDTH), 
+       g.Input('b', params.WIDTH),
+       g.Output('sum', params.WIDTH+1)]
+if params.HAS_CIN:
+    IOs.append(g.Input('cin'))
+%>
+
+// defaultParamDict {{defaultParamDict}}
+// paramDict {{paramDict}}
+// name {{name}}
+// params.WIDTH {{params.WIDTH}}
+// params.HAS_CIN {{params.HAS_CIN}}
+// IOs {{IOs}}
+
+module {{name}}
+(
+    {{g.vlogIO(IOs)}}
+)
+
+assign sum = a + b
+% if params.HAS_CIN:
+             + cin
+% end
+           ;
+endmodule
+% userResult.area = params.WIDTH 
+// userResult.area = {{userResult.area}}

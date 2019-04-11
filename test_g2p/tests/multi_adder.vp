@@ -1,0 +1,43 @@
+// passedParamDict ${passedParamDict}
+<%
+    defaultParamDict = {'CNT':8, 'WIDTH':32, 'HAS_CIN':0}
+    name, paramDict, params = g.processParams('multi_adder', passedParamDict, defaultParamDict)
+
+    for i in range(params.CNT):
+         IOs += [ g.Input(f'a{i}', params.WIDTH),
+                  g.Input(f'b{i}', params.WIDTH),
+                  g.Output(f'sum{i}', params.WIDTH+1)]
+         if params.HAS_CIN:
+             IOs.append(g.Input(f'cin{i}'))
+%>
+
+// defaultParamDict ${defaultParamDict}
+// paramDict ${paramDict}
+// name ${name}
+// params.WIDTH ${params.WIDTH}
+// params.HAS_CIN ${params.HAS_CIN}
+// IOs ${IOs}
+
+module ${name}
+(
+    ${g.vlogIO(IOs)}
+)
+% for i in range(params.CNT):
+<%
+    module = g.generate('adder', {'WIDTH':16})
+    ins = g.Instance(module, f'adder_{i}')
+    instances.add(ins)
+%>
+
+    ${module.name} ${ins.insName} (
+        .a(a${i}),
+        .b(b${i}),
+        .sum(sum${i})
+        % if params.HAS_CIN:
+       ,cin(cin${i})
+        % endif
+    )
+% endfor
+
+endmodule
+

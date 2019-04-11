@@ -1,0 +1,18 @@
+<%
+   defaultParamDict = {'WIDTH':32, 'HAS_CIN':0}
+   name, paramDict, params = g.processParams('adder2', passedParamDict, defaultParamDict)
+
+   IOs = [g.Input('a', params.WIDTH), 
+          g.Input('b', params.WIDTH),
+          g.Output('sum', params.WIDTH+1)]
+   if params.HAS_CIN:
+       IOs.append(g.Input('cin'))
+%>
+
+module ${name}
+(
+    ${g.vlogIO(IOs)}
+)
+
+endmodule
+

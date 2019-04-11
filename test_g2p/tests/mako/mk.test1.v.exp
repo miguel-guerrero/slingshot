@@ -1,0 +1,10 @@
+module adder(
+    input cin,
+    input [16-1:0] a,
+    input [16-1:0] b,
+    output [16:0] sum
+)
+
+assign sum = a + b + cin;
+
+endmodule

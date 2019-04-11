@@ -1,0 +1,33 @@
+block csrs {
+	bytes 4;
+	register regA @'h0 {
+		field x @'h0 {
+			bits 4;
+			access rw;
+			reset 'h0;
+		}
+		field y @'h4 {
+			bits 3;
+			access ro;
+			reset 'h0;
+		}
+		field z @'h7 {
+			bits 16;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register regB @'h4 {
+		field x @'h0 {
+			bits 4;
+			access c;
+			reset 'h0;
+		}
+		field rsv1 @'h4 {
+			bits 3;
+			access c;
+			reset 'h0;
+		}
+	}
+}
+
