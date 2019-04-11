@@ -13,14 +13,14 @@ being implicitly present
 The following variables have a special meaning and must be handled for
 correct generation
 
-- As inputs:
+## As inputs:
 
 *passedParamDict*: 
 
 A dictionary containing all passed down parameters
 
 
-- As mandatory outputs:
+## As mandatory outputs:
 
 *paramDict*: 
 
@@ -75,7 +75,7 @@ as:
 
         instances.thisLevel()
 
-- As optional outputs:
+## As optional outputs:
 
 *userResult*: 
 
