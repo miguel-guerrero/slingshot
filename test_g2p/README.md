@@ -1,9 +1,11 @@
 
-Functions/classes in g2p as imported with namespace 'g'
+# Introduction
+
+In a g2p file to be processed, functions/classes in g2p as imported with namespace 'g', equivalent to
 
     import g2p as g
 
-implicitly
+being implicitly present
 
 
 # Predefined variables (on current namespace)
@@ -11,26 +13,27 @@ implicitly
 The following variables have a special meaning and must be handled for
 correct generation
 
-As inputs:
-==============================================================================
+- As inputs:
 
-passedParamDict : 
-    A dictionary containing all passed down parameters
+*passedParamDict*: 
+
+A dictionary containing all passed down parameters
 
 
-As mandatory outputs:
-==============================================================================
+- As mandatory outputs:
 
-paramDict : 
-    The user should merge passedParamDict and default parameters
-    into this one representing the final set of parameters including
-    overrides
+*paramDict*: 
 
-name: 
-    The uniquified name of the module. It is usually computed as a base name
-    and as a function of all the parameters passed and defaults.
+The user should merge passedParamDict and default parameters
+into this one representing the final set of parameters including
+overrides
 
-    An example of the recommended fool proof way of getting the above:
+*name*: 
+
+The uniquified name of the module. It is usually computed as a base name
+and as a function of all the parameters passed and defaults.
+
+An example of the recommended fool proof way of getting the above:
 
     defaultParamDict = {'CNT':8, 'WIDTH':32, 'HAS_CIN':0}
     name, params, paramDict = g.processParams('multi_adder3', passedParamDict, defaultParamDict)
@@ -43,44 +46,49 @@ name:
     base name in alphabetical order as name-value pairs
 
 
-IOs : 
-    A list filled up by the user with all IOs of the module. Use following
-    constructors to create them:
+*IOs*: 
+
+A list filled up by the user with all IOs of the module. Use following
+constructors to create them:
 
         g.Input(name, width=1, lsb=0)
         g.Output(name, width=1, lsb=0)
 
-    Use g.vlogIO(IOs) to generate associated code in the right place
+Use g.vlogIO(IOs) to generate associated code in the right place
 
 
-result : 
-    It is internally managed and will be overwritten if given a value by the
-    user, when the generation of the module ends it gets a copy of the 
-    following object:
+*result*: 
+
+It is internally managed and will be overwritten if given a value by the
+user, when the generation of the module ends it gets a copy of the 
+following object:
 
         g.Module(name, IOs, paramDict, instances.thisLevel(), userResult)
 
-    instances is an object that allows the creation of instances at 
-    this level of hierarchy by using
+instances is an object that allows the creation of instances at 
+this level of hierarchy by using
     
         instances.new(basename, passParamDict)
     
-    and tracks everything instantiated. Thos instances are available as a list
-    as:
+and tracks everything instantiated. Thos instances are available as a list
+as:
 
         instances.thisLevel()
 
-As optional outputs:
-==============================================================================
+- As optional outputs:
 
-userResult : to be filled by the user with whatever information needs
-    to carry to the parent. It defaults to an instance of
+*userResult*: 
+
+to be filled by the user with whatever information needs
+to carry to the parent. It defaults to an instance of
 
     class UserResult():
         pass
 
-    the user can override the type or just add fields to it as follows:
+the user can override the type or just add fields to it as follows:
 
-    for instance. userResult.ff_count = 10
+for instance. 
+
+    userResult.ff_count = 10
 
 
