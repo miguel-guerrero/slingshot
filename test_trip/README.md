@@ -54,7 +54,8 @@ will print
 
     % (with a space after) is to insert python code
 
-use 'end' instead of unindent when needed to resolve indentation anbiguity
+use 'end' instead of unindent when needed to resolve indentation anbiguity. For example in the
+following may seem ambiguous:
 
     % if x>0:
     aaa
@@ -63,11 +64,9 @@ use 'end' instead of unindent when needed to resolve indentation anbiguity
     bbb  
 
 is bbb covered by the 2nd if?
-it is a bit ambiguous as the prints implicit
-in the non-python lines have no indentation. By default
-they are assumed to belong to the innermost block
-opened in python, but to resolve this you may need
-to insert explicit end's, for example:
+it is a bit ambiguous as the emits() implicit in the non-python lines have no indentation. 
+By default they are assumed to belong to the innermost block opened in python, but to 
+clarify this or to force non-default behavior, you may need to insert explicit end's, for example:
 
 
     % if x>0:
@@ -87,14 +86,14 @@ OR (this is equivalent to the default)
     %   end
 
 
-# Use
+# Usage
 
 Trip can be imported as a module and used to render template strings passed to it. 
 
-See renderFile() and render() calls
+- See renderFile() and render() calls
 
 Additionaly if used as a command, trip.py can be used to render templates from command line.
 
-    trip.py --help 
+    $ trip.py --help 
 
 for usage details
