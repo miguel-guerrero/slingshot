@@ -39,9 +39,9 @@ in python. It is influenced by the following [awesome] projects:
 
 Additionaly this project has the following goals:
 
-- Readability of generated code specially at leaf level-
-- Introspection and flexibility
-- Ease / brevety of input
+- Readability of generated code specially at leaf level
+- Full Introspection and flexibility
+- Ease / brevety of input with focus on leaf level code
 - Readability of input
 
 # CONTENTS
@@ -56,7 +56,7 @@ It is composed of the following interelated and interoperating modules:
 
 - G2P (Genesis2 in Python)
 
-    Hierarchical code generator with introspectoin, uses Trip and can use 
+    Hierarchical code generator with introspection, uses Trip and can use 
     also Mako as template rendering engine. Target HDL is mixed with 
     pre-processor style code in python. A descendent of Genesis2
     but not intended to be feature complete or backwards compatible.
@@ -77,18 +77,18 @@ Other:
   Contains common base clases to allow G2P/Chipo interoperation
 
 - regs.py:
-  Experimental approach to allow control/status registers to be defined bottom-up
+  Experimental approach to allow control/status registers to be defined bottom-up.
+  Currently at proof of concept level for simple registers but proven in one design.
   Optionally used by Chipo
 
 - varname.py:
   Utility to find out a variable name at run time. Used by Chipo.
 
 
-
 # DEPENDENCIES
 
-- iverilog: this open source simulator is used to compile and simulate in some 
-  cases the generated code. Follow the instructions in the following link for 
+- iverilog: this open source simulator is used to compile and simulate, in some 
+  cases, the generated code. Follow the instructions in the following link for 
   installation:
 
   http://iverilog.icarus.com
