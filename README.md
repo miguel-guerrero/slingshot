@@ -62,7 +62,7 @@ It is composed of the following interelated and interoperating modules:
     pre-processor style code in python. A descendent of Genesis2
     but not intended to be feature complete or backwards compatible.
     
-    See document [here](https://docs.google.com/presentation/d/1l1g3sLGKCOcJ1C1OLQF2HNlsr598rLrROp-MpN649tM/edit?usp=sharing)
+    **See document** [here](https://docs.google.com/presentation/d/1l1g3sLGKCOcJ1C1OLQF2HNlsr598rLrROp-MpN649tM/edit?usp=sharing)
 
 - Chipo: (Contruction of Hardware In Python Only)
 
