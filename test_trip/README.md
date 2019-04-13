@@ -159,7 +159,7 @@ When trip is imported as a module, two functions can be used to render templates
 
 And the following where the input to render is a string:
 
-    render(templateStr, paramFile=None, tripio={}, intermFile="__from_string__.debug.py", lineOffset=0) -> returning a string
+    render(templateStr, paramFile=None, tripio={}, intermFile="__from_string__.debug.py", lineOffset=0) -> string
 
 - tempateStr : template to render as a string
 - paramFile : file name of the JSON parameter file
