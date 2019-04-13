@@ -126,10 +126,9 @@ template renderer. For example:
           "name": "github"
       }
 
-Additinally key-value pairs can be passed in the command line (as many as desired with several
-repetitions of the -k argument)
+Additionally key-value pairs can be passed in the command line (as many as desired)
 
-    .$ ./trip.py --paramFile data.json -k WIDTH=20 -k HAS_CARRY=1 adder.vp 
+    .$ ./trip.py --paramFile data.json -k WIDTH=20 HAS_CARRY=1 adder.vp -o adder.v
     
- Will render the template adder.vp into standard output
+ Will render the template adder.vp into adder.v
  
