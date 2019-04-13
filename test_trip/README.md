@@ -44,9 +44,9 @@ will generate:
 
 # Embedding a line of python
 
-    % (with a space after) is to insert python code
+    % (with at LEAST ONE space afterwards) is to insert python code
 
-use 'end' instead of unindent when needed to resolve indentation anbiguity. For example in the
+use **'end'** instead of unindent when needed to resolve indentation anbiguity. For example in the
 following may seem ambiguous:
 
     % if x>0:
@@ -68,7 +68,7 @@ clarify this or to force non-default behavior, you may need to insert explicit e
     %   end
     bbb  
 
-OR (this is equivalent to the default)
+OR (this is equivalent to the default behavior if end was not present)
 
     % if x>0:
     aaa
@@ -96,6 +96,40 @@ Trip can be imported as a module and used to render template strings passed to i
 
 Additionaly if used as a command, trip.py can be used to render templates from command line.
 
-    $ trip.py --help 
+    $ ./trip.py --help 
 
-for usage details
+for usage details. Example for a recent version:
+
+    usage: trip.py [-h] [--paramFile PARAMFILE] [--outFile OUTFILE]
+                   [--keyValues KEYVALUES [KEYVALUES ...]] [--verbose]
+                   templateFile
+
+    positional arguments:
+      templateFile          template file to be expanded
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --paramFile PARAMFILE, -p PARAMFILE
+                            parameter file
+      --outFile OUTFILE, -o OUTFILE
+                            output file, defaults to stdout
+      --keyValues KEYVALUES [KEYVALUES ...], -k KEYVALUES [KEYVALUES ...]
+                            key=value pairs
+      --verbose, -v         print output tripio on stderr
+
+
+A parameter file is a JSON formatted file that contains values for variables to be passed to the 
+template renderer. For example:
+
+      {
+          "where": "here",
+          "name": "github"
+      }
+
+Additinally key-value pairs can be passed in the command line (as many as desired with several
+repetitions of the -k argument)
+
+    .$ ./trip.py --paramFile data.json -k WIDTH=20 -k HAS_CARRY=1 adder.vp 
+    
+ Will render the template adder.vp into standard output
+ 
