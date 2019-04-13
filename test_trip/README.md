@@ -22,7 +22,7 @@ the previous code.
 
 The following example:
 
-    3*8 = {{3*8}}
+    3*8 = ${3*8}
 
 will generate:
 
@@ -35,7 +35,7 @@ or
     y=2
     %>
 
-    x + y = {{x+y}}
+    x + y = ${x+y}
 
 will generate:
 
