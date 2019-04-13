@@ -126,6 +126,9 @@ template renderer. For example:
           "name": "github"
       }
 
+Will initialized the python variables 'where' and 'name' on the template 
+with the values "here" and "github" respectivelly.
+
 Additionally key-value pairs can be passed in the command line (as many as desired)
 
     .$ ./trip.py --paramFile data.json -k WIDTH=20 HAS_CARRY=1 adder.vp -o adder.v
