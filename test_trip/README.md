@@ -154,11 +154,12 @@ When trip is imported as a module, two functions can be used to render templates
 - tempateFile : file name of the template to render
 - paramFile : file name of the JSON parameter file
 - tripio : a dictionary with key-value overrides (modifiable the the template)
-- lineOffset : is an offset to add to the line numbers on generated errors
+- lineOffset : is an offset to add to the line numbers on generated errors  
  
 
-    render(templateStr, paramFile=None, tripio={}, intermFile="_from_string_.debug.py", lineOffset=0) -> returning a string
+And the following where the input to render is a string:
 
+    render(templateStr, paramFile=None, tripio={}, intermFile="__from_string__.debug.py", lineOffset=0) -> returning a string
 
 - tempateStr : template to render as a string
 - paramFile : file name of the JSON parameter file
