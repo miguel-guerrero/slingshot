@@ -4,7 +4,7 @@
 Trip is a template renderer that allows you to intermix python with source text. 
 It is similar to Mako and Jinja2, widely used to generate web pages dynamically,
 but is lighter and more focused on providing clear error messages. The feature set
-is expected to be adecuate for the needs of generationg HDL.
+is expected to be adecuate for the typical needs of generating HDL.
 
 # Embedding a block of python code
 
