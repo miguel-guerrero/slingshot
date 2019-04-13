@@ -2,29 +2,21 @@
 # TRIP (Template Rendering In Python)
 
 Trip is a template renderer that allows you to intermix python with source text. 
-It is similar to Mako and Jinja2 widely used to generate web pages dynamically
-but is lighter and more focused on the pre-preocessing needs required to
-generate source code like an HDL.
+It is similar to Mako and Jinja2, widely used to generate web pages dynamically,
+but is lighter and more focused on providing clear error messages. The feature set
+is expected to be adecuate for the needs of generationg HDL.
 
 # Embedding a block of python code
 
 The following is an example
 
     <%
-    code line 1
-    code line 2
+    python code line 1
+    python code line 2
     %>
 
-indentation is important and must match the expected one based on the previous
-code
-
-if you need to generate a verbatim piece of output use emit:
-
-    <%
-    for i in range(5):
-      emit(f'---- {i} ----')
-    %>
-
+Indentation is important, as it is in python, and must match the expected one based on 
+the previous code.
 
 # Interpolating a python variable or an expression
 
@@ -45,7 +37,7 @@ or
 
     x + y = {{x+y}}
 
-will print
+will generate:
 
     x + y = 3
 
@@ -85,6 +77,16 @@ OR (this is equivalent to the default)
     bbb  
     %   end
 
+# Generating code within a python block
+
+Sometimes there is a region of the source file where there is more python than actual target
+language text. It becomes inconvenient then to have to switch back and forth. 
+If you need to generate a piece of output from python code you can use emit(str):
+
+    <%
+    for i in range(5):
+      emit(f'---- {i} ----')
+    %>
 
 # Usage
 
