@@ -38,12 +38,12 @@ An example of the recommended fool proof way of getting the above:
     defaultParamDict = {'CNT':8, 'WIDTH':32, 'HAS_CIN':0}
     name, params, paramDict = g.processParams('multi_adder3', passedParamDict, defaultParamDict)
 
-    Note that params is not predefined, but if using this function, it provides
-    a second way to access the final parameters as a class generated from paramDict
+Note that params is not predefined, but if using this function, it provides
+a second way to access the final parameters as a class generated from paramDict
 
-    g.procesParams generates name including only parameters that have been
-    overridden or parameters that had no default appending them to the 
-    base name in alphabetical order as name-value pairs
+g.procesParams generates name including only parameters that have been
+overridden or parameters that had no default appending them to the 
+base name in alphabetical order as name-value pairs
 
 
 **IOs**: 
@@ -54,7 +54,8 @@ constructors to create them:
         g.Input(name, width=1, lsb=0)
         g.Output(name, width=1, lsb=0)
 
-Use g.vlogIO(IOs) to generate associated code in the right place
+The function g.vlogIO(IOs) can be used to return the IO definitions of a module in Verilog
+format as a string (the user can render it in the appropriate place)
 
 
 **result**: 
