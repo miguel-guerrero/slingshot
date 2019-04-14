@@ -1,0 +1,13 @@
+Module('adder_WIDTH32', IOs=[Input(name='cin'), Input(Parameter(CInt(32), name='WIDTH'), name='x'), Input(Parameter(CInt(32), name='WIDTH'), name='y'), Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm'), Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm_r'), Output(name='sm_zero_r'), Clock(name='clk'), Reset(name='rst_n')], params=[Parameter(CInt(32), name='WIDTH'), Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH')], body=[Combo(body=Block(VarAssign(Variable(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='res'), ((Input(Parameter(CInt(32), name='WIDTH'), name='x') + Input(Parameter(CInt(32), name='WIDTH'), name='y')) + Input(name='cin'))), SigAssign(Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm'), Variable(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='res')))), Clocked(Clock(name='clk'), reset=Reset(name='rst_n'), autoReset=True).Body(Block(If(~(Reset(name='rst_n'))).Then(Block(SigAssign(Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm_r'), CInt(0)), SigAssign(Output(name='sm_zero_r'), CInt(0)))).Else(Block(SigAssign(Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm_r'), Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm')), SigAssign(Output(name='sm_zero_r'), (Output(Parameter((Parameter(CInt(32), name='WIDTH') + CInt(1)), name='SWIDTH'), name='sm') == CInt(0)))))))])
+adder_WIDTH32 #(
+    .A(1)
+) adder_0 (
+    .cin(cin),
+    .x(x0),
+    .y(y0),
+    .sm(sm),
+    .sm_r(sm_r),
+    .sm_zero_r(sm_zero_r),
+    .clk(clk),
+    .rst_n(rst_n)
+);

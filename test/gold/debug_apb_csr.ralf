@@ -1,0 +1,990 @@
+block debug_apb_csr {
+	bytes 4;
+	register chain_tc @'h0 {
+		field val @'h0 {
+			bits 16;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_sel_mode_any @'h4 {
+		field val @'h0 {
+			bits 12;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask0 @'h8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask1 @'hc {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask2 @'h10 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask3 @'h14 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask4 @'h18 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask5 @'h1c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask6 @'h20 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask7 @'h24 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask8 @'h28 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask9 @'h2c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask10 @'h30 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register clr_tc_mask11 @'h34 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_sel_mode_any @'h38 {
+		field val @'h0 {
+			bits 12;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask0 @'h3c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask1 @'h40 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask2 @'h44 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask3 @'h48 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask4 @'h4c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask5 @'h50 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask6 @'h54 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask7 @'h58 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask8 @'h5c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask9 @'h60 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask10 @'h64 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register inc_tc_mask11 @'h68 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val0_r0 @'h6c {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val0_r1 @'h70 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val1_r0 @'h74 {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val1_r1 @'h78 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val2_r0 @'h7c {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val2_r1 @'h80 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val3_r0 @'h84 {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val3_r1 @'h88 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val4_r0 @'h8c {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val4_r1 @'h90 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val5_r0 @'h94 {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val5_r1 @'h98 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val6_r0 @'h9c {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val6_r1 @'ha0 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val7_r0 @'ha4 {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val7_r1 @'ha8 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val8_r0 @'hac {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val8_r1 @'hb0 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val9_r0 @'hb4 {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val9_r1 @'hb8 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val10_r0 @'hbc {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val10_r1 @'hc0 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register max_val11_r0 @'hc4 {
+		field val_f0 @'h0 {
+			bits 32;
+			access rw;
+			reset 'h1;
+		}
+	}
+	register max_val11_r1 @'hc8 {
+		field val_f1 @'h0 {
+			bits 8;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask0 @'hcc {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask1 @'hd0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask2 @'hd4 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask3 @'hd8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask4 @'hdc {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask5 @'he0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask6 @'he4 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask7 @'he8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask8 @'hec {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask9 @'hf0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask10 @'hf4 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask11 @'hf8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask12 @'hfc {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask13 @'h100 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask14 @'h104 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask15 @'h108 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask16 @'h10c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask17 @'h110 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask18 @'h114 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask19 @'h118 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask20 @'h11c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask21 @'h120 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask22 @'h124 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask23 @'h128 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask24 @'h12c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask25 @'h130 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask26 @'h134 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask27 @'h138 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask28 @'h13c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask29 @'h140 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask30 @'h144 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register rel_mask31 @'h148 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register sel_delta @'h14c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register trig_inv @'h150 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask0 @'h154 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask1 @'h158 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask2 @'h15c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask3 @'h160 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask4 @'h164 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask5 @'h168 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask6 @'h16c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask7 @'h170 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask8 @'h174 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask9 @'h178 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask10 @'h17c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask11 @'h180 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask12 @'h184 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask13 @'h188 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask14 @'h18c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask15 @'h190 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask16 @'h194 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask17 @'h198 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask18 @'h19c {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask19 @'h1a0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask20 @'h1a4 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask21 @'h1a8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask22 @'h1ac {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask23 @'h1b0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask24 @'h1b4 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask25 @'h1b8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask26 @'h1bc {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask27 @'h1c0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask28 @'h1c4 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask29 @'h1c8 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask30 @'h1cc {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register val_mask31 @'h1d0 {
+		field val @'h0 {
+			bits 32;
+			access rw;
+			reset 'h0;
+		}
+	}
+	register cnt0_r0 @'h1d4 {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt0_r1 @'h1d8 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt1_r0 @'h1dc {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt1_r1 @'h1e0 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt2_r0 @'h1e4 {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt2_r1 @'h1e8 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt3_r0 @'h1ec {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt3_r1 @'h1f0 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt4_r0 @'h1f4 {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt4_r1 @'h1f8 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt5_r0 @'h1fc {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt5_r1 @'h200 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt6_r0 @'h204 {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt6_r1 @'h208 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt7_r0 @'h20c {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt7_r1 @'h210 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt8_r0 @'h214 {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt8_r1 @'h218 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt9_r0 @'h21c {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt9_r1 @'h220 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt10_r0 @'h224 {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt10_r1 @'h228 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt11_r0 @'h22c {
+		field val_f0 @'h0 {
+			bits 32;
+			access ro;
+			reset 'h0;
+		}
+	}
+	register cnt11_r1 @'h230 {
+		field val_f1 @'h0 {
+			bits 8;
+			access ro;
+			reset 'h0;
+		}
+	}
+}

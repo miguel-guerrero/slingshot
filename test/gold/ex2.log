@@ -1,0 +1,97 @@
+begin : q_with_reset
+    if (~rst_n) begin
+        a <= 0;
+        c <= 0;
+    end
+    else begin : my_process_q
+        c <= c + 3;
+        a <= a + 33;
+    end
+end
+-------------- verilog --------------
+//----------------------------------------------------------------------------
+// adder
+//----------------------------------------------------------------------------
+module adder (
+    input cin,
+    input [9:0] x,
+    input [9:0] y,
+    output [10:0] sm,
+    input clk,
+    input rst_n
+);
+wire a0; // auto
+wire b0; // auto
+reg a;
+reg [2:0] b;
+reg [2:0] c;
+
+always @(posedge clk or negedge rst_n) begin : my_process_p
+    if (a == 1) 
+        if (b == 2) begin
+            c <= 4;
+            b <= 5;
+        end
+        else begin
+            a <= 3;
+            b <= 6;
+        end
+    else begin
+        a <= b;
+        a <= 1 + b * (3 + 5 * a);
+        b <= b * 3 - 3'sh5 * d;
+        a <= b & a | ~(c & a);
+        a <= 1 & a > 1;
+    end
+    if (a < 22) 
+        a <= a + 1;
+    c <= c + 1;
+    while (a < 5) begin
+        a <= a + 1;
+        c <= c - 1;
+    end
+end
+
+always @(posedge clk or negedge rst_n) begin : q_with_reset
+    if (~rst_n) begin
+        a <= 0;
+        c <= 0;
+    end
+    else begin : my_process_q
+        c <= c + 3;
+        a <= a + 33;
+    end
+end
+
+always @(*) begin : my_com
+    a <= b + 1;
+end
+
+submod #(
+    .W(1),
+    .A(2)
+) submod_0 (
+    .a(a0),
+    .b(b0),
+    .clk(clk)
+);
+
+submod  submod_1 (
+    .a(a0),
+    .b(b0),
+    .clk(clk)
+);
+
+alu  alu_0 (
+    .res(res0),
+    .op(op0),
+    .a(a0),
+    .b2(b0)
+);
+
+endmodule
+
+-------------- repr --------------
+Module('adder', IOs=[Input(name='cin'), Input(10, name='x'), Input(10, name='y'), Output(11, name='sm'), Clock(name='clk'), Reset(name='rst_n')], params=[], body=[Clocked(Clock(name='clk'), reset=Reset(name='rst_n'), autoReset=True).Body(Block(If((Signal(name='a') == CInt(1))).Then(Block(If((Signal(3, name='b') == CInt(2))).Then(Block(SigAssign(Signal(3, name='c'), CInt(4)), SigAssign(Signal(3, name='b'), CInt(5)))).Else(Block(SigAssign(Signal(name='a'), CInt(3)), SigAssign(Signal(3, name='b'), CInt(6)))))).Else(Block(SigAssign(Signal(name='a'), Signal(3, name='b')), SigAssign(Signal(name='a'), (CInt(1) + (Signal(3, name='b') * (CInt(3) + (CInt(5) * Signal(name='a')))))), SigAssign(Signal(3, name='b'), ((Signal(3, name='b') * CInt(3)) - (CInt(5, width=3, signed=True).Hex() * Signal(3, name='d')))), SigAssign(Signal(name='a'), ((Signal(3, name='b') & Signal(name='a')) | ~((Signal(3, name='c') & Signal(name='a'))))), SigAssign(Signal(name='a'), (CInt(1) & (Signal(name='a') > CInt(1)))))), If((Signal(name='a') < CInt(22))).Then(Block(SigAssign(Signal(name='a'), (Signal(name='a') + CInt(1))))), SigAssign(Signal(3, name='c'), (Signal(3, name='c') + CInt(1))), While((Signal(name='a') < CInt(5))).Do(Block(SigAssign(Signal(name='a'), (Signal(name='a') + CInt(1))), SigAssign(Signal(3, name='c'), (Signal(3, name='c') - CInt(1))))), name='my_process_p')), Clocked(Clock(name='clk'), reset=Reset(name='rst_n'), autoReset=True).Body(Block(If(~(Reset(name='rst_n'))).Then(Block(SigAssign(Signal(name='a'), CInt(0)), SigAssign(Signal(3, name='c'), CInt(0)))).Else(Block(SigAssign(Signal(3, name='c'), (Signal(3, name='c') + CInt(3))), SigAssign(Signal(name='a'), (Signal(name='a') + CInt(33))), name='my_process_q')), name='q_with_reset')), Combo(body=Block(SigAssign(Signal(name='a'), (Signal(3, name='b') + CInt(1))), name='my_com')), Declare(Signal(name='a0')), Declare(Signal(name='b0')), Declare(Signal(name='clk')), InstanceLegacy('submod', textParamMapDict={'W': 1, 'A': 2}, textIoMapDict={'a': 'a0', 'b': 'b0', 'clk': 'clk'}, insName='submod_0'), InstanceLegacy('submod', textParamMapDict={}, textIoMapDict={'a': 'a0', 'b': 'b0', 'clk': 'clk'}, insName='submod_1'), Instance(Module('alu', IOs=[Output(32, name='res'), Input(10, name='op'), Input(32, name='a'), Input(32, name='b2')], params=[], body=[SigAssign(Output(32, name='res'), (Input(32, name='a') + Input(32, name='b2')))]), paramMapDict={}, ioMapDict={Input(32, name='a'): Signal(32, name='a0'), Input(32, name='b2'): Signal(32, name='b0'), Input(10, name='op'): Signal(10, name='op0'), Output(32, name='res'): Signal(32, name='res0')}, insName='alu_0')])
+-------------- m.getInstances() --------------
+[InstanceLegacy('submod', textParamMapDict={'W': 1, 'A': 2}, textIoMapDict={'a': 'a0', 'b': 'b0', 'clk': 'clk'}, insName='submod_0'), InstanceLegacy('submod', textParamMapDict={}, textIoMapDict={'a': 'a0', 'b': 'b0', 'clk': 'clk'}, insName='submod_1'), Instance(Module('alu', IOs=[Output(32, name='res'), Input(10, name='op'), Input(32, name='a'), Input(32, name='b2')], params=[], body=[SigAssign(Output(32, name='res'), (Input(32, name='a') + Input(32, name='b2')))]), paramMapDict={}, ioMapDict={Input(32, name='a'): Signal(32, name='a0'), Input(32, name='b2'): Signal(32, name='b0'), Input(10, name='op'): Signal(10, name='op0'), Output(32, name='res'): Signal(32, name='res0')}, insName='alu_0')]

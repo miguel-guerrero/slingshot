@@ -1,0 +1,35 @@
+-------------- verilog --------------
+//----------------------------------------------------------------------------
+// adder
+//----------------------------------------------------------------------------
+module adder (
+.   input cin,
+.   input [9:0] x,
+.   input [9:0] y,
+.   output [10:0] sm,
+.   input clk,
+.   input rst_n
+);
+
+reg [10:0] sm;
+reg [10:0] sm_r;
+reg sm_zero_r;
+
+always @(*) begin : combo_logic
+.   sm <= x + y + cin;
+end
+
+always @(posedge clk or negedge rst_n) 
+.   if (~rst_n) begin
+.   .   sm_r <= 0;
+.   .   sm_zero_r <= 0;
+.   end
+.   else begin : registering
+.   .   sm_r <= sm;
+.   .   sm_zero_r <= sm == 0;
+.   end
+
+endmodule
+
+-------------- repr --------------
+Module('adder', IOs=[Input(name='cin'), Input(10, name='x'), Input(10, name='y'), Output(11, name='sm'), Clock(name='clk'), Reset(name='rst_n')], params=[], body=[Combo(body=Block(SigAssign(Output(11, name='sm'), ((Input(10, name='x') + Input(10, name='y')) + Input(name='cin'))), name='combo_logic')), Clocked(Clock(name='clk'), reset=Reset(name='rst_n'), autoReset=True).Body(Block(If(~(Reset(name='rst_n'))).Then(Block(SigAssign(Output(11, name='sm_r'), CInt(0)), SigAssign(Output(name='sm_zero_r'), CInt(0)))).Else(Block(SigAssign(Output(11, name='sm_r'), Output(11, name='sm')), SigAssign(Output(name='sm_zero_r'), (Output(11, name='sm') == CInt(0))), name='registering'))))])

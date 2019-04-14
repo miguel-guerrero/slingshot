@@ -1,0 +1,35 @@
+While(Signal(8, name='a')).Do(Block(SigAssign(Signal(name='x'), CInt(1))))
+while (a) 
+    x <= 1;
+    while (a) 
+        x <= 1;
+Switch(Signal(8, name='a')).Case([CInt(1), CInt(2)]).Do(Block(SigAssign(Signal(name='x'), CInt(1)), SigAssign(Signal(name='x'), CInt(1)))).Case([CInt(3)]).Do(Block(SigAssign(Signal(name='x'), CInt(1)))).Default([SigAssign(Signal(name='x'), CInt(1))])
+case (a)
+    1, 2 : begin
+        x <= 1;
+        x <= 1;
+    end
+    3 : 
+        x <= 1;
+endcase
+    case (a)
+        1, 2 : begin
+            x <= 1;
+            x <= 1;
+        end
+        3 : 
+            x <= 1;
+    endcase
+If(Signal(8, name='a')).Then(Block(SigAssign(Signal(name='x'), CInt(1)))).Else(Block(SigAssign(Signal(name='x'), CInt(1)), SigAssign(Signal(name='x'), CInt(1))))
+if (a) 
+    x <= 1;
+else begin
+    x <= 1;
+    x <= 1;
+end
+    if (a) 
+        x <= 1;
+    else begin
+        x <= 1;
+        x <= 1;
+    end
