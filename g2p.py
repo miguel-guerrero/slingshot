@@ -23,6 +23,7 @@
 from abc import ABC, abstractmethod
 import os
 from gencore import *
+defaultRenderType = 'trip'
 
 #-------------------------------------------------------------------------------
 # Template Renderer's
@@ -130,13 +131,23 @@ def getFinalParams(passedDownParamDict, defaultParamDict):
     allKeys = set(passedDownParamDict).union(defaultParamDict)
     return {key:passedDownParamDict.get(key, defaultParamDict.get(key, None)) for key in allKeys}
 
+
+def setRenderType(rt):
+    global defaultRenderType
+    defaultRenderType = rt
+
+def getRenderType(rt):
+    if rt is None:
+        return defaultRenderType
+    return rt
+
 class RenderGenerator(GeneratorBase):
     def __init__(self, targetDir='build', targetExt='.v', *, 
-                       srcDir='.', srcExt='.vp', renderType='mako'):
+                       srcDir='.', srcExt='.vp', renderType=None):
          super().__init__(targetDir, targetExt)
          self.srcDir = srcDir
          self.srcExt = srcExt
-         self.renderType = renderType
+         self.renderType = getRenderType(renderType)
 
     def runGeneration(self, modBaseName, passedParamDict):
         templatePath = os.path.join(self.srcDir, modBaseName+self.srcExt)
@@ -268,9 +279,9 @@ if __name__=="__main__":
         parser.add_argument("templateFile",       help="template file",  type=str, **extra)
         #parser.add_argument("--paramsFile", "-p", help="parameter file", type=str, **extra)
         parser.add_argument("--keyValues",  "-k", help="Where KEYVALUES are pairs key=value", nargs='+', default=[])
-        parser.add_argument("--trip",             help="Use Trip renderer", action='store_true', default=False)
+        parser.add_argument("--mako",             help="Use Mako renderer instead of Trip", action='store_true', default=False)
         args = parser.parse_args()
-        args.renderType = 'trip' if args.trip else 'mako'
+        setRenderType('mako' if args.mako else 'trip')
         args.keyValues = dict(kv.split('=') for kv in args.keyValues)
         args.keyValues = {k:numberOrStr(v) for k,v in args.keyValues.items()}
         return args
@@ -280,6 +291,6 @@ if __name__=="__main__":
     directory, fileName = os.path.split(args.templateFile)
     topFileName, ext = os.path.splitext(fileName)
     passedParamDict = args.keyValues
-    module = generate(topFileName, passedParamDict, renderType=args.renderType)
-    print('module', module.name, 'generated')
+    module = generate(topFileName, passedParamDict)
+    print('module', module.name, 'generated under build directory')
 
