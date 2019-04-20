@@ -1,8 +1,7 @@
 
 all:
-	../g2p.py adder_tree.vp --trip
 	touch ./newer
-	./test_g2p.py
+	./test_g2p.py 
 	./test2_g2p.py
 	./test3_g2p.py
 	./test4_g2p.py
