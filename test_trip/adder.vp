@@ -1,0 +1,22 @@
+% name=f"adder_{param.WIDTH}"
+% if param.HAS_CIN:
+%     name += "_cin"
+% end
+
+module ${name} (
+    input [${param.WIDTH-1}:0] a, 
+    input [${param.WIDTH-1}:0] b, 
+% if param.HAS_CIN:
+    input cin,
+% end
+    output [${param.WIDTH}:0] sum
+);
+
+assign sum = a + b ${"+ cin" if param.HAS_CIN else ""};
+
+endmodule
+
+% #example of generation of a return value to the caller
+% tripio['area'] = param.WIDTH+1
+
+// userResult = ${tripio["area"]}
