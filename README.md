@@ -89,15 +89,15 @@ Other:
 
 # DEPENDENCIES
 
-- iverilog: this open source simulator is used to compile and simulate, in some 
+- **iverilog**: this open source simulator is used to compile and simulate, in some 
   cases, the generated code. Follow the instructions in the following link for 
   installation:
 
   http://iverilog.icarus.com
 
-  To install it locally from the source without root access, use install_iverilog.sh
+  To install it locally from the source without root access, use _install_iverilog.sh_
 
-- Python 3. The project is currently tested with Python 3.6.5
+- **Python 3**. The project is currently tested with Python 3.6.5
 
 
 # LICENSE
