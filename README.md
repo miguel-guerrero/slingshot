@@ -95,6 +95,8 @@ Other:
 
   http://iverilog.icarus.com
 
+  To install it locally from the source without root access, use install_iverilog.sh
+
 - Python 3. The project is currently tested with Python 3.6.5
 
 
