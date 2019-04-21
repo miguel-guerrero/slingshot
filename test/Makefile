@@ -1,3 +1,5 @@
+include ../common/include.mk
+
 VCOMP=iverilog -g2001
 VRUN=vvp
 
