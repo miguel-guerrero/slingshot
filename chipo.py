@@ -666,6 +666,7 @@ class BitVec(gencore.BitVecBase, NoEvalExpr):
         self.signed = signed
         self.pri = getPri('.', numOps=1)
         self.kind = 'BitVec'
+        self.isReg = False
 
     def lvalue(self):
         return set([self])
@@ -706,6 +707,11 @@ class BitVec(gencore.BitVecBase, NoEvalExpr):
     def vlogSigned(self):
         if self.signed:
             return ' signed'
+        return ''
+
+    def vlogReg(self):
+        if self.kind == "Output" and self.isReg:
+            return ' reg'
         return ''
 
     def vlog(self, indLvl, ctx=''):
@@ -818,7 +824,7 @@ class Io(Signal):
 
     def vlog(self, indLvl, ctx=''):
         if ctx=='io':
-            typ = self.kind.lower() + self.vlogSigned()
+            typ = self.kind.lower() + self.vlogReg() + self.vlogSigned()
             if self.width != 1:
                 return ind(f"{typ} [{self.vlogMsb()}:0] {self.name}", indLvl)
             return ind(f"{typ} {self.name}", indLvl)
@@ -1025,12 +1031,19 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
                     instancesStr += i.module().vlog(indLvl, recursive) + '\n'
                     doneSet.add(i.module().getName())
 
+        
+        #collect all assigned Signals 
+        sigAsgn = self.assigned()
+        for io in self.IOs:
+            if io in sigAsgn:
+                io.isReg = True
+
         #convert IOs[] into a verilog string
         ioStr = indListAsStr((io.vlog(indLvl+1, 'io') for io in self.IOs), 0)
 
-        #collect all assigned Signals and create reg declarations for them
-        sigAsgn = self.assigned()
-        regDecl = self.annotateRegs(sigAsgn)
+        #out of all assigned Signals and create reg declarations for them
+        #excluding IO's as they are already declared reg in the port list
+        regDecl = self.annotateRegs(sigAsgn.difference(set(self.IOs)))
         regDeclStr = indListAsStr((decl.vlog(indLvl) for decl in regDecl), 
                                   0, sep="\n")
 

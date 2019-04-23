@@ -11,15 +11,12 @@ module adder
     input rst_n,
     input [WIDTH-1:0] x,
     input [WIDTH-1:0] y,
-    output [SWIDTH-1:0] sm,
-    output [SWIDTH-1:0] sm_r,
-    output sm_zero_r
+    output reg [SWIDTH-1:0] sm,
+    output reg [SWIDTH-1:0] sm_r,
+    output reg sm_zero_r
 );
 
 reg [SWIDTH-1:0] res;
-reg [SWIDTH-1:0] sm;
-reg [SWIDTH-1:0] sm_r;
-reg sm_zero_r;
 
 always @(*) begin
 

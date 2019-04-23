@@ -7,14 +7,14 @@ module cater
 (
     input [WIDTH-1:0] x,
     input [WIDTH-1:0] y,
-    output [3:0] cat,
+    output reg [3:0] cat,
     input clk,
     input rst_n,
     input a,
     input b
 );
 
-reg [3:0] cat;
+
 
 always @(*) begin : combo_logic
     cat <= {

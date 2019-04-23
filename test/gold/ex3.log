@@ -6,12 +6,11 @@ module adder (
 .   input cin,
 .   input [9:0] x,
 .   input [9:0] y,
-.   output [10:0] sm,
+.   output reg [10:0] sm,
 .   input clk,
 .   input rst_n
 );
 
-reg [10:0] sm;
 reg [10:0] sm_r;
 reg sm_zero_r;
 
