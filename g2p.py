@@ -68,7 +68,7 @@ class TripRenderer(TemplateRenderer):
         prefix  += f'% #user code begins\n'
 
         postfix  = f'\n% #user code ends\n'
-        postfix += f'% tripio["result"] = g.Module(name, IOs, paramDict, instances.thisLevel(), userResult)'
+        postfix += f'% param["result"] = g.Module(name, IOs, paramDict, instances.thisLevel(), userResult)'
         tripio = {}
         tripio['passedParamDict'] = passedParamDict
         tripio['result'] = None

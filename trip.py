@@ -177,7 +177,7 @@ def genPython(
 # Used by the generated python prefix code
 #-------------------------------------------------------------------------------
 def jsonToDict(filename):
-    if filename is None:
+    if filename == "":
         return {}
     with open(filename) as fjson:
         s=fjson.read()
@@ -236,7 +236,7 @@ def genIntermPython(program, intermFile):
     with open(intermFile, 'w') as f:
         f.write(f'{program}\nprint(_render, end="") # for debug')
 
-def render(templateStr, paramFile=None, tripio={}, keepPython=False,
+def render(templateStr, paramFile="", tripio={}, keepPython=False,
            intermFile="__from_string__.debug.py", lineOffset=0):
 
     inputLst = templateStr.split('\n')
@@ -262,7 +262,7 @@ def render(templateStr, paramFile=None, tripio={}, keepPython=False,
 #-------------------------------------------------------------------------------
 # Wrapper for render when the template is in a file
 #-------------------------------------------------------------------------------
-def renderFile(templateFile, paramFile=None, tripio={}, keepPython=False, lineOffset=0):
+def renderFile(templateFile, paramFile="", tripio={}, keepPython=False, lineOffset=0):
     with open(templateFile) as f:
         templateStr = f.read().rstrip()
     return render(templateStr, paramFile, tripio, keepPython,
@@ -289,7 +289,7 @@ if __name__=='__main__':
                             type=str)
         parser.add_argument("--paramFile", "-p", 
                             help="parameter file", 
-                            type=str, default=None)
+                            type=str, default="")
         parser.add_argument("--outFile", "-o", 
                             help="output file, defaults to stdout", 
                             type=FileType('w'), default='-')
