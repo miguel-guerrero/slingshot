@@ -128,19 +128,21 @@ template renderer. For example:
           "name": "github"
       }
 
-The key-values in the command line (-k) are passed down to the script in a dictionary called 
-'tripio'. Its values will get combined with the contents on the JSON file into the tripio 
-dictionary (tripio present values, I.e. command line, have preference over JSON ones)
+The key-values in the command line (-k) are passed down to the script in a dictionary. 
+Its values will get combined with the contents on the JSON file as a dictionary 
+(-k style key-values have preference over JSON ones)
 
-Internally tripio dictionary gets converted into an object called 'param', which is usually 
-more convenient to use. This happens before the first line of user code. So
+User code can access this dictionary through an object called 'param', which is usually 
+more convenient to use than a plain dictionary as it allows indexing by field as follows:
 
-    param.name == tripio["name"]
-    param.where == tripio["where"]
+    param.name == param["name"]
+    param.where == param["where"]
 
-any changes to 'param' will get reflected back on output to 'tripio' which can be captured by 
+any changes to 'param' will get reflected back on output which can be captured by 
 the calling program. This is the main mechanism by which trip can communicate back to the 
 caller (modifiying arguments or adding new ones).
+
+Note that param is called 'tripio' in the API calls described bellow
 
 
 - The option --verbose will print the dictionary tripio onto stderr. 
@@ -179,3 +181,4 @@ And the following where the input to render is a string:
 - intermFile: name of an intermediate python file whose execution produces the desired output. It can be used 
   to debug syntax errors for instance
 - lineOffset : is an offset to add to the line numbers on generated errors
+

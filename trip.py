@@ -127,7 +127,7 @@ def genPython(
     out.append(f'paramDict = {modName}.jsonToDict("{paramFile}")')
     out.append(f'# override json contents with tripio dictionary')
     out.append(f"{modName}.addToDict(paramDict, tripio)")
-    out.append(f'param = {modName}.dictToObj(paramDict)')
+    out.append(f'param = {modName}.Struct(**paramDict)')
     out.append('end = endfor = endif = None')
     out.append('emitLines = []')
     out.append('def emit(s): global emitLines; emitLines.append(s)')
@@ -170,7 +170,7 @@ def genPython(
     lineOffset += lineCnt - len(lines)
     out.append((f'#--- {modName} payload code ends ---'))
     out.append(('_render = "\\n".join(emitLines)'))
-    out.append((f'{modName}.addToDict(tripio, {modName}.objToDict(param))'))
+    out.append((f'{modName}.addToDict(tripio, param.getDict())'))
     return [lineLoc(line, i-lineOffset+1, lineCnt-lineOffset) for i, line in enumerate(out)]
 
 #-------------------------------------------------------------------------------
@@ -183,18 +183,41 @@ def jsonToDict(filename):
         s=fjson.read()
     return json.loads(s)
 
-#during the conversion skips private attributes (starting with __)
-def objToDict(class_, filt=lambda kv_tuple : kv_tuple[0][0:2]!='__'):
-    return dict(filter(filt, class_.__dict__.items()))
-
-class dictToObj:
-    def __init__(self, dict_):
-        for k, v in dict_.items():
-            setattr(self, k, v)
-
 def addToDict(dst, src):
     for k, v in src.items():
         dst[k] = v
+
+#a structure that returns None for not-defined fields
+#and can be used as a dict too
+class Struct:
+    def __init__(self, **kwargs):
+        self.argDict = kwargs
+
+    def setDict(self, argDict):
+        self.argDict = argDict
+
+    def getDict(self):
+        return self.argDict
+
+    def __getitem__(self, key):
+        return self.__getattr__(key)
+
+    def __setitem__(self, key, val):
+        self.__setattr__(key, val)
+
+    def __getattr__(self, key):
+        if key in self.argDict.keys():
+            return self.argDict[key]
+        return None
+
+    def __setattr__(self, key, val):
+        if key != "argDict":
+            self.argDict[key] = val
+        else:
+            object.__setattr__(self, key, val)
+
+    def __repr__(self):
+        return "Struct(" + ", ".join(f"{k}={v!r}" for k, v in self.argDict.items()) + ")"
 
 #-------------------------------------------------------------------------------
 # Given a python string, execute it and return the content of its _render
