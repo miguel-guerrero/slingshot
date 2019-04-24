@@ -60,10 +60,12 @@ def quote(line, delimLeft, delimRight):
                     newLine += '{'
                     skip = lenL-1
                 else:
-                    if currChar in '{}':
-                        newLine += currChar*2 #quote it
+                    if currChar in "{}":
+                        newLine += currChar*2    #quote it by duplication
+                    elif currChar in "'":
+                        newLine += "\\"+currChar #quote it with \
                     else:
-                        newLine += currChar   #copy it
+                        newLine += currChar      #copy it
             else:
                 if line[i:i+lenR] == delimRight:
                     insideExpr = False

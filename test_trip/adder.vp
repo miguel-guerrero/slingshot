@@ -20,3 +20,4 @@ endmodule
 % param.area = param.WIDTH+1
 
 // userResult = ${param.area}
+// quoted text {}'
