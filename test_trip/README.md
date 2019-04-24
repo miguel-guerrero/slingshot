@@ -101,7 +101,8 @@ Additionaly if used as a command, trip.py can be used to render templates from c
 for usage details. Example for a recent version:
 
     usage: trip.py [-h] [--paramFile PARAMFILE] [--outFile OUTFILE]
-                   [--keyValues KEYVALUES [KEYVALUES ...]] [--verbose]
+                   [--keyValues KEYVALUES [KEYVALUES ...]] [--keepPython]
+                   [--verbose]
                    templateFile
 
     positional arguments:
@@ -115,6 +116,7 @@ for usage details. Example for a recent version:
                             output file, defaults to stdout
       --keyValues KEYVALUES [KEYVALUES ...], -k KEYVALUES [KEYVALUES ...]
                             key=value pairs
+      --keepPython          keep intermediate python script
       --verbose, -v         print output tripio on stderr
 
 
@@ -133,8 +135,8 @@ dictionary (tripio present values, I.e. command line, have preference over JSON 
 Internally tripio dictionary gets converted into an object called 'param', which is usually 
 more convenient to use. This happens before the first line of user code. So
 
-param.name == tripio["name"]
-param.where == tripio["where"]
+    param.name == tripio["name"]
+    param.where == tripio["where"]
 
 any changes to 'param' will get reflected back on output to 'tripio' which can be captured by 
 the calling program. This is the main mechanism by which trip can communicate back to the 
@@ -154,21 +156,26 @@ Additionally key-value pairs can be passed in the command line (as many as desir
 
 When trip is imported as a module, two functions can be used to render templates:
 
-    renderFile(templateFile, paramFile=None, tripio={}, lineOffset=0) -> returning a string
+    renderFile(templateFile, paramFile=None, tripio={}, keepPython=False, lineOffset=0) 
+        returning a string
 
 - tempateFile : file name of the template to render
 - paramFile : file name of the JSON parameter file
 - tripio : a dictionary with key-value overrides (modifiable the the template)
+- keepPython: if True will force writing to a file the intermediate python code that generates the output (debug)
 - lineOffset : is an offset to add to the line numbers on generated errors  
  
 
 And the following where the input to render is a string:
 
-    render(templateStr, paramFile=None, tripio={}, intermFile="__from_string__.debug.py", lineOffset=0) -> string
+    render(templateStr, paramFile=None, tripio={}, keepPython=False, 
+           intermFile="__from_string__.debug.py", lineOffset=0) 
+        returning a string
 
 - tempateStr : template to render as a string
 - paramFile : file name of the JSON parameter file
 - tripio : a dictionary with key-value overrides (modifiable the the template)
-- intermDile: name of an intermediate python file whose execution produces the desired output. It can be used 
+- keepPython: if True will force writing to a file the intermediate python code that generates the output (debug)
+- intermFile: name of an intermediate python file whose execution produces the desired output. It can be used 
   to debug syntax errors for instance
 - lineOffset : is an offset to add to the line numbers on generated errors
