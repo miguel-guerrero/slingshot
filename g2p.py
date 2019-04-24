@@ -72,7 +72,7 @@ class TripRenderer(TemplateRenderer):
         tripio = {}
         tripio['passedParamDict'] = passedParamDict
         tripio['result'] = None
-        render, rc = trip.render(prefix+contents+postfix, tripio=tripio, lineOffset=7)
+        render, rc = trip.render(prefix+contents+postfix, tripio=tripio, keepPython=False, lineOffset=7)
         return render, rc['result']
 
 #See Borg pattern: http://code.activestate.com/recipes/66531 similar to a singleton
