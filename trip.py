@@ -115,22 +115,18 @@ def genPython(
     #serialize tripio dictionary and let the generated code load it
     import pickle
     tripioSer = pickle.dumps(tripio)
-    out.append(f'import pickle')
-    out.append(f'tripio=pickle.loads({tripioSer})')
-    out.append(f'# tripio={tripio}')
+    out.append(f'import pickle, {modName}')
+    out.append(f'tripio = pickle.loads({tripioSer})')
+    out.append(f'# tripio = {tripio} # for debug')
     #param struct will contain parameters from file with potential
     #overrides from the tripio dictionary
-    if paramFile:
-        out.append(f'import {modName}')
-        out.append(f'param={modName}.jsonToObj("{paramFile}")')
-    else:
-        out.append(f'class Param:')
-        out.append(f'    pass')
-        out.append(f'param=Param()')
+    out.append(f'paramDict = {modName}.jsonToDict("{paramFile}")')
+    out.append(f'# override json contents with tripio dictionary')
     for k, v in tripio.items():
-        out.append(f"param.{k}={repr(v)}")
-    out.append('end=endfor=endif=None')
-    out.append('emitLines=[]')
+        out.append(f"paramDict[{repr(k)}] = {repr(v)}")
+    out.append(f'param = {modName}.dictToObj(paramDict)')
+    out.append('end = endfor = endif = None')
+    out.append('emitLines = []')
     out.append('def emit(s): global emitLines; emitLines.append(s)')
     out.append(f'#--- {modName} payload code begins ---')
 
@@ -170,18 +166,31 @@ def genPython(
     lineOffset += len(out) - len(lines)
     out.append((f'#--- {modName} payload code ends ---'))
     out.append(('_render = "\\n".join(emitLines)'))
-    out.append(('_return = tripio'))
+    out.append((f'{modName}.addToDict(tripio, {modName}.objToDict(param))'))
     return [lineLoc(line, i-lineOffset+1) for i, line in enumerate(out)]
 
-#Used by the generated python prefix code
-def jsonToObj(filename):
-    class JSONObject:
-        def __init__(self, dict):
-            vars(self).update(dict)
-
+#-------------------------------------------------------------------------------
+# Used by the generated python prefix code
+#-------------------------------------------------------------------------------
+def jsonToDict(filename):
+    if filename is None:
+        return {}
     with open(filename) as fjson:
         s=fjson.read()
-    return json.loads(s, object_hook=JSONObject)
+    return json.loads(s)
+
+#during the conversion skips private attributes (starting with __)
+def objToDict(class_, filt=lambda kv_tuple : kv_tuple[0][0:2]!='__'):
+    return dict(filter(filt, class_.__dict__.items()))
+
+class dictToObj:
+    def __init__(self, dict_):
+        for k, v in dict_.items():
+            setattr(self, k, v)
+
+def addToDict(dst, src):
+    for k, v in src.items():
+        dst[k] = v
 
 #-------------------------------------------------------------------------------
 # Given a python string, execute it and return the content of its _render
@@ -198,21 +207,22 @@ def execScript(program, tripio):
 # Render a template string. if there is an error create an itermediate script
 # to help debugging
 #-------------------------------------------------------------------------------
-def genInterm(program, intermFile):
+def genIntermPython(program, intermFile):
     with open(intermFile, 'w') as f:
         f.write(f'{program}\nprint(_render, end="")')
 
-def render(templateStr, paramFile=None, tripio={}, 
+def render(templateStr, paramFile=None, tripio={}, keepPython=False,
            intermFile="__from_string__.debug.py", lineOffset=0):
 
     inputLst = templateStr.split('\n')
-    pythoCodeLst = genPython(inputLst, paramFile, tripio, lineOffset=lineOffset)
-    program = '\n'.join(pythoCodeLst)
+    pythonCodeLst = genPython(inputLst, paramFile, tripio, lineOffset=lineOffset)
+    program = '\n'.join(pythonCodeLst)
 
     out = rc = None
     try:
         out, rc = execScript(program, tripio)
-        #genInterm(program, intermFile)
+        if keepPython:
+            genIntermPython(program, intermFile)
     except Exception as ex:
         #if there is an error, generate code for debug
         import traceback
@@ -220,17 +230,17 @@ def render(templateStr, paramFile=None, tripio={},
         print(f"An ERROR occurred, run 'python3 {intermFile}' to debug", 
               file=sys.stderr)
         print(excMsg, file=sys.stderr)
-        genInterm(program, intermFile)
+        genIntermPython(program, intermFile)
         raise
     return out, rc
 
 #-------------------------------------------------------------------------------
 # Wrapper for render when the template is in a file
 #-------------------------------------------------------------------------------
-def renderFile(templateFile, paramFile=None, tripio={}, lineOffset=0):
+def renderFile(templateFile, paramFile=None, tripio={}, keepPython=False, lineOffset=0):
     with open(templateFile) as f:
         templateStr = f.read().rstrip()
-    return render(templateStr, paramFile, tripio, 
+    return render(templateStr, paramFile, tripio, keepPython,
                   intermFile=templateFile+'.debug.py', lineOffset=lineOffset)
 
 #-------------------------------------------------------------------------------
@@ -254,13 +264,16 @@ if __name__=='__main__':
                             type=str)
         parser.add_argument("--paramFile", "-p", 
                             help="parameter file", 
-                            type=str)
+                            type=str, default=None)
         parser.add_argument("--outFile", "-o", 
                             help="output file, defaults to stdout", 
                             type=FileType('w'), default='-')
         parser.add_argument("--keyValues", "-k", 
                             help="key=value pairs", 
                             nargs='+', default=[])
+        parser.add_argument("--keepPython", 
+                            help="keep intermediate python script", 
+                            action='store_true', default=False)
         parser.add_argument('--verbose', "-v", 
                             help="print output tripio on stderr", 
                             default=False, action='store_true')
@@ -271,8 +284,7 @@ if __name__=='__main__':
 
     args = mainCmdParser(ArgumentParser())
 
-    out, rc = renderFile(args.templateFile, args.paramFile, tripio=args.keyValues)
+    out, rc = renderFile(args.templateFile, args.paramFile, tripio=args.keyValues, keepPython=args.keepPython)
     args.outFile.write(out)
     if args.verbose:
-        print(f'// rc = {rc}', file=sys.stderr)
-
+        print(f'{rc}', file=sys.stderr)

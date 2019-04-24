@@ -17,6 +17,6 @@ assign sum = a + b ${"+ cin" if param.HAS_CIN else ""};
 endmodule
 
 % #example of generation of a return value to the caller
-% tripio['area'] = param.WIDTH+1
+% param.area = param.WIDTH+1
 
-// userResult = ${tripio["area"]}
+// userResult = ${param.area}
