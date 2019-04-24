@@ -142,7 +142,9 @@ any changes to 'param' will get reflected back on output which can be captured b
 the calling program. This is the main mechanism by which trip can communicate back to the 
 caller (modifiying arguments or adding new ones).
 
-Note that param is called 'tripio' in the API calls described bellow
+Note that param is called 'tripio' in the API calls described bellow. ''tripio' inout argument
+contains the -k ke-value pairs on input but contains the full contents of 'param' on output 
+(I.e. including JSON paris plus any other new field added dynamically by the user)
 
 
 - The option --verbose will print the dictionary tripio onto stderr. 
