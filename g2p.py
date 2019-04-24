@@ -61,7 +61,7 @@ class TripRenderer(TemplateRenderer):
     def renderStr(contents, passedParamDict):
         import trip
         prefix   = f'% import g2p as g\n'
-        prefix  += f'% passedParamDict = tripio["passedParamDict"]\n'
+        prefix  += f'% passedParamDict = param.passedParamDict\n'
         prefix  += f'% instances = g.InstanceFactory()\n'
         prefix  += f'% IOs = []\n'
         prefix  += f'% userResult = g.Result()\n'
@@ -69,9 +69,11 @@ class TripRenderer(TemplateRenderer):
 
         postfix  = f'\n% #user code ends\n'
         postfix += f'% param["result"] = g.Module(name, IOs, paramDict, instances.thisLevel(), userResult)'
+
         tripio = {}
         tripio['passedParamDict'] = passedParamDict
         tripio['result'] = None
+
         render, rc = trip.render(prefix+contents+postfix, tripio=tripio, keepPython=False, lineOffset=7)
         return render, rc['result']
 
