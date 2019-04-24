@@ -199,12 +199,6 @@ class Struct:
     def getDict(self):
         return self.argDict
 
-    def __getitem__(self, key):
-        return self.__getattr__(key)
-
-    def __setitem__(self, key, val):
-        self.__setattr__(key, val)
-
     def __getattr__(self, key):
         if key in self.argDict.keys():
             return self.argDict[key]
@@ -216,8 +210,12 @@ class Struct:
         else:
             object.__setattr__(self, key, val)
 
+    __getitem__ = __getattr__
+    __setitem__ = __setattr__
+
     def __repr__(self):
-        return "Struct(" + ", ".join(f"{k}={v!r}" for k, v in self.argDict.items()) + ")"
+        return "Struct(" + ", ".join(f"{k}={v!r}" 
+                for k, v in self.argDict.items()) + ")"
 
 #-------------------------------------------------------------------------------
 # Given a python string, execute it and return the content of its _render

@@ -21,5 +21,8 @@ endmodule
 % param.area = param.WIDTH+1
 % param['res'] = 'good'
 
-// userResult = ${param.area}
 // example of auto-quoted text {}'
+// More examples:
+// area == ${param.area}
+// param == ${param}
+// param.getDict() == ${param.getDict()}
