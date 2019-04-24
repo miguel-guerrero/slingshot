@@ -95,9 +95,11 @@ def genPython(
     needIndent = False
     indent = 4*" "
 
-    def lineLoc(line, lineNum):
+    def lineLoc(line, lineNum, lineLim):
         pad = max(100-len(line), 0)
-        return line + ' '*pad + f' # user line {lineNum}'
+        if lineNum <= 0 or lineNum >= lineLim:
+            return line
+        return line + ' '*pad + f' # user line {lineNum}' 
 
     def indentList(lst, ind):
         return [ind + line for line in lst]
@@ -124,8 +126,7 @@ def genPython(
     #overrides from the tripio dictionary
     out.append(f'paramDict = {modName}.jsonToDict("{paramFile}")')
     out.append(f'# override json contents with tripio dictionary')
-    for k, v in tripio.items():
-        out.append(f"paramDict[{repr(k)}] = {repr(v)}")
+    out.append(f"{modName}.addToDict(paramDict, tripio)")
     out.append(f'param = {modName}.dictToObj(paramDict)')
     out.append('end = endfor = endif = None')
     out.append('emitLines = []')
@@ -165,11 +166,12 @@ def genPython(
                     line = quote(line, leftExprDelim, rightExprDelim)
                     buf.append(f"emit(f'{line}')")
 
-    lineOffset += len(out) - len(lines)
+    lineCnt = len(out)
+    lineOffset += lineCnt - len(lines)
     out.append((f'#--- {modName} payload code ends ---'))
     out.append(('_render = "\\n".join(emitLines)'))
     out.append((f'{modName}.addToDict(tripio, {modName}.objToDict(param))'))
-    return [lineLoc(line, i-lineOffset+1) for i, line in enumerate(out)]
+    return [lineLoc(line, i-lineOffset+1, lineCnt-lineOffset) for i, line in enumerate(out)]
 
 #-------------------------------------------------------------------------------
 # Used by the generated python prefix code
@@ -211,7 +213,7 @@ def execScript(program, tripio):
 #-------------------------------------------------------------------------------
 def genIntermPython(program, intermFile):
     with open(intermFile, 'w') as f:
-        f.write(f'{program}\nprint(_render, end="")')
+        f.write(f'{program}\nprint(_render, end="") # for debug')
 
 def render(templateStr, paramFile=None, tripio={}, keepPython=False,
            intermFile="__from_string__.debug.py", lineOffset=0):
