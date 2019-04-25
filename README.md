@@ -87,11 +87,25 @@ Other:
   Utility to find out a variable name at run time. Used by Chipo.
 
 
+The modules tightly related as follows (an arrow represents the relationship 'uses')
+
+<img src="doc/use_relationships.png" width="70%">
+
+Legend:
+
+<img src="doc/legend.png" width="30%">
+
+Notes:
+- gen_csrs is a separate tool to generate control/status registers available
+[in a different repo](https://sourceforge.net/projects/gen-csrs). You are expected to add the main executable, gen_csrs.pl, to your $PATH.
+
+- g2p and trip are both command-line executables and modules that can be imported from python
+
 # DEPENDENCIES
 
-- **iverilog**: this open source simulator is used to compile and simulate, in some 
-  cases, the generated code. Follow the instructions in the following link for 
-  installation:
+- **iverilog**: Icarus Verilog is an open source simulator is used to compile and simulate 
+the generated code in the examples provided here. Follow the instructions in the following 
+link for installation:
 
   http://iverilog.icarus.com
 
@@ -99,6 +113,9 @@ Other:
 
 - **Python 3**. The project is currently tested with Python 3.6.5
 
+- **gen_csrs**. If using the optional 'regs' module. See [gen_csrs](https://sourceforge.net/projects/gen-csrs). 
+
+You are expected to have iverilog and gen_csrs.pl executables to your $PATH.
 
 # LICENSE
 
