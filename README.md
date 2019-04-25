@@ -103,6 +103,13 @@ Notes:
 
 - g2p and trip are both command-line executables and modules that can be imported from python
 
+
+# BUGS
+
+This code is in Alpha testing and API and command line tool arguments are subject to change. Please report any bugs along with input file and command line used to allow its reproduction to: miguel.a.guerrero at gmail.com
+
+Suggestions for improvement are most welcomed
+
 # DEPENDENCIES
 
 - **iverilog**: Icarus Verilog is an open source simulator is used to compile and simulate 
