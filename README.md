@@ -89,7 +89,7 @@ Other:
 See README.md on respective test\* directories for more documentation.
 
 
-The modules tightly related as follows (an arrow represents the relationship 'uses')
+The modules are interdependent as follows (an arrow represents the relationship 'uses')
 
 <img src="doc/use_relationships.png" width="70%">
 
