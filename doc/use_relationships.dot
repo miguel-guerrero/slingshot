@@ -1,0 +1,19 @@
+digraph use_relationships {
+
+  g2p -> gencore;
+  chipo -> gencore;
+  chipo -> varname;
+  regs -> chipo;
+  g2p, trip_design -> trip;
+  regs -> gen_csrs
+
+  chipo_design -> chipo;
+  chipo_design -> regs, g2p [style=dashed];
+  g2p_design -> g2p;
+  regs -> g2p;
+
+  g2p, trip, gen_csrs [shape=rectangle, color=blue];
+  
+  chipo_design, g2p_design, trip_design [shape=rectangle, color=green];
+  
+}

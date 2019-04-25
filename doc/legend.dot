@@ -1,0 +1,4 @@
+digraph legend {
+  executable [shape=rectangle];
+  module;
+}
