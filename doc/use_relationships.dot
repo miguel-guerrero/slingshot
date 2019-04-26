@@ -1,5 +1,7 @@
 digraph use_relationships {
 
+  { rank=same chipo_design g2p_design trip_design }
+
   g2p -> gencore;
   chipo -> gencore;
   chipo -> varname;
