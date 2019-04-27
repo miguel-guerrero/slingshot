@@ -6,7 +6,7 @@ VRUN=vvp
 all: reg_test reg_test2 ex1 ex2 ex3 g2p_ex1 g2p_ex2 vlog
 
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
- multi_adder multi_adder2 multi_adder3 counter counter
+ multi_adder multi_adder2 multi_adder3 counter counter2
 
 reg_test:
 	./reg_test.py > reg_test.ralf
@@ -39,9 +39,9 @@ counter:
 	diff gold/counter.v .
 
 counter2:
-	./counter2.py > counter2.v
+	./counter2.py
 	$(VCOMP) counter2.v
-	diff gold/counter.v counter2.v
+	diff gold/counter2.v counter2.v
 
 adder:
 	./adder.py > adder.v

@@ -4,9 +4,10 @@
 #-------------------------------------------------------------------------------
 from chipo import *
 
-class Counter(Module):
+#another style, see counter.py
+class Counter2(Module):
 
-    def __init__(self, name='counter', *, cntW=8):
+    def __init__(self, name='counter2', *, cntW=8):
         super().__init__(name)
         WIDTH = Parameter(cntW)
         clk, rst_n = Clock(), Reset()
@@ -33,9 +34,10 @@ class Counter(Module):
 
 
 if __name__=='__main__':
-
     #start generation
-    cntr = Counter()
+    cntr2 = Counter2()
 
-    #print verilog code for it
-    print(cntr.vlog(recursive=True))
+    #dump verilog code for it
+    with open(cntr2.name+'.v', "w") as f:
+        print(cntr2.vlog(), file=f)
+
