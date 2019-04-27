@@ -6,7 +6,7 @@ VRUN=vvp
 all: reg_test reg_test2 ex1 ex2 ex3 g2p_ex1 g2p_ex2 vlog
 
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
- multi_adder multi_adder2 multi_adder3 counter
+ multi_adder multi_adder2 multi_adder3 counter counter
 
 reg_test:
 	./reg_test.py > reg_test.ralf
