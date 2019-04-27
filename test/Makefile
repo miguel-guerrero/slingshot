@@ -38,6 +38,11 @@ counter:
 	$(VCOMP) counter.v
 	diff gold/counter.v .
 
+counter2:
+	./counter2.py > counter2.v
+	$(VCOMP) counter2.v
+	diff gold/counter.v counter2.v
+
 adder:
 	./adder.py > adder.v
 	$(VCOMP) adder.v tb.v
