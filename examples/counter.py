@@ -10,7 +10,7 @@ from chipo import *
 def genCounter(name='counter', *, cntW=8):
     WIDTH = Parameter(cntW)
     clk, rst_n = Clock(), Reset()
-    en, clr = Input() ** 2
+    inc, clr = Input() ** 2
     max_val = Input(WIDTH)
     eq, cnt = Output(), Output(WIDTH)
     return Module(name) [
@@ -22,7 +22,7 @@ def genCounter(name='counter', *, cntW=8):
                 If (clr) [
                     Comment('clear has priority'),
                     cnt <= 0
-                ].Elif (en) [
+                ].Elif (inc) [
                     cnt <= cnt + 1
                 ]
             ]

@@ -7,7 +7,7 @@ module counter2
 (
     input clk,
     input clr,
-    input en,
+    input inc,
     input [WIDTH-1:0] max_val,
     input rst_n,
     output reg [WIDTH-1:0] cnt,
@@ -30,8 +30,7 @@ always @(posedge clk or negedge rst_n)
             // clear has priority
             cnt <= 0;
         end
-        else if (en) 
+        else if (inc) 
             cnt <= cnt + 1;
 
 endmodule
-

@@ -14,7 +14,7 @@ class Counter2(Module):
         super().__init__(name)
         WIDTH = Parameter(cntW)
         clk, rst_n = Clock(), Reset()
-        en, clr = Input() ** 2
+        inc, clr = Input() ** 2
         max_val = Input(WIDTH)
         eq, cnt = Output(), Output(WIDTH)
 
@@ -27,7 +27,7 @@ class Counter2(Module):
                 If (clr) [
                     Comment('clear has priority'),
                     cnt <= 0
-                ].Elif (en) [
+                ].Elif (inc) [
                     cnt <= cnt + 1
                 ]
             ]
@@ -42,5 +42,5 @@ if __name__=='__main__':
 
     #dump verilog code for it
     with open(cntr2.name+'.v', "w") as f:
-        print(cntr2.vlog(), file=f)
+        f.write(cntr2.vlog())
 
