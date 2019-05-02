@@ -2,6 +2,8 @@
 #-------------------------------------------------------------------------------
 # (c) 2018 Miguel A. Guerrero all rights reserved
 #-------------------------------------------------------------------------------
+import sys
+sys.path.append("..") # add path to chipo and related
 from regs import *
 
 z = Signal(16)

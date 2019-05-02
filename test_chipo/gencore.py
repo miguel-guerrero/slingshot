@@ -1,1 +1,0 @@
-../gencore.py
