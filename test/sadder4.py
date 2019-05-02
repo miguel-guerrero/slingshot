@@ -5,7 +5,7 @@
 from chipo import *
 
 if __name__=='__main__':
-    setIndent('\t')
+    vlog.setIndent('\t')
     WIDTH = Parameter(8)
     SWIDTH = Parameter(WIDTH)
     clk = Clock()
@@ -24,7 +24,7 @@ if __name__=='__main__':
             .Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n)
             .Body(
                 Combo(Block(name='my_com')).Name('combo_logic').Body(
-                    res.eq(x + y + cin),
+                    res != x + y + cin,
                     sm <= res
                 ),
                 Clocked(clk, rst_n).Name('registering').Body(

@@ -3,6 +3,7 @@
 # (c) 2018 Miguel A. Guerrero all rights reserved
 #-------------------------------------------------------------------------------
 from chipo import *
+import vlog
 
 if __name__=='__main__':
     clk = Clock()
@@ -47,7 +48,7 @@ if __name__=='__main__':
              ]
         adder += p
 
-    setIndent('    ')
+    vlog.setIndent('    ')
     if True:
         q = Clocked(clk, rst_n).Name('my_process_q')
         q += (c <= c + 3)
@@ -55,7 +56,7 @@ if __name__=='__main__':
         h = q.genResetLogic()
         q.body = h.Name('q_with_reset')
         adder += q
-        print(h.vlog(0))
+        print(vlog.dump(h))
 
     com = Combo(Block(name='my_com'))
     com += a <= b + 1
@@ -94,7 +95,7 @@ if __name__=='__main__':
 
 
     print('-------------- verilog --------------')
-    print(adder.vlog())
+    print(vlog.dump(adder))
     print('-------------- repr --------------')
     print(repr(adder))
     print('-------------- m.getInstances() --------------')

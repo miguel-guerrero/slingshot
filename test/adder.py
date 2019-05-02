@@ -5,7 +5,7 @@
 from chipo import *
 
 if __name__=='__main__':
-    setIndent('\t')
+    vlog.setIndent('\t')
     clk = Clock()
     rst_n = Reset()
     cin = Input()

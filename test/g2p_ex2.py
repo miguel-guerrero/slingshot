@@ -48,5 +48,5 @@ ioMap['y']=y0
 
 #instantiate a g2p module in chipo
 i = InstanceG2p(adder, {'A':1}, ioMap, 'adder_0')
-print(i.vlog(0))
+print(vlog.dump(i, 0))
 

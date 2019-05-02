@@ -24,25 +24,13 @@ import re
 import varname
 import copy
 from collections import defaultdict
+import vlog
 
-INDENT='    '
 serialNumber = varname.makeCounter()
 
 #------------------------------------------------------------------------------
 # Utilities
 #------------------------------------------------------------------------------
-def setIndent(x):
-    global INDENT
-    INDENT = x
-
-def ind(s:str, n:int) -> str:
-    return (INDENT*n) + s
-
-def indList(lst:list, n:int) -> list:
-    return [ind(item, n) for item in lst]
-
-def indListAsStr(lst:list, n:int, sep=',\n') -> str:
-    return sep.join(indList(lst, n))
 
 #pad suffix number if present for nicer sort
 def modkey(n): 
@@ -73,7 +61,7 @@ class ApiGenerator(gencore.GeneratorBase):
 
     def runGeneration(self, name, passedParamDict):
         assert self.module.name == name 
-        s = self.module.getAst().vlog()
+        s = vlog.dump(self.module.getAst())
         return s, self.module
 
 def vlogToFile(exportMod, targetDir='build', targetExt='.v'):
@@ -110,10 +98,6 @@ class Comment(AstNode):
     def __init__(self, *lines):
         self.lines = lines
 
-    def vlog(self, indLvl):
-        vlst = [f"// {cmnt}" for cmnt in self.lines]
-        return indListAsStr(vlst, indLvl, sep='\n')
-
     def __repr__(self):
         return f'Comment{self.lines!r}'
 
@@ -144,24 +128,15 @@ class Block(AstStatement):
     def driven(self):    return self.apply('driven',    self.stmts)
     def declared(self):  return self.apply('declared',  self.stmts)
 
-    def vlog(self, indLvl):
-        if len(self.stmts) == 1 and self.name is None:
-            return "\n" + self.stmts[0].vlog(indLvl+1)
-        v = [stm.vlog(indLvl+1) for stm in self.stmts]
-        name = "" if self.name is None else " : " + self.name
-        return f"begin{name}\n" + \
-            indListAsStr(v, 0, sep='\n') + "\n" + ind("end", indLvl)
-
     def __repr__(self):
         s = ", ".join(repr(stm) for stm in self.stmts)
         if self.name is not None:
             return f'Block({s}, name={self.name!r})'
         return f'Block({s})'
 
-#if passed a list of statements, creates a block
-#but if passed a block just returns it, no block wrapper around
-def flattenBlock(aTuple):
-    assert isinstance(aTuple, tuple)
+#if passed a tuple of statements creates a block with them,
+#but if passed a tuple containing only a block just returns it
+def flattenBlock(aTuple: tuple):
     if len(aTuple)==1 and isinstance(aTuple[0], Block):
         return aTuple[0]
     return Block(*aTuple)
@@ -224,17 +199,6 @@ class If(AstStatement):
         return self.elifCond + self.elifBlock + \
                [self.cond, self.trueBlock, self.falseBlock]
 
-    def vlog(self, indLvl):
-        assert len(self.elifBlock)==len(self.elifCond), "Forgot cond on Elif ?"
-        v = ind('if (' + self.cond.vlog(0) + ')', indLvl) + ' ' + \
-            self.trueBlock.vlog(indLvl)
-        for i, b in enumerate(self.elifBlock):
-            v += '\n' + ind('else if (' + self.elifCond[i].vlog(0) + ')', 
-                indLvl) + ' ' + b.vlog(indLvl)
-        if self.falseBlock is not None:
-            v += "\n" + ind("else ", indLvl) + self.falseBlock.vlog(indLvl)
-        return v
-
     def __repr__(self):
         elifv = elsev = ''
         for i, b in enumerate(self.elifBlock):
@@ -264,10 +228,6 @@ class While(AstStatement):
 
     def all(self):
         return [self.cond, self.trueBlock]
-
-    def vlog(self, indLvl):
-        return ind('while (' + self.cond.vlog(0) + ')', indLvl) + ' ' + \
-               self.trueBlock.vlog(indLvl)
 
     def __repr__(self):
         return f'While({self.cond!r}).Do({self.trueBlock!r})'
@@ -300,10 +260,6 @@ class Switch(AstStatement):
         def __repr__(self):
             return f"Case({self.conditionExpr!r}).Do({self.body!r})"
 
-        def vlog(self, indLvl):
-            cases = ", ".join([i.vlog(0) for i in self.conditionExpr])
-            return ind(f'{cases} : ', indLvl) + self.body.vlog(indLvl)
-
     def __init__(self, cond=1):
         self.cond = WrapExpr(cond)
         self.cases = list()
@@ -322,11 +278,6 @@ class Switch(AstStatement):
 
     def all(self):
         return self.cases 
-
-    def vlog(self, indLvl):
-        cases = indListAsStr([i.vlog(indLvl+1) for i in self.cases], 0, sep='\n')
-        return ind('case (' + self.cond.vlog(0) + ')', indLvl) + '\n' + \
-               cases + '\n' + ind('endcase', indLvl)
 
     def __repr__(self):
         cases = "".join([f".{i!r}" for i in self.cases])
@@ -347,10 +298,6 @@ class AssignBase(AstStatement):
 
     def paramUsed(self):
         return self.expr.paramUsed().union(self.lhs.paramUsed())
-
-    def vlog(self, indLvl):
-        return ind(self.lhs.vlog(0) + " " + self.vlogOper + " " + \
-               self.expr.vlog(indLvl), indLvl) + ';'
 
     def __repr__(self):
         return f'{self.kind}Assign({self.lhs!r}, {self.expr!r})'
@@ -423,16 +370,6 @@ class CInt(AstNode):
     def Signed(self):
         self.signed = True
         return self
-
-    def vlog(self, indLvl):
-        prefix = '-' if self.signed and self.val < 0 else ''
-        sz = "'" if self.width is None else f"{self.width}'"
-        sgn = 's' if self.signed else ''
-        fmt = 'x' if self.base == 'h' else self.base
-        num = f'{abs(self.val):{fmt}}'
-        if sz + sgn + self.base == "'d": # omit 'd prefix if alone
-            return prefix + num
-        return prefix + sz + sgn + self.base + num
 
     def __repr__(self):
         suf = '.Hex()' if self.base=='h' else \
@@ -508,17 +445,6 @@ class Expr(AstNode):
     def all(self):
         return (self.lhs, self.rhs)
 
-    # convert expr to vlog and parenthesize if expr operator is lower pri than 
-    # self.op/pri
-    def paren(self, expr):
-        v = expr.vlog(0)
-        if isinstance(expr, Expr) and expr.pri < self.pri:
-            return '('+v+')'
-        return v
-
-    def vlog(self, indLvl):
-        return self.paren(self.lhs) + " " + self.op + " " + self.paren(self.rhs)
-
     def __repr__(self):
         return f"({self.lhs!r} {self.op} {self.rhs!r})"
 
@@ -528,9 +454,6 @@ class UnaryExpr(Expr):
         self.lhs = None
         self.rhs = WrapExpr(rhs)
         self.pri = getPri(op, numOps=1)
-
-    def vlog(self, indLvl):
-        return self.op + self.paren(self.rhs) 
 
     def __repr__(self):
         return f"{self.op}({self.rhs!r})"
@@ -552,9 +475,6 @@ class Concat(NoEvalExpr):
     def lvalue(self):
         return set.union(*[x.lvalue() for x in self.all_])
 
-    def vlog(self, indLvl):
-        return '{\n'+ indListAsStr([self.paren(x) for x in self.all_], indLvl+1) +'}'
-
     def __repr__(self):
         return f"Concat({self.all_!r})"
 
@@ -569,9 +489,6 @@ class IfCond(NoEvalExpr):
     def all(self):
         return (self.cond, self.ift, self.iff)
 
-    def vlog(self, indLvl):
-        return self.paren(self.cond) + ' ? ' + self.ift.vlog(0) + \
-                                       ' : ' + self.iff.vlog(0) 
     def __repr__(self):
         return f"IfCond({self.cond!r}, {self.ift!r}, {self.iff!r})"
 
@@ -596,10 +513,6 @@ class BitExtract(NoEvalExpr):
     def __hash__(self):
         return self.__repr__().__hash__()
 
-    def vlog(self, indLvl):
-        lsbv = '' if self.rhs2 is None else ':' + self.rhs2.vlog(0)
-        return self.paren(self.lhs) + '['+ self.rhs.vlog(0) + lsbv +']'
-
     def __repr__(self):
         rest = '' if self.rhs2 is None else f", {self.rhs2!r})"
         return f"BitExtract({self.lhs!r}, {self.rhs!r}{rest})"
@@ -613,9 +526,6 @@ class ExprReduce(NoEvalExpr):
 
     def all(self):
         return (self.rhs,)
-
-    def vlog(self, indLvl):
-        return self.op + self.paren(self.rhs) 
 
     def __repr__(self):
         return f"ExprReduce({self.op!r}, {self.rhs!r})"
@@ -646,12 +556,6 @@ class Parameter(Expr, varname.Named):
 
     def __hash__(self):
         return self.name.__hash__()
-
-    def vlog(self, indLvl, ctx=''):
-        v = f'{self.name}'
-        if ctx == 'io':
-            v = f"parameter {v} = {self.default.vlog(0)}"
-        return v
 
     def __repr__(self):
         return f"Parameter({self.default!r}, name={self.name!r})"
@@ -697,31 +601,6 @@ class BitVec(gencore.BitVecBase, NoEvalExpr):
     def __le__(self, rhs):  raise NotImplementedError
     def update(self, rhs):  raise NotImplementedError
 
-    def vlogMsb(self):
-        if isinstance(self.width, Parameter):
-            return f"{self.width.name}-1"
-        if isinstance(self.width, Expr):
-            return Expr('-', self.width, CInt(1)).vlog(0)
-        return f"{self.getMsb()}"
-
-    def vlogSigned(self):
-        if self.signed:
-            return ' signed'
-        return ''
-
-    def vlogReg(self):
-        if self.kind == "Output" and self.isReg:
-            return ' reg'
-        return ''
-
-    def vlog(self, indLvl, ctx=''):
-        v = f'{self.name}'
-        if ctx == 'io':
-            if isinstance(self.width, int) and self.width != 1 or \
-               isinstance(self.width, Expr):
-                v += f"[{self.vlogMsb()}:0]"
-        return v
-
     def __repr__(self):
         args = gencore.BitVecBase.__repr__(self)
         if self.default != 0:
@@ -738,18 +617,13 @@ class Variable(BitVec):
     def eq(self, rhs):
         return VarAssign(self, rhs)
 
-    def __matmul__(self, n):
-        return VarAssign(self, n)
-
-    """
-    def __eq__(self, n):
+    def __ne__(self, rhs):
         if isinstance(self, Variable):
-            return VarAssign(self, n)
-        return Expr('==', self, rhs)
+            return VarAssign(self, rhs)
+        return Expr('!=', self, rhs)
 
-    def __hash__(self):
-        return self.name.__hash__()
-    """
+    def __matmul__(self, n): #TODO exp
+        return VarAssign(self, n)
 
 class Signal(BitVec):
     def __init__(self, width=1, *, name=None, default=0, signed=False):
@@ -774,10 +648,6 @@ class Declare(AstNode):
     def declared(self):
         return set([self.x])
 
-    #signal declarations are converted to reg/wires at Module
-    def vlog(self, indLvl, ctx=''):
-        return "" # f"// Declare signal {self!r}"
-
     def __repr__(self):
         return f"Declare({self.x!r})"
 
@@ -787,12 +657,6 @@ class Reg(BitVec):
         super().__init__(width=sig.width, name=sig.name, 
                          default=sig.default, signed=sig.signed)
         self.typ = 'Reg'
-
-    def vlog(self, indLvl):
-        typ = 'reg' + self.vlogSigned()
-        if self.width != 1:
-            return ind(f"{typ} [{self.vlogMsb()}:0] {self.name};", indLvl)
-        return ind(f"{typ} {self.name};", indLvl)
 
     def __repr__(self):
         raise NotImplementedError
@@ -804,13 +668,6 @@ class Wire(BitVec):
                          default=sig.default, signed=sig.signed)
         self.typ = 'Wire'
 
-    def vlog(self, indLvl):
-        typ = 'wire' + self.vlogSigned()
-        if self.width != 1:
-            return ind(f"{typ} [{self.vlogMsb()}:0] {self.name}; // auto", 
-                       indLvl)
-        return ind(f"{typ} {self.name}; // auto", indLvl)
-
     def __repr__(self):
         raise NotImplementedError
 
@@ -821,14 +678,6 @@ class Io(Signal):
     def __init__(self, width, name, default, signed):
         Signal.__init__(self, width=width, name=name, default=default, signed=signed)
         self.kind='io'
-
-    def vlog(self, indLvl, ctx=''):
-        if ctx=='io':
-            typ = self.kind.lower() + self.vlogReg() + self.vlogSigned()
-            if self.width != 1:
-                return ind(f"{typ} [{self.vlogMsb()}:0] {self.name}", indLvl)
-            return ind(f"{typ} {self.name}", indLvl)
-        return super().vlog(indLvl)
 
     def __str__(self):
         return self.__repr__()
@@ -851,13 +700,6 @@ class Clock(Input):
     def edge(self):
         return "posedge" if self.posedge else "nedgede"
 
-    def vlog(self, indLvl, ctx=''):
-        if ctx=='io':
-            return super().vlog(indLvl, ctx)
-        if ctx=='event':
-            return self.edge() + " " + self.name
-        return self.name
-
     def __repr__(self):
         edge = f", posedge=False" if not self.posedge else ''
         return f"Clock(name={self.name!r}{edge})"
@@ -878,15 +720,6 @@ class Reset(Input):
         return "negedge" if self.asyn and self.lowTrue else \
                "posedge" if self.asyn and not self.lowTrue else "" 
 
-    def vlog(self, indLvl, ctx=''):
-        if ctx=='io':
-            return super().vlog(indLvl, ctx)
-        if ctx=='event':
-            if self.asyn:
-                return self.edge() + " " + self.name
-            return ""
-        return self.name
-
     def __repr__(self):
         if not self.lowTrue:
             return f"Reset(name={self.name!r}, asyn={self.asyn}, " + \
@@ -904,6 +737,9 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
         gencore.ModuleBase.__init__(self, IOs)
         self.params = list(params)
         self.body = list(bd)
+
+    def vlog(self, *args, **kwargs):
+        return vlog.dump(self, *args, **kwargs)
 
     def getName(self):
         return self.name
@@ -1010,7 +846,7 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
                    .autoSignals().autoParams().autoInstanceName()
 
     def elab(self):
-        s = self.vlog(0) #for now resolves all names
+        s = self.vlog() #for now resolves all names
         return self.autoReset()
 
     def annotateUses(self, x):
@@ -1018,61 +854,6 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
 
     def annotateRegs(self, x):
         return [Reg(sig) for sig in sortedAsList(x)]
-
-    def vlog(self, indLvl=0, recursive=False):
-
-        instancesStr = ''
-        if recursive:
-            doneSet = set()
-            for i in self.getInstances():
-                if i.module() is None: #legacy instance
-                    instancesStr += f"// INFO: {i} is external\n"
-                elif i.module().getName() not in doneSet:
-                    instancesStr += i.module().vlog(indLvl, recursive) + '\n'
-                    doneSet.add(i.module().getName())
-
-        
-        #collect all assigned Signals 
-        sigAsgn = self.assigned()
-        for io in self.IOs:
-            if io in sigAsgn:
-                io.isReg = True
-
-        #convert IOs[] into a verilog string
-        ioStr = indListAsStr((io.vlog(indLvl+1, 'io') for io in self.IOs), 0)
-
-        #out of all assigned Signals and create reg declarations for them
-        #excluding IO's as they are already declared reg in the port list
-        regDecl = self.annotateRegs(sigAsgn.difference(set(self.IOs)))
-        regDeclStr = indListAsStr((decl.vlog(indLvl) for decl in regDecl), 
-                                  0, sep="\n")
-
-        #collect all declared Signals and create wire declarations for 
-        #the ones not already IO's or regs
-        sigDecl = self.declared(Signal)
-        undeclUsed = self.annotateUses(
-                        sigDecl.difference(set(self.IOs)).difference(sigAsgn))
-        undeclUsedStr = indListAsStr((uu.vlog(indLvl) for uu in undeclUsed), 
-                                     0, sep="\n")
-        #convert all statements in the body to verilog
-        bodyLst = [stm.vlog(indLvl) for stm in self.body]
-        bodyStr = indListAsStr([stm for stm in bodyLst if stm != ''], 0, 
-                                sep="\n\n")
-
-        #convert parameters to verilog
-        paramStr = ''
-        if self.params != []:
-            paramStr = indListAsStr((p.vlog(0, 'io') for p in self.params), 
-                                    indLvl+1, sep=",\n")
-            paramStr = ind('\n#(\n', indLvl) + paramStr + ')\n'
-
-        return instancesStr + \
-               f'//'+ (76*'-') +'\n'+ \
-               f'// {self.name}\n'+ \
-               f'//'+ (76*'-') +'\n'+ \
-               f'module {self.name} {paramStr}(\n{ioStr}\n);\n'+ \
-               f'{undeclUsedStr}\n{regDeclStr}\n\n'+ \
-               f'{bodyStr}\n\nendmodule\n'
 
     def __repr__(self):
         return f'Module({self.name!r}, IOs={self.IOs!r}, ' + \
@@ -1120,16 +901,6 @@ class Clocked(AstNode):
             self.body = self.genResetLogic()
         return self
 
-    def vlog(self, indLvl):
-        events = [self.clock.vlog(indLvl, 'event')]
-        if self.reset is not None:
-            resetStr = self.reset.vlog(indLvl, 'event')
-            if resetStr != "":
-                events.append(resetStr)
-        sensStr = " or ".join(events)
-        bodyStr = self.body.vlog(indLvl)
-        return ind(f'always @({sensStr}) ', indLvl) + bodyStr
-
     def __repr__(self):
         return f'Clocked({self.clock}, reset={self.reset!r}, ' + \
                f'autoReset={self.autoReset}).Body({self.body!r})'
@@ -1158,10 +929,6 @@ class Combo(AstNode):
         self.body.name = name
         return self
 
-    def vlog(self, indLvl):
-        bodyStr = self.body.vlog(indLvl)
-        return ind(f'always @(*) ', indLvl) + bodyStr
-
     def __repr__(self):
         return f'Combo(body={self.body!r})'
 
@@ -1187,7 +954,7 @@ def _ioToVlogDict(ioMapDict, IOs):
             assert io.name in d, 'signal in port map is not a port: ' + io.name
         if isinstance(io, str):
             assert io in d, 'signal in port map is not a port: ' + io
-        d[name(io)] = v.vlog(0) if v is not None else ''
+        d[name(io)] = vlog.dump(v) if v is not None else ''
     return d
 
 def _paramToTextDict(paramMapDict):
@@ -1211,24 +978,6 @@ class InstanceBase(AstNode):
         if self.insName is not None:
             return self.insName
         return f"unamed_ins_{serialNumber()}"
-
-    def paramPassVlog(self, indLvl):
-        lst = [f".{k}({v})"for k, v in self._textParamMapDict().items()]
-        if len(lst) == 0:
-            return ""
-        return '#(\n' + indListAsStr(lst, indLvl+1) + '\n' + ind(')', indLvl)
-
-    def ioPassVlog(self, indLvl): 
-        lst = [f".{k}({v})"for k, v in self._textIoMapDict().items()]
-        if len(lst) == 0:
-            return ""
-        return '(\n' + indListAsStr(lst, indLvl+1) + '\n' + ind(');', indLvl)
-
-    def vlog(self, indLvl):
-        out  = ind(f"{self.modName()} ", indLvl)
-        out += self.paramPassVlog(indLvl)
-        out += f" {self._insName()} " + self.ioPassVlog(indLvl)
-        return out
 
 # for existing verilog modules
 class InstanceLegacy(InstanceBase):
@@ -1298,9 +1047,6 @@ class InstanceG2p(InstanceBase):
         return f"InstanceG2p({self.modExp!r}, " + \
                f"textParamMapDict={self.textParamMapDict}, " + \
                f"ioMapDict={self.ioMapDict}{args})"
-
-class PortMapPolicy:
-    pass
 
 class PortMap:
     def __init__(self, policy=None, **kwargs):

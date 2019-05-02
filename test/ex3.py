@@ -32,7 +32,7 @@ if __name__=='__main__':
         adder += p
 
     print('-------------- verilog --------------')
-    setIndent('.   ')
+    vlog.setIndent('.   ')
     print(adder.vlog())
     print('-------------- repr --------------')
     print(repr(adder))
