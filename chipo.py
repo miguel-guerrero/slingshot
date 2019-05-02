@@ -617,12 +617,14 @@ class Variable(BitVec):
     def eq(self, rhs):
         return VarAssign(self, rhs)
 
-    def __ne__(self, rhs):
+    # TODO, add support for var.a = var.x + 1
+
+    def __ne__(self, rhs): # x != x + 1
         if isinstance(self, Variable):
             return VarAssign(self, rhs)
         return Expr('!=', self, rhs)
 
-    def __matmul__(self, n): #TODO exp
+    def __matmul__(self, n): # x @ x + 1 
         return VarAssign(self, n)
 
 class Signal(BitVec):

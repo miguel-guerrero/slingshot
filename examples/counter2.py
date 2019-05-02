@@ -2,15 +2,23 @@
 #-------------------------------------------------------------------------------
 # (c) 2018 Miguel A. Guerrero all rights reserved
 #-------------------------------------------------------------------------------
+import sys
+sys.path.insert(0, "..")
+
 from chipo import *
 
-def genCounter(name='counter', *, cntW=8):
-    WIDTH = Parameter(cntW)
-    clk, rst_n = Clock(), Reset()
-    en, clr = Input() ** 2
-    max_val = Input(WIDTH)
-    eq, cnt = Output(), Output(WIDTH)
-    return Module(name) [
+#another style, see counter.py
+class Counter2(Module):
+
+    def __init__(self, name='counter2', *, cntW=8):
+        super().__init__(name)
+        WIDTH = Parameter(cntW)
+        clk, rst_n = Clock(), Reset()
+        en, clr = Input() ** 2
+        max_val = Input(WIDTH)
+        eq, cnt = Output(), Output(WIDTH)
+
+        self.body = [
             Combo() [
                 eq <= (cnt == max_val),
             ],
@@ -23,13 +31,16 @@ def genCounter(name='counter', *, cntW=8):
                     cnt <= cnt + 1
                 ]
             ]
-        ].autoGen()
+        ]
+        self.autoGen()
 
 
 
 if __name__=='__main__':
     #start generation
-    cntr = genCounter()
+    cntr2 = Counter2()
 
-    #print verilog code for it
-    print(cntr.vlog(recursive=True))
+    #dump verilog code for it
+    with open(cntr2.name+'.v', "w") as f:
+        print(cntr2.vlog(), file=f)
+

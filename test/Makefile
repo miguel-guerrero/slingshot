@@ -6,7 +6,7 @@ VRUN=vvp
 all: reg_test reg_test2 ex1 ex2 ex3 g2p_ex1 g2p_ex2 vlog
 
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
- multi_adder multi_adder2 multi_adder3 counter counter2
+ multi_adder multi_adder2 multi_adder3
 
 reg_test:
 	./reg_test.py > reg_test.ralf
@@ -32,16 +32,6 @@ ex3:
 ex4:
 	./ex4.py > ex4.log
 	diff -wb gold/ex4.log .
-
-counter:
-	./counter.py > counter.v
-	$(VCOMP) counter.v
-	diff gold/counter.v .
-
-counter2:
-	./counter2.py
-	$(VCOMP) counter2.v
-	diff gold/counter2.v counter2.v
 
 adder:
 	./adder.py > adder.v
@@ -105,5 +95,5 @@ g2p_ex2:
 	diff gold/g2p_ex2.log .
 
 clean:
-	$(RM) -r __pycache__ a.out ex*.v *adder*.v counter*.v build *.ralf *.xml debug_apb_csr*
+	$(RM) -r __pycache__ a.out ex*.v *adder*.v build *.ralf *.xml debug_apb_csr*
 	$(RM) *.log 
