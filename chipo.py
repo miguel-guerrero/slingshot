@@ -24,7 +24,6 @@ import re
 import varname
 import copy
 from collections import defaultdict
-import vlog
 
 serialNumber = varname.makeCounter()
 
@@ -60,6 +59,7 @@ class ApiGenerator(gencore.GeneratorBase):
          self.module = module
 
     def runGeneration(self, name, passedParamDict):
+        import vlog
         assert self.module.name == name 
         s = vlog.dump(self.module.getAst())
         return s, self.module
@@ -653,26 +653,6 @@ class Declare(AstNode):
     def __repr__(self):
         return f"Declare({self.x!r})"
 
-#has only temporary life while converting to vlog
-class Reg(BitVec):
-    def __init__(self, sig):
-        super().__init__(width=sig.width, name=sig.name, 
-                         default=sig.default, signed=sig.signed)
-        self.typ = 'Reg'
-
-    def __repr__(self):
-        raise NotImplementedError
-
-#has only temporary life while converting to vlog
-class Wire(BitVec):
-    def __init__(self, sig):
-        super().__init__(width=sig.width, name=sig.name, 
-                         default=sig.default, signed=sig.signed)
-        self.typ = 'Wire'
-
-    def __repr__(self):
-        raise NotImplementedError
-
 #------------------------------------------------------------------------------
 # IO related
 #------------------------------------------------------------------------------
@@ -729,6 +709,8 @@ class Reset(Input):
         if not self.asyn:
             return f"Reset(name={self.name!r}, asyn={self.asyn})"
         return f"Reset(name={self.name!r})"
+
+import vlog
 
 #------------------------------------------------------------------------------
 # Module related
@@ -850,12 +832,6 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
     def elab(self):
         s = self.vlog() #for now resolves all names
         return self.autoReset()
-
-    def annotateUses(self, x):
-        return [Wire(sig) for sig in sortedAsList(x)]
-
-    def annotateRegs(self, x):
-        return [Reg(sig) for sig in sortedAsList(x)]
 
     def __repr__(self):
         return f'Module({self.name!r}, IOs={self.IOs!r}, ' + \
