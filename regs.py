@@ -1,24 +1,6 @@
 #!/usr/bin/env python3
-#------------------------------------------------------------------------------
-# Copyright (c) 2018-Present, Miguel A. Guerrero
-# All rights reserved.
-#
-# This is free software released under GNU Lesser GPL license version 3.0 (LGPL 3.0)
-#
-# See http://www.gnu.org/licenses/lgpl-3.0.txt for a full text
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
-# OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# Please send bugs and suggestions to: miguel.a.guerrero@gmail.com
+#-------------------------------------------------------------------------------
+# (c) 2018 Miguel A. Guerrero all rights reserved
 #-------------------------------------------------------------------------------
 from chipo import *
 import g2p as g
@@ -29,7 +11,7 @@ import g2p as g
 class Field:
     def __init__(self, w, name, typ, reset):
         if isinstance(w, Signal):
-            self.w = w.width.Eval() if isinstance(w.width, Expr) else w.width
+            self.w = w.width().Eval() if isinstance(w.width(), Expr) else w.width()
             self.name = w.name if name is None else name
             self.reset = w.default if reset is None else reset
         else:
@@ -248,7 +230,7 @@ def genCsrs(rb, clk, rst_n):
         f.write(toGenCsrsXML(rb))
 
     #invoke gen_csrs
-    res = sp.run(['gen_csrs.pl', xmlFileName
+    res = sp.run(['./gen_csrs.pl', xmlFileName
                   , '-out', modName+'.v'
                   , '-g2p', modName+'.ios'
                   , '-vlogsep', '_'
@@ -261,7 +243,7 @@ def genCsrs(rb, clk, rst_n):
         print("-"*80,                     file=sys.stderr)
         print(res.stderr.decode('utf-8'), file=sys.stderr)
         print("-"*80,                     file=sys.stderr)
-        raise GenericExc("Error executing gen_csrs.pl")
+        raise RuntimeError("Error executing gen_csrs.pl")
 
     #read back IOs in our format
     with open(modName+'.ios') as f:
@@ -276,7 +258,7 @@ def genCsrs(rb, clk, rst_n):
     for io in csrMod.getIOs():
         if io.name not in pm.keys():
             topName = io.name[:-4] if io.name.endswith('_val') else io.name
-            pm[io.name] = Signal(io.width, name=topName)
+            pm[io.name] = Signal(io.width(), name=topName)
 
     #create a wrapper of the actually generated csr module with propper 
     #signal renaming and broken field concatenation

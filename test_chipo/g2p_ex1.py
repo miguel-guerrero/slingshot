@@ -6,6 +6,7 @@ import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 import g2p as g
+import vlog
 
 #integrating chipo into a g2p flow
 

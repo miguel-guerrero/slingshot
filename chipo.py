@@ -19,36 +19,46 @@
 #
 # Please send bugs and suggestions to: miguel.a.guerrero@gmail.com
 #-------------------------------------------------------------------------------
-import gencore
+
+from enum import Enum
 import re
-import varname
 import copy
 from collections import defaultdict
 
-serialNumber = varname.makeCounter()
+import gencore
+from varname import makeCounter, Named
+from helper import reprStr, listRepr, modkey, tupleize
+
+try:
+    #https://github.com/RussBaz/enforce
+    from enforce import runtime_validation, config
+    config({'mode':'covariant'})
+except:
+    runtime_validation = lambda x : x
+
+serialNumber = makeCounter()
 
 #------------------------------------------------------------------------------
 # Utilities
 #------------------------------------------------------------------------------
 
-#pad suffix number if present for nicer sort
-def modkey(n): 
-    m = re.search(r'^(.+?)(\d+)$', n)
-    if m:
-        n = m.group(1) + f"{int(m.group(2)):05}"
-    return n
-
 def sortedAsList(s):
     return sorted(s, key=lambda x : modkey(x.name))
 
-def tupleize(x):
-    if not isinstance(x, tuple):
-        x = (x,)
-    return x
 
-class GenericExc(BaseException):
-    def __init__(self, s):
-        self.s = s
+#if passed a tuple of statements creates a block with them,
+#but if passed a tuple containing only a block just returns it
+@runtime_validation
+def flattenBlock(aTuple: tuple):
+    if len(aTuple)==1 and isinstance(aTuple[0], Block):
+        return aTuple[0]
+    return Block(*aTuple)
+
+
+# Short-cut to generate n copies of an object. e.g Input() ** 2
+def Times(n, obj):
+    return [obj] + [copy.copy(obj) for i in range(1, n)]
+
 
 #------------------------------------------------------------------------------
 # For hybrid g2p / chipo implementations
@@ -64,9 +74,11 @@ class ApiGenerator(gencore.GeneratorBase):
         s = vlog.dump(self.module.getAst())
         return s, self.module
 
+
 def vlogToFile(exportMod, targetDir='build', targetExt='.v'):
     ag = ApiGenerator(exportMod, targetDir, targetExt)
     return ag.run(exportMod.getName(), exportMod.paramDict)
+
 
 def generateG2p(modBaseName, passedParamDict, defaultParamDict, genFun):
     from g2p import processParams
@@ -76,8 +88,9 @@ def generateG2p(modBaseName, passedParamDict, defaultParamDict, genFun):
     mod.paramDict = paramDict
     return vlogToFile(mod) #returns mod
 
+
 #------------------------------------------------------------------------------
-# Parent of all AST nodes
+# AstNode : Parent of all AST nodes
 #------------------------------------------------------------------------------
 class AstNode:
     def assigned(self):  return set()
@@ -91,9 +104,13 @@ class AstNode:
     def apply(self, m, lst): 
         return set.union(*[getattr(x,m)() for x in lst if x is not None])
 
-#------------------------------------------------------------------------------
-# Statement related
-#------------------------------------------------------------------------------
+
+    def __repr__(self): raise NotImplementedError
+
+
+#-----------------------------------------------------------
+# AstNode -> Comment
+#-----------------------------------------------------------
 class Comment(AstNode):
     def __init__(self, *lines):
         self.lines = lines
@@ -101,12 +118,311 @@ class Comment(AstNode):
     def __repr__(self):
         return f'Comment{self.lines!r}'
 
-class AstStatement(AstNode):
-    def assigned(self):  raise NotImplementedError
-    def used(self):      raise NotImplementedError
-    def paramUsed(self): raise NotImplementedError
 
-class Block(AstStatement):
+#------------------------------------------------------------------------------
+# AstNode -> AstStatement : things that can show up under a module
+#------------------------------------------------------------------------------
+class AstStatement(AstNode):
+    pass
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> Clocked
+#-----------------------------------------------------------
+class Clocked(AstStatement):
+    def __init__(self, clock, reset=None, autoReset=True):
+        self.clock = clock
+        self.reset = reset
+        self.autoReset = autoReset
+        self.body = Block()
+
+    def __iadd__(self, x):
+        self.body += x
+        return self
+
+    def __getitem__(self, stmts):
+        return self.Body(*tupleize(stmts))
+
+    def Body(self, *stmts):
+        for stm in stmts:
+            self.body += stm
+        return self
+
+    def assigned(self):  return self.body.assigned()
+    def paramUsed(self): return self.body.paramUsed()
+
+    def used(self):
+        return self.body.used().union([self.clock, self.reset])
+
+    def Name(self, name):
+        self.body.name = name
+        return self
+
+    def genResetLogic(self):
+        lst = [SigAssign(var, var.default) for var in self.body.assigned()]
+        if not lst:
+            return self.body
+        lst = sorted(lst, key=lambda x : x.lhs.name)
+        return Block(If(self.reset.onExpr()).Then(*lst).Else(self.body))
+
+    def addResetLogic(self):
+        if self.autoReset and self.reset is not None:
+            self.body = self.genResetLogic()
+        return self
+
+    def __repr__(self):
+        return f'Clocked({self.clock}, reset={self.reset!r}, ' + \
+               f'autoReset={self.autoReset}).Body({self.body!r})'
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> Combo
+#-----------------------------------------------------------
+class Combo(AstStatement):
+    def __init__(self, body=None):
+        self.body = Block() if body is None else body
+
+    def __iadd__(self, x):
+        self.body += x
+        return self
+
+    def __getitem__(self, stmts):
+        return self.Body(*tupleize(stmts))
+
+    def Body(self, *stmts):
+        for stm in stmts:
+            self.body += stm
+        return self
+
+    def assigned(self):  return self.body.assigned()
+    def used(self):      return self.body.used()
+    def paramUsed(self): return self.body.paramUsed()
+
+    def Name(self, name):
+        self.body.name = name
+        return self
+
+    def __repr__(self):
+        return f'Combo(body={self.body!r})'
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> Declare
+#-----------------------------------------------------------
+class Declare(AstStatement):
+    def __init__(self, x):
+        assert isinstance(x, (Signal, Variable))
+        self.x = x
+
+    @property
+    def name(self):
+        return self.x.name
+
+    def declared(self):
+        return set([self.x])
+
+    def __repr__(self):
+        return f"Declare({self.x!r})"
+
+
+#-----------------------------------------------------------
+# Instance related
+#-----------------------------------------------------------
+def _ioToTextDict(ioMapDict, IOs):
+    name = lambda io : io.name if isinstance(io, Signal) else io
+    d = {name(io): name(io) for io in IOs} # default name mapping
+    for io, v in ioMapDict.items(): # override based on input
+        if isinstance(io, Signal):
+            assert io.name in d, 'signal in port map is not a port: ' + io.name
+        if isinstance(io, str):
+            assert io in d, 'signal in port map is not a port: ' + io
+        d[name(io)] = name(v) if v is not None else ''
+    return d
+
+def _ioToVlogDict(ioMapDict, IOs):
+    import vlog
+    name = lambda io : io.name if isinstance(io, Signal) else io
+    d = {name(io): name(io) for io in IOs} # default name mapping
+    for io, v in ioMapDict.items(): # override based on input
+        if isinstance(io, Signal):
+            assert io.name in d, 'signal in port map is not a port: ' + io.name
+        if isinstance(io, str):
+            assert io in d, 'signal in port map is not a port: ' + io
+        d[name(io)] = vlog.dump(v) if v is not None else ''
+    return d
+
+def _paramToTextDict(paramMapDict):
+    name = lambda p : p.name if isinstance(p, Parameter) else p
+    return {name(p) : name(v) for p, v in paramMapDict.items()}
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> InstanceBase
+#-----------------------------------------------------------
+class InstanceBase(AstStatement):
+    def __init__(self, insName):
+        self.insName = insName
+
+    def module(self):
+        return None
+
+    #must be overriden
+    def used(self):              raise NotImplementedError(f"{self}")
+    def modName(self):           raise NotImplementedError(f"{self}")
+    def _textParamMapDict(self): raise NotImplementedError(f"{self}")
+    def _textIoMapDict(self):    raise NotImplementedError(f"{self}")
+
+    def _insName(self):
+        if self.insName is not None:
+            return self.insName
+        return f"unamed_ins_{serialNumber()}"
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> InstanceBase -> InstanceLegacy
+#-----------------------------------------------------------
+# for existing verilog modules
+class InstanceLegacy(InstanceBase):
+    def __init__(self, moduleName, textParamMapDict, textIoMapDict, insName=None):
+        self.moduleName = moduleName
+        self.textParamMapDict = textParamMapDict
+        self.textIoMapDict = textIoMapDict
+        super().__init__(insName)
+
+    def used(self): return set()
+    def paramUsed(self): return set() #TODO 
+
+    def modName(self):
+        return self.moduleName
+
+    def _textParamMapDict(self):
+        return self.textParamMapDict
+
+    def _textIoMapDict(self):
+        return self.textIoMapDict
+
+    def __repr__(self):
+        args = f", insName={self.insName!r}" if self.insName is not None else ""
+        return f"InstanceLegacy({self.moduleName!r}, " + \
+               f"textParamMapDict={self.textParamMapDict}, " + \
+               f"textIoMapDict={self.textIoMapDict}{args})"
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> InstanceBase -> InstanceG2p
+#-----------------------------------------------------------
+# for g2p module exports
+class InstanceG2p(InstanceBase):
+    def __init__(self, modExp, textParamMapDict, ioMap, insName=None):
+        self.modExp = modExp
+        self.textParamMapDict = textParamMapDict.dict if isinstance(textParamMapDict, ParamMap) \
+                                else textParamMapDict
+        self.ioMapDict = ioMap.dict if isinstance(ioMap, PortMap) else ioMap
+        super().__init__(insName)
+
+    def module(self):
+        return self.modExp
+
+    def paramUsed(self): return set() #TODO
+
+    def used(self):
+        inConn = {self.ioMapDict.get(i.name, i) for i in self.modExp.IOs
+                  if isinstance(i, gencore.InputBase)}
+        return set.union(*[x.used() for x in inConn])
+
+    def driven(self):
+        outConn = {self.ioMapDict.get(o.name, o) for o in self.modExp.IOs
+                   if isinstance(o, gencore.OutputBase)}
+        return set.union(*[x.lvalue() for x in outConn if x is not None])
+
+
+    def modName(self):
+        return self.modExp.name
+
+    def _textParamMapDict(self):
+        return self.textParamMapDict
+
+    def _textIoMapDict(self):
+        return _ioToVlogDict(self.ioMapDict, self.modExp.IOs)
+
+    def __repr__(self):
+        args = f", insName={self.insName!r}" if self.insName is not None else ""
+        return f"InstanceG2p({self.modExp!r}, " + \
+               f"textParamMapDict={self.textParamMapDict}, " + \
+               f"ioMapDict={self.ioMapDict}{args})"
+
+class PortMap:
+    def __init__(self, policy=None, **kwargs):
+        self.policy = policy
+        self.dict = kwargs
+
+class ParamMapPolicy:
+    pass
+
+class ParamMap:
+    def __init__(self, policy=None, **kwargs):
+        self.policy = policy
+        self.dict = kwargs
+
+
+#-----------------------------------------------------------
+# AstNode -> AstStatement -> InstanceBase -> Instance
+#-----------------------------------------------------------
+# for native chipo modules
+class Instance(InstanceBase):
+    def __init__(self, mod, paramMap, ioMap, insName=None):
+        assert isinstance(paramMap, (dict, ParamMap))
+        assert isinstance(ioMap, (dict, PortMap))
+        self.mod = mod
+        self.paramMapDict = paramMap.dict if isinstance(paramMap, ParamMap) \
+                            else paramMap
+        self.ioMapDict = ioMap.dict if isinstance(ioMap, PortMap) else ioMap
+        super().__init__(insName)
+
+    def module(self):
+        return self.mod
+
+    def used(self):
+        inConn = {self.ioMapDict.get(i.name, i) for i in self.mod.IOs
+                  if isinstance(i, gencore.InputBase)}
+        return set.union(*[x.used() for x in inConn])
+
+    def driven(self):
+        outConn = {self.ioMapDict.get(o.name, o) for o in self.mod.IOs
+                   if isinstance(o, gencore.OutputBase)}
+        return set.union(*[x.lvalue() for x in outConn if x is not None])
+
+    def paramUsed(self):
+        conn = [self.ioMapDict.get(io.name, io) for io in self.mod.IOs]
+        return set.union(*[io.paramUsed() for io in conn 
+                if isinstance(io, gencore.IoBase)])
+
+    def modName(self):
+        return self.mod.name
+
+    def _textParamMapDict(self):
+        return _paramToTextDict(self.paramMapDict)
+
+    def _textIoMapDict(self):
+        return _ioToVlogDict(self.ioMapDict, self.mod.IOs)
+
+    def __repr__(self):
+        args = f", insName={self.insName!r}" if self.insName is not None else ""
+        return f"Instance({self.mod!r}, paramMapDict={self.paramMapDict}, "+ \
+               f"ioMapDict={self.ioMapDict}{args})"
+
+
+#------------------------------------------------------------------------------
+# AstNode -> AstProcStatement : things that can go under a procedural contruct
+#------------------------------------------------------------------------------
+class AstProcStatement(AstNode):
+    pass
+
+
+#-----------------------------------------------------------
+# AstNode -> AstProcStatement -> Block
+#-----------------------------------------------------------
+class Block(AstProcStatement):
     def __init__(self, *stmts, name=None):
         self.stmts = list(stmts)
         self.name = name
@@ -134,14 +450,10 @@ class Block(AstStatement):
             return f'Block({s}, name={self.name!r})'
         return f'Block({s})'
 
-#if passed a tuple of statements creates a block with them,
-#but if passed a tuple containing only a block just returns it
-def flattenBlock(aTuple: tuple):
-    if len(aTuple)==1 and isinstance(aTuple[0], Block):
-        return aTuple[0]
-    return Block(*aTuple)
-
-class If(AstStatement):
+#-----------------------------------------------------------
+# AstNode -> AstProcStatement -> If
+#-----------------------------------------------------------
+class If(AstProcStatement):
 
     class ElseClass:
         def __init__(self, parent):
@@ -207,12 +519,17 @@ class If(AstStatement):
             elsev = f'.Else({self.falseBlock!r})'
         return f'If({self.cond!r}).Then({self.trueBlock!r})' + elifv + elsev
 
-class While(AstStatement):
+
+#-----------------------------------------------------------
+# AstNode -> AstProcStatement -> While
+#-----------------------------------------------------------
+class While(AstProcStatement):
     def __init__(self, cond=1):
         self.cond = WrapExpr(cond)
         self.trueBlock = None
 
-    def doDo(self, stmts):
+    @runtime_validation
+    def doDo(self, stmts:tuple):
         self.trueBlock = flattenBlock(stmts)
         return self
 
@@ -232,19 +549,24 @@ class While(AstStatement):
     def __repr__(self):
         return f'While({self.cond!r}).Do({self.trueBlock!r})'
 
-class Switch(AstStatement):
 
-    class CaseClass(AstStatement):
+#-----------------------------------------------------------
+# AstNode -> AstProcStatement -> Switch
+#-----------------------------------------------------------
+class Switch(AstProcStatement):
+
+    class CaseClass(AstProcStatement):
         def __init__(self, parent, *args):
             self.parent = parent
             self.conditionExpr = list(WrapExpr(i) for i in tupleize(*args))
             self.body = None
 
-        def doCase(self, stmts):
+        @runtime_validation
+        def doCase(self, stmts:tuple):
             self.body = flattenBlock(stmts)
             return self.parent
 
-        def __getitem__(self, *stmts):
+        def __getitem__(self, stmts):
             return self.doCase(tupleize(stmts))
     
         def Do(self, *stmts):
@@ -263,13 +585,14 @@ class Switch(AstStatement):
     def __init__(self, cond=1):
         self.cond = WrapExpr(cond)
         self.cases = list()
+        self.default = Block()
 
     def Case(self, *conds):
         self.cases.append(self.CaseClass(self, conds))
         return self.cases[-1]
 
     def Default(self, *stmts):
-        self.default = list(stmts)
+        self.default = flattenBlock(stmts)
         return self
 
     def assigned(self):  return self.apply('assigned', self.all())
@@ -277,17 +600,22 @@ class Switch(AstStatement):
     def paramUsed(self): return self.apply('paramUsed', self.all())
 
     def all(self):
-        return self.cases 
+        return self.cases + [self.default]
 
     def __repr__(self):
         cases = "".join([f".{i!r}" for i in self.cases])
         return f"Switch({self.cond!r}){cases}.Default({self.default!r})"
 
-class AssignBase(AstStatement):
-    def __init__(self, lhs, expr, kind='', vlogOper='='):
+
+#-----------------------------------------------------------
+# AstNode -> AstProcStatement -> AssignBase
+#-----------------------------------------------------------
+# Handle signal and variable assignements
+class AssignBase(AstProcStatement):
+    def __init__(self, lhs, expr, kind='', oper='='):
         self.lhs = lhs
         self.expr = WrapExpr(expr)
-        self.vlogOper = vlogOper
+        self.oper = oper
         self.kind = kind
 
     def assigned(self):
@@ -302,427 +630,31 @@ class AssignBase(AstStatement):
     def __repr__(self):
         return f'{self.kind}Assign({self.lhs!r}, {self.expr!r})'
 
+
+# AstNode -> AstProcStatement -> AssignBase -> VarAssign
 class VarAssign(AssignBase):
     def __init__(self, lhs, expr):
         super().__init__(lhs, expr, 'Var', '=')
 
 
+# AstNode -> AstProcStatement -> AssignBase -> SigAssign
 class SigAssign(AssignBase):
     def __init__(self, lhs, expr):
         super().__init__(lhs, expr, 'Sig', '<=')
 
-#------------------------------------------------------------------------------
-# Expression related
-#------------------------------------------------------------------------------
 
-#build a function that given an operator returns its priority
-def opPri():
-    def fillUpPri(priDict):
-        pri={}
-        for ops, priority in priDict.items():
-            for op in ops:
-                pri[op] = priority
-        return pri
-
-    priMon = fillUpPri({ 
-        ('.',):100, ('~', '&', '|', '^', '~^', '^~', '~&', '~|'):90, 
-        ('+', '-'):80 })
-
-    priBin = fillUpPri({
-        ('*', '/'):20, ('+', '-'):19, ('<<', '>>'):18, ('>', '<', '>='): 17,
-        ('==', '!='): 16, 
-        ('&',): 15, ('^',): 14, ('|',): 13, #not intuitive
-        ('&&',): 12, ('||',): 11 })
-
-    priTer = fillUpPri({ ('?',):0, ('{',):5, ('[',):95 })
-
-    #the function returned, closure on the 3 arrays above
-    def getPri(op, numOps):
-        return priMon[op] if numOps==1 else \
-               priBin[op] if numOps==2 else priTer[op]
-
-    return getPri
-
-getPri = opPri()
-
-class CInt(AstNode):
-    def __init__(self, val, width=None, signed=False):
-        self.val = val
-        self.width = width
-        self.signed = signed
-        self.base = 'b' if width==1 else 'd'
-
-    def Eval(self):
-        return self.val
-
-    def Dec(self):
-        self.base = 'd'
-        return self
-
-    def Hex(self):
-        self.base = 'h'
-        return self
-
-    def Bin(self):
-        self.base = 'b'
-        return self
-
-    def Signed(self):
-        self.signed = True
-        return self
-
-    def __repr__(self):
-        suf = '.Hex()' if self.base=='h' else \
-              '.Bin()' if self.base=='b' else ''
-        if self.signed:
-            return f'CInt({self.val!r}, width={self.width}, ' + \
-                   f'signed={self.signed}){suf}'
-        if self.width is not None:
-            return f'CInt({self.val!r}, width={self.width}){suf}'
-        return f'CInt({self.val!r}){suf}'
-
-def WrapExpr(x):
-    if isinstance(x, (Expr, BitVec, UnaryExpr, CInt)):
-        return x
-    if isinstance(x, int):
-        return CInt(x)
-    if isinstance(x, list):
-        return Concat(*x)
-    raise GenericExc(f"Don't know how to covert {x!r} to an expression")
-
-class Expr(AstNode):
-    def __init__(self, op, lhs, rhs):
-        self.op = op
-        self.lhs = WrapExpr(lhs)
-        self.rhs = WrapExpr(rhs)
-        self.pri = getPri(op, numOps=2)
-
-    def Eval(self):
-        l = self.lhs.Eval() if self.lhs is not None else ""
-        r = self.rhs.Eval()
-        return eval(f"{l} {self.op} {r}")
-
-    def __ilshift__(self, n):   raise NotImplementedError
-
-    def __add__(self, rhs):     return Expr('+', self, rhs)
-    def __sub__(self, rhs):     return Expr('-', self, rhs)
-    def __mul__(self, rhs):     return Expr('*', self, rhs)
-    def __and__(self, rhs):     return Expr('&', self, rhs)
-    def __or__(self, rhs):      return Expr('|', self, rhs)
-    def __xor__(self, rhs):     return Expr('^', self, rhs)
-    def __lshift__(self, rhs):  return Expr('<<', self, rhs)
-    def __rshift__(self, rhs):  return Expr('>>', self, rhs)
-
-    def __radd__(self, lhs):    return Expr('+', lhs, self)
-    def __rsub__(self, lhs):    return Expr('-', lhs, self)
-    def __rmul__(self, lhs):    return Expr('*', lhs, self)
-    def __rand__(self, lhs):    return Expr('&', lhs, self)
-    def __ror__(self, lhs):     return Expr('|', lhs, self)
-    def __rxor__(self, lhs):    return Expr('^', lhs, self)
-    def __rlshift(self, lhs):   return Expr('<<', lhs, self)
-    def __rrshift__(self, lhs): return Expr('>>', lhs, self)
-
-    def __lt__(self, rhs):      return Expr('<', self, rhs)
-    def __gt__(self, rhs):      return Expr('>', self, rhs)
-    def __ge__(self, rhs):      return Expr('>=', self, rhs)
-    def __eq__(self, rhs):      return Expr('==', self, rhs)
-    def __ne__(self, rhs):      return Expr('!=', self, rhs)
-
-    def __neg__(self):          return UnaryExpr('-', self)
-    def __invert__(self):       return UnaryExpr('~', self)
-
-    def __getitem__(self, slc): return BitExtract(self, slc)
-
-    def __le__(self, rhs):
-        return SigAssign(self, rhs)
-
-    def lvalue(self):
-        assert False, f'{self.name} is not an lvalue'
-
-    def used(self):      return self.apply('used', self.all())
-    def paramUsed(self): return self.apply('paramUsed', self.all())
-        
-    def all(self):
-        return (self.lhs, self.rhs)
-
-    def __repr__(self):
-        return f"({self.lhs!r} {self.op} {self.rhs!r})"
-
-class UnaryExpr(Expr):
-    def __init__(self, op, rhs):
-        self.op = op
-        self.lhs = None
-        self.rhs = WrapExpr(rhs)
-        self.pri = getPri(op, numOps=1)
-
-    def __repr__(self):
-        return f"{self.op}({self.rhs!r})"
-
-class NoEvalExpr(Expr):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-class Concat(NoEvalExpr):
-    def __init__(self, *opt):
-        self.op = '{'
-        self.lhs = self.rhs = None
-        self.all_ = [WrapExpr(x) for x in opt]
-        self.pri = getPri(self.op, numOps=3)
-
-    def all(self):
-        return self.all_
-
-    def lvalue(self):
-        return set.union(*[x.lvalue() for x in self.all_])
-
-    def __repr__(self):
-        return f"Concat({self.all_!r})"
-
-class IfCond(NoEvalExpr):
-    def __init__(self, cond, ift, iff):
-        self.op = '?'
-        self.cond = WrapExpr(cond)
-        self.ift = ift
-        self.iff = iff
-        self.pri = getPri(self.op, numOps=3)
-
-    def all(self):
-        return (self.cond, self.ift, self.iff)
-
-    def __repr__(self):
-        return f"IfCond({self.cond!r}, {self.ift!r}, {self.iff!r})"
-
-class BitExtract(NoEvalExpr):
-    def __init__(self, val, msb, lsb=None):
-        if isinstance(msb, slice): # BitExtract(x, 3, 2) or x[3:2]
-            assert msb.step==None, f"invalid bit selection {msb.step}"
-            assert lsb==None
-            msb, lsb = msb.start, msb.stop
-        self.op = '['
-        self.lhs = WrapExpr(val)
-        self.rhs = WrapExpr(msb)
-        self.rhs2 = None if lsb is None else WrapExpr(lsb)
-        self.pri = getPri(self.op, numOps=3)
-
-    def lvalue(self):
-        return set([self.lhs])
-
-    def all(self):
-        return (self.lhs, self.rhs, self.rhs2)
-
-    def __hash__(self):
-        return self.__repr__().__hash__()
-
-    def __repr__(self):
-        rest = '' if self.rhs2 is None else f", {self.rhs2!r})"
-        return f"BitExtract({self.lhs!r}, {self.rhs!r}{rest})"
-
-class ExprReduce(NoEvalExpr):
-    def __init__(self, op, rhs):
-        assert op in ('&', '|', '^', '~^', '^~', '~&', '~|')
-        self.op = op
-        self.rhs = WrapExpr(rhs)
-        self.pri = getPri(op, numOps=1)
-
-    def all(self):
-        return (self.rhs,)
-
-    def __repr__(self):
-        return f"ExprReduce({self.op!r}, {self.rhs!r})"
-
-class OrReduce(ExprReduce):
-    def __init__(self, rhs): super().__init__('|', rhs)
-
-class AndReduce(ExprReduce):
-    def __init__(self, rhs): super().__init__('&', rhs)
-
-class XorReduce(ExprReduce):
-    def __init__(self, rhs): super().__init__('^', rhs)
-
-class Parameter(Expr, varname.Named):
-    def __init__(self, default, name=None):
-        varname.Named.__init__(self, name)
-        self.default = WrapExpr(default)
-        self.pri = getPri('.', numOps=1)
-
-    def Eval(self):
-        return self.default.Eval()
-
-    def used(self):
-        return set()
-
-    def paramUsed(self):
-        return set([self])
-
-    def __hash__(self):
-        return self.name.__hash__()
-
-    def __repr__(self):
-        return f"Parameter({self.default!r}, name={self.name!r})"
-
-class BitVec(gencore.BitVecBase, NoEvalExpr):
-    def __init__(self, width=1, *, name=None, default=0, signed=False):
-        if isinstance(width, gencore.BitVecBase):
-            #we got a BitVecBase passed as width, use its width
-            width = width.width 
-        gencore.BitVecBase.__init__(self, width=width, name=name)
-        self.default = default
-        self.signed = signed
-        self.pri = getPri('.', numOps=1)
-        self.kind = 'BitVec'
-        self.isReg = False
-
-    def lvalue(self):
-        return set([self])
-
-    def __pow__(self, n):
-        return Times(n, self)
-
-    def __hash__(self):
-        return self.name.__hash__()
-
-    def Signed(self):
-        self.signed = True
-        return self
-
-    def Default(self, x):
-        self.default = x
-        return self
-
-    def used(self):
-        return set([self])
-
-    def paramUsed(self):
-        if isinstance(self.width, Expr):
-            return self.width.paramUsed()
-        return set()
-
-    def eq(self, rhs):      raise NotImplementedError
-    def __le__(self, rhs):  raise NotImplementedError
-    def update(self, rhs):  raise NotImplementedError
-
-    def __repr__(self):
-        args = gencore.BitVecBase.__repr__(self)
-        if self.default != 0:
-            args += f', default={self.default}'
-        if self.signed:
-            args += f', signed={self.signed}'
-        return f'{self.kind}({args})'
-
-class Variable(BitVec):
-    def __init__(self, width=1, name=None, default=0, signed=False):
-        super().__init__(width=width, name=name, default=default, signed=signed)
-        self.kind = 'Variable'
-
-    def eq(self, rhs):
-        return VarAssign(self, rhs)
-
-    # TODO, add support for var.a = var.x + 1
-
-    def __ne__(self, rhs): # x != x + 1
-        if isinstance(self, Variable):
-            return VarAssign(self, rhs)
-        return Expr('!=', self, rhs)
-
-    def __matmul__(self, n): # x @ x + 1 
-        return VarAssign(self, n)
-
-class Signal(BitVec):
-    def __init__(self, width=1, *, name=None, default=0, signed=False):
-        super().__init__(width=width, name=name, default=default, signed=signed)
-        self.kind = 'Signal'
-
-    def __le__(self, rhs):
-        return SigAssign(self, rhs)
-
-    def update(self, rhs):
-        return SigAssign(self, rhs)
-
-class Declare(AstNode):
-    def __init__(self, x):
-        assert isinstance(x, (Signal, Variable))
-        self.x = x
-
-    @property
-    def name(self):
-        return self.x.name
-
-    def declared(self):
-        return set([self.x])
-
-    def __repr__(self):
-        return f"Declare({self.x!r})"
-
-#------------------------------------------------------------------------------
-# IO related
-#------------------------------------------------------------------------------
-class Io(Signal):
-    def __init__(self, width, name, default, signed):
-        Signal.__init__(self, width=width, name=name, default=default, signed=signed)
-        self.kind='io'
-
-    def __str__(self):
-        return self.__repr__()
-
-class Output(Io, gencore.OutputBase):
-    def __init__(self, width=1, *, name=None, default=0, signed=False):
-        super().__init__(width=width, name=name, default=default, signed=signed)
-        self.kind = 'Output'
-
-class Input(Io, gencore.InputBase):
-    def __init__(self, width=1, *, name=None, default=0, signed=False):
-        super().__init__(width=width, name=name, default=default, signed=signed)
-        self.kind = 'Input'
-
-class Clock(Input):
-    def __init__(self, *, name=None, posedge=True):
-        super().__init__(width=1, name=name)
-        self.posedge = posedge
-
-    def edge(self):
-        return "posedge" if self.posedge else "nedgede"
-
-    def __repr__(self):
-        edge = f", posedge=False" if not self.posedge else ''
-        return f"Clock(name={self.name!r}{edge})"
-
-class Reset(Input):
-    def __init__(self, *, name=None, asyn=True, lowTrue=True):
-        super().__init__(width=1, name=name)
-        self.asyn = asyn
-        self.lowTrue = lowTrue
-
-    def onExpr(self):
-        return ~self if self.lowTrue else self
-
-    def offExpr(self):
-        return self if self.lowTrue else ~self
-
-    def edge(self):
-        return "negedge" if self.asyn and self.lowTrue else \
-               "posedge" if self.asyn and not self.lowTrue else "" 
-
-    def __repr__(self):
-        if not self.lowTrue:
-            return f"Reset(name={self.name!r}, asyn={self.asyn}, " + \
-                   f"lowTrue={self.lowTrue})"
-        if not self.asyn:
-            return f"Reset(name={self.name!r}, asyn={self.asyn})"
-        return f"Reset(name={self.name!r})"
-
-import vlog
-
-#------------------------------------------------------------------------------
-# Module related
-#------------------------------------------------------------------------------
-class Module(AstNode, gencore.ModuleBase, varname.Named):
+#-----------------------------------------------------------
+# AstNode -> Module
+#-----------------------------------------------------------
+class Module(AstNode, gencore.ModuleBase, Named):
     def __init__(self, name=None, *, IOs=[], params=[], bd=[]):    
-        varname.Named.__init__(self, name)
+        Named.__init__(self, name)
         gencore.ModuleBase.__init__(self, IOs)
         self.params = list(params)
         self.body = list(bd)
 
     def vlog(self, *args, **kwargs):
+        import vlog
         return vlog.dump(self, *args, **kwargs)
 
     def getName(self):
@@ -750,18 +682,21 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
         self.body += stmts
         return self
 
-    def assigned(self, typ=(Signal, Variable)):
+    def assigned(self, typ=None):
+        typ = typ or (Signal, Variable) 
         return {x for stm in self.body for x in stm.assigned() 
                 if isinstance(x, typ)}
 
-    def used(self, typ=(Signal, Variable)):
+    def used(self, typ=None):
+        typ = typ or (Signal, Variable) 
         return {x for stm in self.body for x in stm.used() 
                 if isinstance(x, typ)}
 
     def driven(self):
         return {x for stm in self.body for x in stm.driven()}
 
-    def declared(self, typ=(Signal, Variable)):
+    def declared(self, typ=None):
+        typ = typ or (Signal, Variable) 
         return {x for stm in self.body for x in stm.declared() 
                 if isinstance(x, typ)}
 
@@ -773,29 +708,29 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
         return [stm for stm in self.body if isinstance(stm, InstanceBase)]
 
     def _autoOutputs(self): # = {drivenSig} - {usedSig} - {declared}
-        usedSig = {s for s in self.used(Signal) if not isinstance(s, Output)}
+        usedSig = {s for s in self.used(Signal) if not isinstance(s, Out)}
         declared = self.declared()
         drivenSig = self.assigned(Signal).union(self.driven())
         return (drivenSig.difference(usedSig)).difference(declared)
 
-    def _autoInputs(self): # = {usedSig} - {drivenSig} - {declared}
+    def _autoInputs(self): # = {usedSig} - {assignedOrDriven} - {declared}
         usedSig = self.used(Signal)
         declared = self.declared()
-        drivenSig = self.assigned(Signal).union(self.driven())
-        return (usedSig.difference(drivenSig)).difference(declared)
+        assignedOrDriven = self.assigned(Signal).union(self.driven())
+        return (usedSig.difference(assignedOrDriven)).difference(declared)
 
-    def autoSignals(self): # = ({usedSig} ^ {drivenSig}) - {declared}
+    def autoSignals(self): # = ({usedSig} ^ {assignedOrDriven}) - {declared}
         usedSig = self.used(Signal)
         declared = self.declared()
-        drivenSig = self.assigned(Signal).union(self.driven())
-        autoSignalSet = (usedSig.intersection(drivenSig)).difference(declared)
+        assignedOrDriven = self.assigned(Signal).union(self.driven())
+        autoSignalSet = (usedSig.intersection(assignedOrDriven)).difference(declared)
         self.body = sortedAsList(Declare(s) for s in autoSignalSet) + self.body
         return self
 
     def autoIOs(self): #declared ones are kept in same order
         initIoSet = set(self.IOs)
-        extraIns  = {InputCopy(x)  for x in self._autoInputs()}
-        extraOuts = {OutputCopy(x) for x in self._autoOutputs()}
+        extraIns  = {InCopy(x)  for x in self._autoInputs()}
+        extraOuts = {OutCopy(x) for x in self._autoOutputs()}
         self.IOs += sortedAsList(extraIns - initIoSet) + \
                     sortedAsList(extraOuts - initIoSet)
         return self
@@ -837,264 +772,579 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
         return f'Module({self.name!r}, IOs={self.IOs!r}, ' + \
                f'params={self.params!r}, body={self.body!r})'
 
-class Clocked(AstNode):
-    def __init__(self, clock, reset=None, autoReset=True):
-        self.clock = clock
-        self.reset = reset
-        self.autoReset = autoReset
-        self.body = Block()
 
-    def __iadd__(self, x):
-        self.body += x
+#------------------------------------------------------------------------
+# Type related
+#------------------------------------------------------------------------
+class EnuCoding(Enum):
+    autoIncr=0
+    oneHot=1
+    oneCold=2
+
+
+#------------------------------------------------------------------------
+# Named -> Type
+#------------------------------------------------------------------------
+class Type(Named):
+    def __init__(self, name):
+        Named.__init__(self, name)
+        self.signed = False
+
+
+#------------------------------------------------------------------------
+# Named -> Type -> BitVec
+#------------------------------------------------------------------------
+class BitVec(Type):
+    def __init__(self, width=1, *, name=None, signed:bool=False):
+        super().__init__(name)
+        self.signed = signed
+        self.width = width
+
+    def Signed(self):
+        self.signed = True
         return self
-
-    def __getitem__(self, stmts):
-        return self.Body(*tupleize(stmts))
-
-    def Body(self, *stmts):
-        for stm in stmts:
-            self.body += stm
-        return self
-
-    def assigned(self):
-        return self.body.assigned()
 
     def used(self):
-        return set([self.clock, self.reset]).union(self.body.used())
-
-    def Name(self, name):
-        self.body.name = name
-        return self
-
-    def genResetLogic(self):
-        d = self.body.assigned()
-        lst = [SigAssign(var, var.default) for var in d]
-        if lst == []:
-            return self.body
-        lst = sorted(lst, key=lambda x : x.lhs.name)
-        return Block(If(self.reset.onExpr()).Then(*lst).Else(self.body))
-
-    def addResetLogic(self):
-        if self.autoReset and self.reset is not None:
-            self.body = self.genResetLogic()
-        return self
-
-    def __repr__(self):
-        return f'Clocked({self.clock}, reset={self.reset!r}, ' + \
-               f'autoReset={self.autoReset}).Body({self.body!r})'
-
-class Combo(AstNode):
-    def __init__(self, body=None):
-        self.body = Block() if body is None else body
-
-    def __iadd__(self, x):
-        self.body += x
-        return self
-
-    def __getitem__(self, stmts):
-        return self.Body(*tupleize(stmts))
-
-    def Body(self, *stmts):
-        for stm in stmts:
-            self.body += stm
-        return self
-
-    def assigned(self):  return self.body.assigned()
-    def used(self):      return self.body.used()
-    def paramUsed(self): return self.body.paramUsed()
-
-    def Name(self, name):
-        self.body.name = name
-        return self
-
-    def __repr__(self):
-        return f'Combo(body={self.body!r})'
-
-#------------------------------------------------------------------------------
-# Instance related
-#------------------------------------------------------------------------------
-def _ioToTextDict(ioMapDict, IOs):
-    name = lambda io : io.name if isinstance(io, Signal) else io
-    d = {name(io): name(io) for io in IOs} # default name mapping
-    for io, v in ioMapDict.items(): # override based on input
-        if isinstance(io, Signal):
-            assert io.name in d, 'signal in port map is not a port: ' + io.name
-        if isinstance(io, str):
-            assert io in d, 'signal in port map is not a port: ' + io
-        d[name(io)] = name(v) if v is not None else ''
-    return d
-
-def _ioToVlogDict(ioMapDict, IOs):
-    name = lambda io : io.name if isinstance(io, Signal) else io
-    d = {name(io): name(io) for io in IOs} # default name mapping
-    for io, v in ioMapDict.items(): # override based on input
-        if isinstance(io, Signal):
-            assert io.name in d, 'signal in port map is not a port: ' + io.name
-        if isinstance(io, str):
-            assert io in d, 'signal in port map is not a port: ' + io
-        d[name(io)] = vlog.dump(v) if v is not None else ''
-    return d
-
-def _paramToTextDict(paramMapDict):
-    name = lambda p : p.name if isinstance(p, Parameter) else p
-    return {name(p) : name(v) for p, v in paramMapDict.items()}
-
-class InstanceBase(AstNode):
-    def __init__(self, insName):
-        self.insName = insName
-
-    def module(self):
-        return None
-
-    #must be overriden
-    def used(self):              raise NotImplementedError
-    def modName(self):           raise NotImplementedError
-    def _textParamMapDict(self): raise NotImplementedError
-    def _textIoMapDict(self):    raise NotImplementedError
-
-    def _insName(self):
-        if self.insName is not None:
-            return self.insName
-        return f"unamed_ins_{serialNumber()}"
-
-# for existing verilog modules
-class InstanceLegacy(InstanceBase):
-    def __init__(self, moduleName, textParamMapDict, textIoMapDict, insName=None):
-        self.moduleName = moduleName
-        self.textParamMapDict = textParamMapDict
-        self.textIoMapDict = textIoMapDict
-        super().__init__(insName)
-
-    def used(self):
-        return set()
-
-    def paramUsed(self): #TODO
-        return set()
-
-    def modName(self):
-        return self.moduleName
-
-    def _textParamMapDict(self):
-        return self.textParamMapDict
-
-    def _textIoMapDict(self):
-        return self.textIoMapDict
-
-    def __repr__(self):
-        args = f", insName={self.insName!r}" if self.insName is not None else ""
-        return f"InstanceLegacy({self.moduleName!r}, " + \
-               f"textParamMapDict={self.textParamMapDict}, " + \
-               f"textIoMapDict={self.textIoMapDict}{args})"
-
-# for g2p module exports
-class InstanceG2p(InstanceBase):
-    def __init__(self, modExp, textParamMapDict, ioMap, insName=None):
-        self.modExp = modExp
-        self.textParamMapDict = textParamMapDict.dict if isinstance(textParamMapDict, ParamMap) \
-                                else textParamMapDict
-        self.ioMapDict = ioMap.dict if isinstance(ioMap, PortMap) else ioMap
-        super().__init__(insName)
-
-    def module(self):
-        return self.modExp
-
-    def used(self):
-        inConn = {self.ioMapDict.get(i.name, i) for i in self.modExp.IOs
-                  if isinstance(i, gencore.InputBase)}
-        return set.union(*[x.used() for x in inConn])
-
-    def driven(self):
-        outConn = {self.ioMapDict.get(o.name, o) for o in self.modExp.IOs
-                   if isinstance(o, gencore.OutputBase)}
-        return set.union(*[x.lvalue() for x in outConn if x is not None])
-
-    def paramUsed(self): #TODO
-        return set()
-
-    def modName(self):
-        return self.modExp.name
-
-    def _textParamMapDict(self):
-        return self.textParamMapDict
-
-    def _textIoMapDict(self):
-        return _ioToVlogDict(self.ioMapDict, self.modExp.IOs)
-
-    def __repr__(self):
-        args = f", insName={self.insName!r}" if self.insName is not None else ""
-        return f"InstanceG2p({self.modExp!r}, " + \
-               f"textParamMapDict={self.textParamMapDict}, " + \
-               f"ioMapDict={self.ioMapDict}{args})"
-
-class PortMap:
-    def __init__(self, policy=None, **kwargs):
-        self.policy = policy
-        self.dict = kwargs
-
-class ParamMapPolicy:
-    pass
-
-class ParamMap:
-    def __init__(self, policy=None, **kwargs):
-        self.policy = policy
-        self.dict = kwargs
-
-# for native chipo modules
-class Instance(InstanceBase):
-    def __init__(self, mod, paramMap, ioMap, insName=None):
-        assert isinstance(paramMap, (dict, ParamMap))
-        assert isinstance(ioMap, (dict, PortMap))
-        self.mod = mod
-        self.paramMapDict = paramMap.dict if isinstance(paramMap, ParamMap) \
-                            else paramMap
-        self.ioMapDict = ioMap.dict if isinstance(ioMap, PortMap) else ioMap
-        super().__init__(insName)
-
-    def module(self):
-        return self.mod
-
-    def used(self):
-        inConn = {self.ioMapDict.get(i.name, i) for i in self.mod.IOs
-                  if isinstance(i, gencore.InputBase)}
-        return set.union(*[x.used() for x in inConn])
-
-    def driven(self):
-        outConn = {self.ioMapDict.get(o.name, o) for o in self.mod.IOs
-                   if isinstance(o, gencore.OutputBase)}
-        return set.union(*[x.lvalue() for x in outConn if x is not None])
+        return set([self])
 
     def paramUsed(self):
-        conn = [self.ioMapDict.get(io.name, io) for io in self.mod.IOs]
-        return set.union(*[io.paramUsed() for io in conn 
-                if isinstance(io, gencore.IoBase)])
-
-    def modName(self):
-        return self.mod.name
-
-    def _textParamMapDict(self):
-        return _paramToTextDict(self.paramMapDict)
-
-    def _textIoMapDict(self):
-        return _ioToVlogDict(self.ioMapDict, self.mod.IOs)
+        if isinstance(self.width, Expr):
+            return self.width.paramUsed()
+        return set()
 
     def __repr__(self):
-        args = f", insName={self.insName!r}" if self.insName is not None else ""
-        return f"Instance({self.mod!r}, paramMapDict={self.paramMapDict}, "+ \
-               f"ioMapDict={self.ioMapDict}{args})"
+        suffix = reprStr(["name", self.name, "self"],
+                         ["signed", self.signed, False])
+        return f"BitVec(width={self.width}{suffix})"
+
+#------------------------------------------------------------------------
+# Named -> Type -> Agreg
+#------------------------------------------------------------------------
+class Field:
+    def __init__(self, typ:Type, *names):
+        self.typ = typ
+        self.names = names
+
+    def __repr__(self):
+        return f"{self.typ} {self.names}"
+
+
+class Agreg(Type):
+    def __init__(self, *, name=None):
+        super().__init__(name)
+        self.body = []
+
+    def __getitem__(self, stmts):
+        return self.Body(*tupleize(stmts))
+
+    def Body(self, *stmts):
+        for stm in stmts:
+            assert isinstance(stm, Field)
+            self.body.append(stm)
+        return self
+
+    def __repr__(self):
+        inner = listRepr(*self.body)
+        return f"{self.kind}(name={self.name!r}) [{inner}]"
+
+
+class Rec(Agreg):
+    kind='Rec'
+
+
+class Union(Agreg):
+    kind='Union'
+
+
+class Iface(Agreg):
+    kind='Iface'
+
+
+#------------------------------------------------------------------------
+# Named -> Type -> Arr
+#------------------------------------------------------------------------
+class Arr(Type):
+    def __init__(self, typ:Type, dims, *, name=None):
+        super().__init__(name)
+        self.typ = typ
+        self._dims = tupleize(dims)
+
+    def size(self, i):
+        return self._dims[i]
+
+    def dimensions(self):
+        return len(self._dims)
+
+    def __repr__(self):
+        return f"Arr(typ={self.typ}, dims={self._dims}, name={self.name!r})"
+
+
+#------------------------------------------------------------------------
+# Named -> Type -> Enu
+#------------------------------------------------------------------------
+class Enu(Type):
+    def __init__(self, vals, *, style:EnuCoding = EnuCoding.autoIncr, 
+            name=None):
+        self.valDict = {}
+        super().__init__(name)
+        self.style = style
+        self.valNames = []
+        assert vals
+        for x in vals:
+            itemName = type(x) is tuple and x[0] or x
+            assert type(itemName) is str
+            self.valNames.append(itemName)
+        if style==EnuCoding.autoIncr:
+            curr = 0
+            for v in vals:
+                if isinstance(v, tuple):
+                    nm, val = v
+                    if val < curr:
+                        raise ValueError(f"Enu values must be increasing {val}")
+                else:
+                    nm, val = v, curr
+                curr = val+1
+                self.valDict[nm]=val
+        else:
+            raise NotImplementedError(f"{self}")
+
+    def dict(self):
+        return self.valDict
+
+    def val(self, symName):
+        return self.valDict[symName]
+
+    def first(self):
+        return self.valNames[0]
+
+    def last(self):
+        return self.valNames[-1]
+
+    def __repr__(self):
+        valStr = f"{self.valDict}"
+        return f"Enu(vals={valStr}, style={self.style}, name={self.name!r})"
+
 
 #------------------------------------------------------------------------------
-# Convenience functions
+#build a function that given an operator returns its priority
 #------------------------------------------------------------------------------
-def OutputCopy(x):
-    return Output(width=x.width, name=x.name, default=x.default, signed=x.signed)
+def opPri():
+    def fillUpPri(priDict):
+        pri={}
+        for ops, priority in priDict.items():
+            for op in ops:
+                pri[op] = priority
+        return pri
 
-def InputCopy(x):
-    return Input(width=x.width, name=x.name, default=x.default, signed=x.signed)
+    priMon = fillUpPri({ 
+        ('.',):100, ('~', '&', '|', '^', '~^', '^~', '~&', '~|'):90, 
+        ('+', '-'):80 })
+
+    priBin = fillUpPri({
+        ('*', '/'):20, ('+', '-'):19, ('<<', '>>'):18, ('>', '<', '>='): 17,
+        ('==', '!='): 16, 
+        ('&',): 15, ('^',): 14, ('|',): 13, #not intuitive
+        ('&&',): 12, ('||',): 11 })
+
+    priTer = fillUpPri({ ('?',):0, ('{',):5, ('[',):95 })
+
+    #the function returned, closure on the 3 arrays above
+    def getPri(op, numOps):
+        return priMon[op] if numOps==1 else \
+               priBin[op] if numOps==2 else priTer[op]
+
+    return getPri
+
+getPri = opPri()
+
+#------------------------------------------------------------------------------
+# Generate a expresion wrapper out of some constants
+#------------------------------------------------------------------------------
+def WrapExpr(x):
+    if x is None:
+        return x
+    if isinstance(x, Expr):
+        return x
+    if isinstance(x, Type):
+        return x
+    if isinstance(x, int):
+        return CInt(x)
+    if isinstance(x, list):
+        return Concat(*x)
+    raise TypeError(f"Don't know how to covert {x!r} to an expression")
+
+
+#------------------------------------------------------------------------------
+# AstNode -> Expr
+#------------------------------------------------------------------------------
+class Expr(AstNode):
+    def __init__(self, op, *args, numOps=0):
+        self.op = op
+        self.pri = getPri(op, len(args) if numOps==0 else numOps)
+        self.const = False
+        self.args = [WrapExpr(arg) for arg in args]
+
+    def __ilshift__(self, n):   raise NotImplementedError(f"{self}")
+
+    def __add__(self, rhs):     return BinExpr('+', self, rhs)
+    def __sub__(self, rhs):     return BinExpr('-', self, rhs)
+    def __mul__(self, rhs):     return BinExpr('*', self, rhs)
+    def __and__(self, rhs):     return BinExpr('&', self, rhs)
+    def __or__(self, rhs):      return BinExpr('|', self, rhs)
+    def __xor__(self, rhs):     return BinExpr('^', self, rhs)
+    def __lshift__(self, rhs):  return BinExpr('<<', self, rhs)
+    def __rshift__(self, rhs):  return BinExpr('>>', self, rhs)
+
+    def __radd__(self, lhs):    return BinExpr('+', lhs, self)
+    def __rsub__(self, lhs):    return BinExpr('-', lhs, self)
+    def __rmul__(self, lhs):    return BinExpr('*', lhs, self)
+    def __rand__(self, lhs):    return BinExpr('&', lhs, self)
+    def __ror__(self, lhs):     return BinExpr('|', lhs, self)
+    def __rxor__(self, lhs):    return BinExpr('^', lhs, self)
+    def __rlshift(self, lhs):   return BinExpr('<<', lhs, self)
+    def __rrshift__(self, lhs): return BinExpr('>>', lhs, self)
+
+    def __lt__(self, rhs):      return BinExpr('<', self, rhs)
+    def __gt__(self, rhs):      return BinExpr('>', self, rhs)
+    def __ge__(self, rhs):      return BinExpr('>=', self, rhs)
+    def __eq__(self, rhs):      return BinExpr('==', self, rhs)
+    def __ne__(self, rhs):      return BinExpr('!=', self, rhs)
+
+    def __neg__(self):          return UnaryExpr('-', self)
+    def __invert__(self):       return UnaryExpr('~', self)
+    
+    def __getitem__(self, slc): return BitExtract(self, slc)
+
+    def all(self):
+        return self.args
+
+    def lvalue(self):
+        raise TypeError(f"{self!r} is not an lvalue")
+
+    def used(self):      return self.apply('used', self.all())
+    def paramUsed(self): return self.apply('paramUsed', self.all())
+
+    def argsStr(self):
+        return listRepr(*self.args)
+
+    def __repr__(self):
+        return f"{self.op}({self.argsStr()})"
+
+    def __hash__(self):
+        return self.__repr__().__hash__()
+
+
+#------------------------------------------------------------------------
+# AstNode -> Expr -> UnaryExpr
+#------------------------------------------------------------------------
+class UnaryExpr(Expr):
+    def __init__(self, op, rhs):
+        super().__init__(op, rhs)
+
+    def Eval(self):
+        r = self.args[0].Eval()
+        return eval(f"{self.op} {r}")
+
+    #https://stackoverflow.com/questions/53518981/inheritance-hash-sets-to-none-in-a-subclass
+    __hash__ = Expr.__hash__
+
+
+class CInt(UnaryExpr):
+    def __init__(self, val, width=None, signed=False):
+        self.op = '.'
+        self.pri = getPri(self.op, numOps=1)
+        self.const = False
+        self.args = [val]
+        self.width = width
+        self.signed = signed
+        self.base = 'b' if width==1 else 'd'
+
+    def used(self):      return set()
+    def paramUsed(self): return set()
+
+    def Eval(self):
+        return self.args[0]
+
+    def Dec(self):
+        self.base = 'd'
+        return self
+
+    def Hex(self):
+        self.base = 'h'
+        return self
+
+    def Bin(self):
+        self.base = 'b'
+        return self
+
+    def Signed(self):
+        self.signed = True
+        return self
+
+    def __repr__(self):
+        suf = '.Hex()' if self.base=='h' else \
+              '.Bin()' if self.base=='b' else ''
+        if self.signed:
+            return f'CInt({self.args[0]!r}, width={self.width}, ' + \
+                   f'signed={self.signed}){suf}'
+        if self.width is not None:
+            return f'CInt({self.args[0]!r}, width={self.width}){suf}'
+        return f'CInt({self.args[0]!r}){suf}'
+
+
+class Parameter(UnaryExpr, Named):
+    def __init__(self, val, name=None):
+        super().__init__('.', val)
+        Named.__init__(self, name)
+        self.const = True
+
+    def Eval(self):
+        return self.args[0].Eval()
+
+    def used(self):
+        return set()
+
+    def paramUsed(self):
+        return set([self])
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+    def __repr__(self):
+        return f"Parameter({self.argsStr()}, name={self.name!r})"
+
+
+#------------------------------------------------------------------------
+# AstNode -> Expr -> UnaryExpr -> Assignable
+#------------------------------------------------------------------------
+class Assignable(UnaryExpr, Named):
+    kind = 'Assignable'
+
+    @runtime_validation
+    def __init__(self, typ=None, name=None, default=0):
+        Named.__init__(self, name)
+        if isinstance(typ, (Expr, int)):
+            typ = BitVec(typ)
+        elif typ is None:
+            typ = BitVec(1)
+        assert isinstance(typ, Type)
+        UnaryExpr.__init__(self, '.', typ)
+        self.default = default
+
+    def Signed(self):
+        if isinstance(self.args[0], BitVec):
+            self.args[0].Signed()
+            return self
+        raise TypeError(f"Cannot set signed on non-BitVector {self}")
+
+    def width(self):
+        if isinstance(self.args[0], BitVec):
+            return self.args[0].width
+        raise NotImplementedError(f"no width for {self}")
+
+    def used(self):
+        return set([self])
+
+    def lvalue(self):
+        return set([self])
+
+    def __pow__(self, n):
+        return Times(n, self)
+
+    def __repr__(self):
+        suffix = reprStr(["default", self.default, 0])
+        return f"{self.kind}(typ={self.args[0]!r}, name={self.name!r}{suffix})"
+
+
+#------------------------------------------------------------------------
+# AstNode -> Expr -> UnaryExpr -> Assignable -> Signal
+#------------------------------------------------------------------------
+class Signal(Assignable):
+    kind = 'Signal'
+
+    def __le__(self, rhs):
+        return SigAssign(self, rhs)
+
+    def update(self, rhs):
+        return SigAssign(self, rhs)
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+
+class Port(Signal):
+    kind = 'Port'
+
+
+class Out(Port, gencore.OutputBase):
+    kind = 'Out'
+    isReg = False
+
+
+class In(Port, gencore.InputBase):
+    kind = 'In'
+
+
+class Clock(In):
+    def __init__(self, *, name=None, posedge=True):
+        super().__init__(BitVec(1), name=name)
+        self.posedge = posedge
+
+    def __repr__(self):
+        suffix = reprStr(["posedge", self.posedge, True])
+        return f"Clock(name={self.name!r}{suffix})"
+
+
+class Reset(In):
+    def __init__(self, *, name=None, asyn=True, lowTrue=True):
+        super().__init__(BitVec(1), name=name)
+        self.asyn = asyn
+        self.lowTrue = lowTrue
+
+    def onExpr(self):
+        return ~self if self.lowTrue else self
+
+    def offExpr(self):
+        return self if self.lowTrue else ~self
+
+    def __repr__(self):
+        suffix = reprStr(["asyn", self.asyn, True], 
+                         ["lowTrue", self.lowTrue, True])
+        return f"Reset(name={self.name!r}{suffix})"
+
+
+#------------------------------------------------------------------------
+# AstNode -> Expr -> UnaryExpr -> Assignable -> Variable
+#------------------------------------------------------------------------
+class Variable(Assignable):
+    kind = 'Variable'
+
+    def eq(self, rhs):
+        return VarAssign(self, rhs)
+
+    def __ne__(self, rhs): # x != x + 1
+        if isinstance(self, Variable):
+            return VarAssign(self, rhs)
+        return Expr('!=', self, rhs)
+
+    def __matmul__(self, n): # x @ x + 1 
+        return VarAssign(self, n)
+
+    # TODO, add support for var.a = var.x + 1
+
+
+#------------------------------------------------------------------------
+# AstNode -> Expr -> BinExpr
+#------------------------------------------------------------------------
+class BinExpr(Expr):
+    def __init__(self, op, lhs, rhs):
+        super().__init__(op, lhs, rhs)
+
+    def Eval(self):
+        l = self.args[0].Eval()
+        r = self.args[1].Eval()
+        return eval(f"{l} {self.op} {r}")
+
+    def __repr__(self):
+        return f"({self.args[0]!r} {self.op} {self.args[1]!r})"
+
+
+#------------------------------------------------------------------------
+# AstNode -> Expr -> MultiExpr
+#------------------------------------------------------------------------
+class MultiExpr(Expr):
+    def __init__(self, op, *args, numOps=0):
+        super().__init__(op, *args, numOps=numOps)
+
+
+class BitExtract(MultiExpr):
+    def __init__(self, val, msb, lsb=None):
+        if isinstance(msb, slice): # BitExtract(x, 3, 2) or x[3:2]
+            assert msb.step==None, f"invalid bit selection {msb.step}"
+            assert lsb==None
+            msb, lsb = msb.start, msb.stop
+        super().__init__('[', val, msb, lsb)
+
+    def __le__(self, rhs):
+        return SigAssign(self, rhs)
+
+    def lvalue(self):
+        return set([self.args[0]])
+
+    __hash__ = Expr.__hash__
+
+    def __repr__(self):
+        return f"BitExtract({self.argsStr()})"
+
+
+
+class Concat(MultiExpr):
+    def __init__(self, *args):
+        super().__init__('{', *args, numOps=3)
+        self.pri = getPri(self.op, numOps=3)
+
+    def __le__(self, rhs):
+        return SigAssign(self, rhs)
+
+    def lvalue(self):
+        return set.union(*[x.lvalue() for x in self.all()])
+
+    def __repr__(self):
+        return f"Concat({self.argsStr()})"
+
+
+class IfCond(MultiExpr):
+    def __init__(self, cond, ift, iff):
+        super().__init__('?', cond, ift, iff)
+
+    def __repr__(self):
+        return f"IfCond({self.argsStr()})"
+
+
+class ExprReduce(MultiExpr):
+    def __init__(self, op, rhs):
+        assert op in ('&', '|', '^', '~^', '^~', '~&', '~|')
+        super().__init__(op, rhs)
+
+    def __repr__(self):
+        return f"ExprReduce({self.op!r}, {self.argsStr()})"
+
+
+class OrReduce(ExprReduce):
+    def __init__(self, rhs): super().__init__('|', rhs)
+
+
+class AndReduce(ExprReduce):
+    def __init__(self, rhs): super().__init__('&', rhs)
+
+
+class XorReduce(ExprReduce):
+    def __init__(self, rhs): super().__init__('^', rhs)
+
+
+#------------------------------------------------------------------------------
+# More convenience functions
+#------------------------------------------------------------------------------
+def OutCopy(x):
+    return Out(typ=x.args[0], name=x.name, default=x.default)
+
+
+def InCopy(x):
+    return In(typ=x.args[0], name=x.name, default=x.default)
+
 
 def Assign(sig, val):
     return Combo() [ sig <= val ]
 
-# Short-cut to generate n copies of an object. e.g Input() ** 2
-def Times(n, obj):
-    return [obj] + [copy.copy(obj) for i in range(1, n)]
+
+def Input(n=1, **kwargs):
+    if isinstance(n, (Expr, int)):
+        return In(BitVec(n), **kwargs)
+    return In(n, **kwargs)
+
+
+def Output(n=1, **kwargs):
+    if isinstance(n, (Expr, int)):
+        return Out(BitVec(n), **kwargs)
+    return Out(n, **kwargs)
 

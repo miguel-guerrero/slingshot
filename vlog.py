@@ -1,5 +1,34 @@
+#------------------------------------------------------------------------------
+# Copyright (c) 2018-Present, Miguel A. Guerrero
+# All rights reserved.
+#
+# This is free software released under GNU Lesser GPL license version 3.0 (LGPL 3.0)
+#
+# See http://www.gnu.org/licenses/lgpl-3.0.txt for a full text
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
+# OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Please send bugs and suggestions to: miguel.a.guerrero@gmail.com
+#-------------------------------------------------------------------------------
+
 import chipo
 from enum import Enum, IntEnum
+from functools import singledispatch
+
+try:
+    from enforce import runtime_validation, config
+    config({'mode':'covariant'}) # base class type covers type of subclasses
+except:
+    runtime_validation = lambda x : x
 
 class Ctx(Enum):
     default=0
@@ -22,10 +51,13 @@ def setStyle(x:Style):
     STYLE = x
 
 INDENT='    '
+
+@runtime_validation
 def setIndent(x:str):
     global INDENT
     INDENT = x
 
+@runtime_validation
 def ind(s:str, n:int) -> str:
     return (INDENT*n) + s
 
@@ -35,6 +67,7 @@ def indList(lst:list, n:int) -> list:
 def indListAsStr(lst:list, n:int, sep=',\n') -> str:
     return sep.join(indList(lst, n))
 
+
 # convert expr to vlog and parenthesize if expr operator is lower pri than 
 # node.op/pri
 def paren(node, expr):
@@ -43,17 +76,13 @@ def paren(node, expr):
         return '('+v+')'
     return v
 
-def dumpSigned(node):
-    if node.signed:
+
+@runtime_validation
+def dumpSigned(typ:chipo.Type):
+    if typ.signed:
         return ' signed'
     return ''
 
-def dumpReg(node):
-    if node.kind == "Output" and node.isReg:
-        if STYLE >= Style.sv2005l:
-            return ' logic'
-        return ' reg'
-    return ''
 
 def dumpParamPass(node, indLvl):
     lst = [f".{k}({v})"for k, v in node._textParamMapDict().items()]
@@ -61,69 +90,82 @@ def dumpParamPass(node, indLvl):
         return ""
     return '#(\n' + indListAsStr(lst, indLvl+1) + '\n' + ind(')', indLvl)
 
+
 def dumpIoPass(node, indLvl): 
     lst = [f".{k}({v})"for k, v in node._textIoMapDict().items()]
     if len(lst) == 0:
         return ""
     return '(\n' + indListAsStr(lst, indLvl+1) + '\n' + ind(');', indLvl)
 
+
 def dumpMsb(node):
     if isinstance(node.width, chipo.Parameter):
         return f"{node.width.name}-1"
     if isinstance(node.width, chipo.Expr):
         return dump(chipo.Expr('-', node.width, chipo.CInt(1)))
-    return f"{node.getMsb()}"
-
-def dumpIo(node, indLvl, *, ctx:Ctx = Ctx.default):
-    if ctx == Ctx.io:
-        typ = node.kind.lower() + dumpReg(node) + dumpSigned(node)
-        if node.width != 1:
-            return ind(f"{typ} [{dumpMsb(node)}:0] {node.name}", indLvl)
-        return ind(f"{typ} {node.name}", indLvl)
-    return f'{node.name}'
+    return f"{node.width-1}"
 
 
 #has only temporary life while converting to vlog
-class Reg(chipo.BitVec):
+class TempLogic(chipo.BitVec):
     def __init__(self, sig):
-        super().__init__(width=sig.width, name=sig.name, 
-                         default=sig.default, signed=sig.signed)
-        self.typ = 'Reg'
+        super().__init__(width=sig.args[0].width, name=sig.name, 
+            signed=sig.args[0].signed)
+        self.default = sig.default
 
-    def __repr__(self):
-        raise NotImplementedError
 
-#has only temporary life while converting to vlog
-class Wire(chipo.BitVec):
-    def __init__(self, sig):
-        super().__init__(width=sig.width, name=sig.name, 
-                         default=sig.default, signed=sig.signed)
-        self.typ = 'Wire'
+class Reg(TempLogic):
+    typ = 'Reg'
 
-    def __repr__(self):
-        raise NotImplementedError
 
-class Logic(chipo.BitVec):
-    def __init__(self, sig):
-        super().__init__(width=sig.width, name=sig.name, 
-                         default=sig.default, signed=sig.signed)
-        self.typ = 'Logic'
+class Wire(TempLogic):
+    typ = 'Wire'
 
-    def __repr__(self):
-        raise NotImplementedError
+
+class Logic(TempLogic):
+    typ = 'Logic'
+
 
 def annotateRegs(x):
     if STYLE >= Style.sv2005l:
         return [Logic(sig) for sig in chipo.sortedAsList(x)]
     return [Reg(sig) for sig in chipo.sortedAsList(x)]
     
+
 def annotateUses(x):
     if STYLE >= Style.sv2005l:
         return [Logic(sig) for sig in chipo.sortedAsList(x)]
     return [Wire(sig) for sig in chipo.sortedAsList(x)]
 
-def dumpModule(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
+#-----------------------------------------------------------------------------
+# why are we doing this instead of just simple inheritance? to keep
+# several code dumpers separate and avoid cluttering the original classes
+#-----------------------------------------------------------------------------
+
+@singledispatch
+def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    if isinstance(node, chipo.AstStatement):
+        assert False, f"undefined dump(AstStatement) for {node}"
+    elif isinstance(node, chipo.AstProcStatement):
+        assert False, f"undefined dump(AstProcStatement) for {node}"
+    elif isinstance(node, chipo.AstNode):
+        assert False, f"undefined dump(AstNode) for {node}"
+    elif isinstance(node, chipo.Type):
+        assert False, f"undefined dump(Type) for {node}"
+    assert False, f"unhandled dump case. node={node}"
+
+#-----------------------------------------------------------------------------
+# AstNode derived
+#-----------------------------------------------------------------------------
+@dump.register(chipo.Comment)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    vlst = [f"// {cmnt}" for cmnt in node.lines]
+    return indListAsStr(vlst, indLvl, sep='\n')
+
+
+@dump.register(chipo.Module)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     instancesStr = ''
     if recursive:
         doneSet = set()
@@ -137,7 +179,7 @@ def dumpModule(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     #collect all assigned Signals 
     sigAsgn = node.assigned()
     for io in node.IOs:
-        if io in sigAsgn:
+        if io in sigAsgn and isinstance(io, chipo.Out):
             io.isReg = True
 
     #convert IOs[] into a verilog string
@@ -147,7 +189,7 @@ def dumpModule(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     #excluding IO's as they are already declared reg in the port list
     regDecl = annotateRegs(sigAsgn.difference(set(node.IOs)))
     regDeclStr = indListAsStr((dump(decl, indLvl) for decl in regDecl), 
-                              0, sep="\n")
+        0, sep="\n")
 
     #collect all declared Signals and create wire declarations for 
     #the ones not already IO's or regs
@@ -176,171 +218,288 @@ def dumpModule(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
            f'{undeclUsedStr}\n{regDeclStr}\n\n'+ \
            f'{bodyStr}\n\nendmodule\n'
 
+
 #-----------------------------------------------------------------------------
-# why are we doing this instead of just simple inheritance? to keep
-# several code dumpers separate and avoid cluttering the original classes
+# AstStatement derived
 #-----------------------------------------------------------------------------
-def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+@dump.register(chipo.Clocked)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    events = [dump(node.clock, indLvl, ctx=Ctx.event)]
+    if node.reset is not None:
+        resetStr = dump(node.reset, indLvl, ctx=Ctx.event)
+        if resetStr != "":
+            events.append(resetStr)
+    sensStr = " or ".join(events)
+    bodyStr = dump(node.body, indLvl)
+    alwaysStr = 'always_ff' if STYLE >= Style.sv2009 else 'always'
+    return ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr
 
-    if isinstance(node, chipo.Comment):
-        vlst = [f"// {cmnt}" for cmnt in node.lines]
-        return indListAsStr(vlst, indLvl, sep='\n')
 
-    elif isinstance(node, chipo.AstStatement):
+@dump.register(chipo.Combo)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    bodyStr = dump(node.body, indLvl)
+    alwaysStr = 'always_comb' if STYLE >= Style.sv2009 else 'always @(*)'
+    return ind(f'{alwaysStr} ', indLvl) + bodyStr
 
-        if isinstance(node, chipo.Block):
-            if len(node.stmts) == 1 and node.name is None:
-                return "\n" + dump(node.stmts[0], indLvl+1)
-            v = [dump(stm, indLvl+1) for stm in node.stmts]
-            name = "" if node.name is None else " : " + node.name
-            return f"begin{name}\n" + \
-                indListAsStr(v, 0, sep='\n') + "\n" + ind("end", indLvl)
 
-        elif isinstance(node, chipo.If):
-            assert len(node.elifBlock)==len(node.elifCond), "Forgot cond on Elif ?"
-            v = ind('if (' + dump(node.cond) + ')', indLvl) + ' ' + \
-                dump(node.trueBlock,indLvl)
-            for i, b in enumerate(node.elifBlock):
-                v += '\n' + ind('else if (' + dump(node.elifCond[i]) + ')', 
-                    indLvl) + ' ' + dump(b, indLvl)
-            if node.falseBlock is not None:
-                v += "\n" + ind("else ", indLvl) + dump(node.falseBlock, indLvl)
-            return v
+@dump.register(chipo.Declare)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    #signal declarations are converted to reg/wires at Module
+    return ""
 
-        elif isinstance(node, chipo.While):
-            return ind('while (' + dump(node.cond) + ')', indLvl) + ' ' + \
-                   dump(node.trueBlock, indLvl)
 
-        elif isinstance(node, chipo.Switch):
-            cases = indListAsStr([dump(i, indLvl+1) for i in node.cases], 0, sep='\n')
-            return ind('case (' + dump(node.cond) + ')', indLvl) + '\n' + \
-                   cases + '\n' + ind('endcase', indLvl)
+@dump.register(chipo.InstanceBase)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    out  = ind(f"{node.modName()} ", indLvl)
+    out += dumpParamPass(node, indLvl)
+    out += f" {node._insName()} " + dumpIoPass(node, indLvl)
+    return out
 
-        elif isinstance(node, chipo.Switch.CaseClass):
-            cases = ", ".join([dump(i) for i in node.conditionExpr])
-            return ind(f'{cases} : ', indLvl) + dump(node.body, indLvl)
 
-        elif isinstance(node, chipo.AssignBase):
-            return ind(dump(node.lhs) + " " + node.vlogOper + " " + \
-                   dump(node.expr, indLvl), indLvl) + ';'
+#-----------------------------------------------------------------------------
+# AstProcStatement derived
+#-----------------------------------------------------------------------------
+@dump.register(chipo.Block)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    if len(node.stmts) == 1 and node.name is None:
+        return "\n" + dump(node.stmts[0], indLvl+1)
+    v = [dump(stm, indLvl+1) for stm in node.stmts]
+    name = "" if node.name is None else " : " + node.name
+    return f"begin{name}\n" + \
+        indListAsStr(v, 0, sep='\n') + "\n" + ind("end", indLvl)
 
-        assert False, f"undefined dump(AstStatement) for {node}"
 
-    elif isinstance(node, chipo.CInt):
-        prefix = '-' if node.signed and node.val < 0 else ''
-        sz = "'" if node.width is None else f"{node.width}'"
-        sgn = 's' if node.signed else ''
-        fmt = 'x' if node.base == 'h' else node.base
-        num = f'{abs(node.val):{fmt}}'
-        if sz + sgn + node.base == "'d": # omit 'd prefix if alone
-            return prefix + num
-        return prefix + sz + sgn + node.base + num
+@dump.register(chipo.If)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    assert len(node.elifBlock)==len(node.elifCond), "Forgot cond on Elif ?"
+    v = ind('if (' + dump(node.cond) + ')', indLvl) + ' ' + \
+        dump(node.trueBlock,indLvl)
+    for i, b in enumerate(node.elifBlock):
+        v += '\n' + ind('else if (' + dump(node.elifCond[i]) + ')', 
+            indLvl) + ' ' + dump(b, indLvl)
+    if node.falseBlock is not None:
+        v += "\n" + ind("else ", indLvl) + dump(node.falseBlock, indLvl)
+    return v
 
-    elif isinstance(node, chipo.Expr):
 
-        if isinstance(node, chipo.UnaryExpr):
-            return node.op + paren(node, node.rhs) 
+@dump.register(chipo.While)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return ind('while (' + dump(node.cond) + ')', indLvl) + ' ' + \
+           dump(node.trueBlock, indLvl)
 
-        elif isinstance(node, chipo.NoEvalExpr):
 
-            if isinstance(node, chipo.Concat):
-                return '{\n'+ indListAsStr([paren(node, x) for x in node.all_], indLvl+1) +'}'
+@dump.register(chipo.Switch)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    cases = indListAsStr([dump(i, indLvl+1) for i in node.cases], 0, sep='\n')
+    defStr = ind("default: ", indLvl+1) + dump(node.default, indLvl+1) + '\n' \
+             if node.default else ""
+    return ind('case (' + dump(node.cond) + ')', indLvl) + '\n' + \
+           cases + '\n' + defStr + ind('endcase', indLvl)
 
-            elif isinstance(node, chipo.IfCond):
-                return paren(node, node.cond) + ' ? ' + dump(node.ift) + \
-                                                ' : ' + dump(node.iff) 
-            elif isinstance(node, chipo.BitExtract):
-                lsbv = '' if node.rhs2 is None else ':' + dump(node.rhs2)
-                return paren(node, node.lhs) + '['+ dump(node.rhs) + lsbv +']'
 
-            elif isinstance(node, chipo.ExprReduce):
-                return node.op + paren(node, node.rhs) 
+@dump.register(chipo.Switch.CaseClass)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    cases = ", ".join([dump(i) for i in node.conditionExpr])
+    return ind(f'{cases} : ', indLvl) + dump(node.body, indLvl)
 
-            elif isinstance(node, chipo.BitVec):
 
-                if isinstance(node, chipo.Io):
-                    if isinstance(node, chipo.Clock):
-                        if ctx == Ctx.io:
-                            return dumpIo(node, indLvl, ctx=ctx)
-                        if ctx == Ctx.event:
-                            return node.edge() + " " + node.name
-                        return node.name
+@dump.register(chipo.AssignBase)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return ind(dump(node.lhs) + " " + node.oper + " " + \
+           dump(node.expr, indLvl), indLvl) + ';'
 
-                    elif isinstance(node, chipo.Reset):
-                        if ctx == Ctx.io:
-                            return dumpIo(node, indLvl, ctx=ctx)
-                        if ctx == Ctx.event:
-                            if node.asyn:
-                                return node.edge() + " " + node.name
-                            return ""
-                        return node.name
+#-----------------------------------------------------------------------------
+# Expr
+#-----------------------------------------------------------------------------
+@dump.register(chipo.Expr)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return paren(node, node.args[0]) + " " + node.op + " " + paren(node, node.args[1])
 
-                    return dumpIo(node, indLvl, ctx=ctx)
 
-                elif isinstance(node, Logic):
-                    typ = 'logic' + dumpSigned(node)
-                    if node.width != 1:
-                        return ind(f"{typ} [{dumpMsb(node)}:0] {node.name};", indLvl)
-                    return ind(f"{typ} {node.name};", indLvl)
+#-----------------------------------------------------------------------------
+# Expr -> UnaryExpr
+#-----------------------------------------------------------------------------
+@dump.register(chipo.UnaryExpr)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return node.op + paren(node, node.args[0]) 
 
-                elif isinstance(node, Reg):
-                    typ = 'reg' + dumpSigned(node)
-                    if node.width != 1:
-                        return ind(f"{typ} [{dumpMsb(node)}:0] {node.name};", indLvl)
-                    return ind(f"{typ} {node.name};", indLvl)
 
-                elif isinstance(node, Wire):
-                    typ = 'wire' + dumpSigned(node)
-                    if node.width != 1:
-                        return ind(f"{typ} [{dumpMsb(node)}:0] {node.name}; // auto", 
-                                   indLvl)
-                    return ind(f"{typ} {node.name}; // auto", indLvl)
+@dump.register(chipo.CInt)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    prefix = '-' if node.signed and node.args[0] < 0 else ''
+    sz = "'" if node.width is None else f"{node.width}'"
+    sgn = 's' if node.signed else ''
+    fmt = 'x' if node.base == 'h' else node.base
+    num = f'{abs(node.args[0]):{fmt}}'
+    if sz + sgn + node.base == "'d": # omit 'd prefix if alone
+        return prefix + num
+    return prefix + sz + sgn + node.base + num
 
-                #BitVec
-                v = f'{node.name}'
-                if ctx == Ctx.io:
-                    if isinstance(node.width, int) and node.width != 1 or \
-                       isinstance(node.width, chipo.Expr):
-                        v += f"[{dumpMsb(node)}:0]"
-                return v
 
-            return node.op + paren(node, node.rhs) 
+@dump.register(chipo.Parameter)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    v = f'{node.name}'
+    if ctx == Ctx.io:
+        v = f"parameter {v} = {dump(node.args[0])}"
+    return v
 
-        elif isinstance(node, chipo.Parameter):
-            v = f'{node.name}'
-            if ctx == Ctx.io:
-                v = f"parameter {v} = {dump(node.default)}"
-            return v
 
-        return paren(node, node.lhs) + " " + node.op + " " + paren(node, node.rhs)
+@dump.register(chipo.Assignable)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    v = f'{node.name}'
+    if ctx == Ctx.io:
+        v = f"//Signal {node.name} {dump(node.args[0], ctx=ctx)}"
+    return v
 
-    elif isinstance(node, chipo.Declare):
-        #signal declarations are converted to reg/wires at Module
+
+def dumpPort(node, indLvl=0, *, ctx:Ctx = Ctx.default):
+
+    def dumpReg(node):
+        if node.kind == "Out" and node.isReg:
+            if STYLE >= Style.sv2005l:
+                return ' logic'
+            return ' reg'
+        return ''
+
+    if ctx == Ctx.io:
+        typ = node.args[0]
+        direc = 'input' if node.kind=='In' else 'output'
+        typStr = direc + dumpReg(node) + dumpSigned(typ)
+        if typ.width != 1:
+            return ind(f"{typStr} [{dumpMsb(typ)}:0] {node.name}", indLvl)
+        return ind(f"{typStr} {node.name}", indLvl)
+    return f'{node.name}'
+
+
+@dump.register(chipo.Port)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return dumpPort(node, indLvl, ctx=ctx)
+
+
+@dump.register(chipo.Clock)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    if ctx == Ctx.io:
+        return dumpPort(node, indLvl, ctx=ctx)
+    if ctx == Ctx.event:
+        edge = 'posedge' if node.posedge else 'negedge'
+        return edge + " " + node.name
+    return node.name
+
+
+@dump.register(chipo.Reset)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+
+    def resetEvent(node):
+        return "negedge" if node.asyn and node.lowTrue else \
+               "posedge" if node.asyn and not node.lowTrue else "" 
+
+    if ctx == Ctx.io:
+        return dumpPort(node, indLvl, ctx=ctx)
+    if ctx == Ctx.event:
+        if node.asyn:
+            return resetEvent(node) + " " + node.name
         return ""
+    return node.name
 
-    elif isinstance(node, chipo.Module):
-        return dumpModule(node, indLvl, recursive=recursive)
 
-    elif isinstance(node, chipo.Clocked):
-        events = [dump(node.clock, indLvl, ctx=Ctx.event)]
-        if node.reset is not None:
-            resetStr = dump(node.reset, indLvl, ctx=Ctx.event)
-            if resetStr != "":
-                events.append(resetStr)
-        sensStr = " or ".join(events)
-        bodyStr = dump(node.body, indLvl)
-        alwaysStr = 'always_ff' if STYLE >= Style.sv2009 else 'always'
-        return ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr
+#-----------------------------------------------------------------------------
+# Expr -> MultiExpr
+#-----------------------------------------------------------------------------
+@dump.register(chipo.BitExtract)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    lsbv = '' if node.args[2] is None else ':' + dump(node.args[2])
+    return paren(node, node.args[0]) + '['+ dump(node.args[1]) + lsbv +']'
 
-    elif isinstance(node, chipo.Combo):
-        bodyStr = dump(node.body, indLvl)
-        alwaysStr = 'always_comb' if STYLE >= Style.sv2009 else 'always @(*)'
-        return ind(f'{alwaysStr} ', indLvl) + bodyStr
 
-    elif isinstance(node, chipo.InstanceBase):
-        out  = ind(f"{node.modName()} ", indLvl)
-        out += dumpParamPass(node, indLvl)
-        out += f" {node._insName()} " + dumpIoPass(node, indLvl)
-        return out
+@dump.register(chipo.Concat)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return '{\n'+ indListAsStr([paren(node, x) for x in node.all()], indLvl+1) +'}'
 
-    assert False, f"unhandled dump case. node={node}"
+
+@dump.register(chipo.IfCond)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return paren(node, node.args[0]) + ' ? ' + dump(node.args[1]) + \
+                                       ' : ' + dump(node.args[2]) 
+
+
+@dump.register(chipo.ExprReduce)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return node.op + paren(node, node.args[0]) 
+
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+@dump.register(chipo.BitVec)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    v = f'{node.name}'
+    if ctx == Ctx.io:
+        if isinstance(node.width, int) and node.width != 1 or \
+           isinstance(node.width, chipo.Expr):
+            v += f"[{dumpMsb(node)}:0]"
+    return v
+
+#TODO Agreg, Arr, Enu
+
+#-----------------------------------------------------------------------------
+# Temporal during Module vlog generation
+#-----------------------------------------------------------------------------
+@dump.register(Logic)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    typ = 'logic' + dumpSigned(node)
+    if node.width != 1:
+        return ind(f"{typ} [{dumpMsb(node)}:0] {node.name};", indLvl)
+    return ind(f"{typ} {node.name};", indLvl)
+
+
+@dump.register(Reg)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    typ = 'reg' + dumpSigned(node)
+    if node.width != 1:
+        return ind(f"{typ} [{dumpMsb(node)}:0] {node.name};", indLvl)
+    return ind(f"{typ} {node.name};", indLvl)
+
+
+@dump.register(Wire)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    typ = 'wire' + dumpSigned(node)
+    if node.width != 1:
+        return ind(f"{typ} [{dumpMsb(node)}:0] {node.name}; // auto", 
+                   indLvl)
+    return ind(f"{typ} {node.name}; // auto", indLvl)
+
+#-----------------------------------------------------------------------------
+# Type dumping
+#-----------------------------------------------------------------------------
+@singledispatch
+def dumpType(typ, indLvl=0):
+    assert False, f"unhandled dumpType case. typ={typ}"
+
+
+@dump.register(chipo.Enu)
+def _(typ, indLvl=0):
+    if STYLE >= Style.sv2012:
+        enuLst = [f"{k}={v}" for k,v in typ.dict().items()]
+        enuStr = ", ".join(enuLst)
+        return ind(f"typedef enum {{{enuStr}}} {typ.name}", indLvl)
+    else:
+        enuLst = [f"localparam {k}={v}" for k,v in typ.dict().items()]
+        return indListAsStr(enuLst, indLvl, ";\n")
+
+
+@runtime_validation
+def dumpFieldDecl(fld:chipo.Field):
+    return f"{fld.typ.name} {', '.join(fld.names)}"
+
+
+@dump.register(chipo.Rec)
+def _(typ, indLvl=0):
+    if STYLE >= Style.sv2012:
+        recStr = ind("typedef struct {\n", indLvl)
+        for fld in typ.body:
+            recStr += ind(dumpFieldDecl(fld) + ";\n", indLvl+1)
+        recStr += ind("}", indLvl)
+        return recStr
+    else:
+        raise NotImplementedError
+

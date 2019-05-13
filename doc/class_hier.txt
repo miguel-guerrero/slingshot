@@ -1,40 +1,61 @@
-AstNode
+----- NEW -----
+
+AstNode -> assigned/used/paramUsed/driven/declared -> empty sets
+
     Comment
-    AstStatement -> derived must override assigned/used/paramUsed
-        Block
+    Module -> assigned/used/paramUsed/driven/declared*
+
+    AstStatement-> derived must override assigned/used/paramUsed
+        Clocked
+        Combo
+        Declare -> declared
+        InstanceBase
+            InstanceLegacy
+            InstanceG2p
+            Instance
+
+    AstProcStatement -> derived must override assigned/used/paramUsed
+        Block -> overides all
         If
         While
         Switch
         AssignBase
             VarAssign
             SigAssign
-    CInt
-    Expr
-        UnaryExpr
-        NoEvalExpr
-            Concat
-            IfCond
-            BitExtract
-            ExprReduce
-                OrReduce
-                AndReduce
-                XorReduce
-            BitVec(BitVecBase)
-                Variable
-                Signal
-                    Io
-                        Output(OutputBase)
-                        Input(InputBase)
-                            Clock
-                            Reset
-                Reg
-                Wire
-        Parameter
-    Declare
-    Module
-    Clocked
-    Combo
-    InstanceBase
-        InstanceLegacy
-        InstanceG2p
-        Instance
+
+   *Expr@Const -> Eval, not lvalue
+       *UnaryExpr
+            Cast
+           *CInt@Const -> Eval
+           *Parameter@Const -> Eval
+           *Assignable
+               *Signal@Type -> lvalue    <-Named
+                   *Port
+                       *In (InputBase)
+                           *Clock
+                           *Reset
+                       *Out (OutputBase)
+               *Variable@Type -> lvalue   <-Named
+       *BinExpr@Const ->Eval
+
+       *MultiExpr
+           *BitExtract -> lvalue if underlaying is lvalue   HASH
+           *Concat -> lvalue if all of them are lvalues
+           *IfCond
+           *ExprReduce
+               *OrReduce
+               *AndReduce
+               *XorReduce
+
+*Named
+   *Type
+       *BitVec(signed or not) -> uint(n), int(n)
+            // allow width to be derived from context as a mode?
+       *Agreg
+           // allow setting a def. to a member. Allow member selection
+           *Rec
+           *Union
+           *Iface
+       *Arr
+       *Enu
+
