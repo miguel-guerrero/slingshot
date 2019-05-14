@@ -1,0 +1,14 @@
+                  10 x    x y    x cin x sm    x sm_r    0 sm_zero_r 0
+                  30 x    x y    x cin x sm    x sm_r    0 sm_zero_r 0
+                  50 x    x y    x cin x sm    x sm_r    0 sm_zero_r 0
+                  70 x    x y    x cin x sm    x sm_r    0 sm_zero_r 0
+                  90 x    x y    x cin x sm    x sm_r    0 sm_zero_r 0
+                 110 ACTIVATING
+                 110 x    x y    x cin x sm    x sm_r    0 sm_zero_r 0
+                 130 x   17 y   34 cin 1 sm   52 sm_r    x sm_zero_r x
+                 150 x    1 y   -1 cin 0 sm    0 sm_r   52 sm_zero_r 0
+                 170 x   10 y   -6 cin 0 sm    4 sm_r    0 sm_zero_r 1
+                 190 x    0 y    0 cin 0 sm    0 sm_r    4 sm_zero_r 0
+                 210 x    0 y    0 cin 0 sm    0 sm_r    0 sm_zero_r 1
+                 230 x    0 y    0 cin 0 sm    0 sm_r    0 sm_zero_r 1
+                 250 x    0 y    0 cin 0 sm    0 sm_r    0 sm_zero_r 1

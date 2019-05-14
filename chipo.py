@@ -27,7 +27,7 @@ from collections import defaultdict
 
 import gencore
 from varname import makeCounter, Named
-from helper import reprStr, listRepr, modkey, tupleize
+from helper import reprStr, listRepr, modkey, tupleize, bitsFor
 
 try:
     #https://github.com/RussBaz/enforce
@@ -96,6 +96,7 @@ class AstNode:
     def assigned(self):  return set()
     def used(self):      return set()
     def paramUsed(self): return set()
+    def typesUsed(self): return set()
     def driven(self):    return set()
     def declared(self):  return set()
 
@@ -150,6 +151,7 @@ class Clocked(AstStatement):
 
     def assigned(self):  return self.body.assigned()
     def paramUsed(self): return self.body.paramUsed()
+    def typesUsed(self): return self.body.typesUsed()
 
     def used(self):
         return self.body.used().union([self.clock, self.reset])
@@ -197,6 +199,7 @@ class Combo(AstStatement):
     def assigned(self):  return self.body.assigned()
     def used(self):      return self.body.used()
     def paramUsed(self): return self.body.paramUsed()
+    def typesUsed(self): return self.body.typesUsed()
 
     def Name(self, name):
         self.body.name = name
@@ -289,8 +292,9 @@ class InstanceLegacy(InstanceBase):
         self.textIoMapDict = textIoMapDict
         super().__init__(insName)
 
-    def used(self): return set()
+    def used(self):      return set()
     def paramUsed(self): return set() #TODO 
+    def typesUsed(self): return set() #TODO 
 
     def modName(self):
         return self.moduleName
@@ -324,6 +328,7 @@ class InstanceG2p(InstanceBase):
         return self.modExp
 
     def paramUsed(self): return set() #TODO
+    def typesUsed(self): return set() #TODO
 
     def used(self):
         inConn = {self.ioMapDict.get(i.name, i) for i in self.modExp.IOs
@@ -397,6 +402,9 @@ class Instance(InstanceBase):
         return set.union(*[io.paramUsed() for io in conn 
                 if isinstance(io, gencore.IoBase)])
 
+    def typesUsed(self):
+        return set() #TODO
+
     def modName(self):
         return self.mod.name
 
@@ -441,6 +449,7 @@ class Block(AstProcStatement):
     def assigned(self):  return self.apply('assigned',  self.stmts)
     def used(self):      return self.apply('used',      self.stmts)
     def paramUsed(self): return self.apply('paramUsed', self.stmts)
+    def typesUsed(self): return self.apply('typesUsed', self.stmts)
     def driven(self):    return self.apply('driven',    self.stmts)
     def declared(self):  return self.apply('declared',  self.stmts)
 
@@ -506,6 +515,7 @@ class If(AstProcStatement):
     def assigned(self):  return self.apply('assigned', self.all())
     def used(self):      return self.apply('used', self.all())
     def paramUsed(self): return self.apply('paramUsed', self.all())
+    def typesUsed(self): return self.apply('typesUsed', self.all())
 
     def all(self):
         return self.elifCond + self.elifBlock + \
@@ -542,6 +552,7 @@ class While(AstProcStatement):
     def assigned(self):  return self.apply('assigned', self.all())
     def used(self):      return self.apply('used', self.all())
     def paramUsed(self): return self.apply('paramUsed', self.all())
+    def typesUsed(self): return self.apply('typesUsed', self.all())
 
     def all(self):
         return [self.cond, self.trueBlock]
@@ -575,6 +586,7 @@ class Switch(AstProcStatement):
         def assigned(self):  return self.apply('assigned', self.all())
         def used(self):      return self.apply('used', self.all())
         def paramUsed(self): return self.apply('paramUsed', self.all())
+        def typesUsed(self): return self.apply('typesUsed', self.all())
 
         def all(self):
             return [self.body] + self.conditionExpr 
@@ -598,6 +610,7 @@ class Switch(AstProcStatement):
     def assigned(self):  return self.apply('assigned', self.all())
     def used(self):      return self.apply('used', self.all())
     def paramUsed(self): return self.apply('paramUsed', self.all())
+    def typesUsed(self): return self.apply('typesUsed', self.all())
 
     def all(self):
         return self.cases + [self.default]
@@ -624,8 +637,11 @@ class AssignBase(AstProcStatement):
     def used(self):
         return self.expr.used()
 
-    def paramUsed(self):
-        return self.expr.paramUsed().union(self.lhs.paramUsed())
+    def paramUsed(self): return self.apply('paramUsed', self.all())
+    def typesUsed(self): return self.apply('typesUsed', self.all())
+
+    def all(self):
+        return [self.lhs, self.expr]
 
     def __repr__(self):
         return f'{self.kind}Assign({self.lhs!r}, {self.expr!r})'
@@ -647,11 +663,12 @@ class SigAssign(AssignBase):
 # AstNode -> Module
 #-----------------------------------------------------------
 class Module(AstNode, gencore.ModuleBase, Named):
-    def __init__(self, name=None, *, IOs=[], params=[], bd=[]):    
+    def __init__(self, name=None, *, types=[], IOs=[], params=[], bd=[]):    
         Named.__init__(self, name)
         gencore.ModuleBase.__init__(self, IOs)
         self.params = list(params)
         self.body = list(bd)
+        self.types = list(types)
 
     def vlog(self, *args, **kwargs):
         import vlog
@@ -673,6 +690,10 @@ class Module(AstNode, gencore.ModuleBase, Named):
 
     def Params(self, *params):
         self.params += params
+        return self
+
+    def Types(self, *types):
+        self.types += types
         return self
 
     def __getitem__(self, stmts):
@@ -702,7 +723,11 @@ class Module(AstNode, gencore.ModuleBase, Named):
 
     def paramUsed(self):
         return set.union({x for stm in self.body for x in stm.paramUsed()},
-                         {x for io in self.IOs for x in io.paramUsed()})
+                         {x for io  in self.IOs  for x in io.paramUsed()})
+
+    def typesUsed(self):
+        return set.union({x for stm in self.body for x in stm.typesUsed()},
+                         {x for io  in self.IOs  for x in io.typesUsed()})
           
     def getInstances(self):
         return [stm for stm in self.body if isinstance(stm, InstanceBase)]
@@ -740,6 +765,11 @@ class Module(AstNode, gencore.ModuleBase, Named):
         self.params += sortedAsList(allParamSet - set(self.params))
         return self
 
+    def autoTypes(self): #declared ones are kept in same order
+        allTypeSet = set(self.types).union(self.typesUsed())
+        self.types += sortedAsList(allTypeSet - set(self.types))
+        return self
+
     def autoInstanceName(self):
         instances = self.getInstances()
         seenIns = set(instances)
@@ -762,14 +792,16 @@ class Module(AstNode, gencore.ModuleBase, Named):
 
     def autoGen(self):
         return self.autoReset().autoIOs() \
-                   .autoSignals().autoParams().autoInstanceName()
+                   .autoSignals().autoParams() \
+                   .autoTypes().autoInstanceName()
 
     def elab(self):
         s = self.vlog() #for now resolves all names
         return self.autoReset()
 
     def __repr__(self):
-        return f'Module({self.name!r}, IOs={self.IOs!r}, ' + \
+        typeStr = f"types={self.types!r}, " if self.types else ""
+        return f'Module({self.name!r}, {typeStr}IOs={self.IOs!r}, ' + \
                f'params={self.params!r}, body={self.body!r})'
 
 
@@ -783,16 +815,21 @@ class EnuCoding(Enum):
 
 
 #------------------------------------------------------------------------
-# Named -> Type
+# AstNode -> Type
 #------------------------------------------------------------------------
-class Type(Named):
+class Type(AstNode, Named):
     def __init__(self, name):
         Named.__init__(self, name)
         self.signed = False
 
+    def typesUsed(self):
+        if isinstance(self, BitVec):
+            return set()
+        return set([self])
+
 
 #------------------------------------------------------------------------
-# Named -> Type -> BitVec
+# AstNode -> Type -> BitVec
 #------------------------------------------------------------------------
 class BitVec(Type):
     def __init__(self, width=1, *, name=None, signed:bool=False):
@@ -818,7 +855,7 @@ class BitVec(Type):
         return f"BitVec(width={self.width}{suffix})"
 
 #------------------------------------------------------------------------
-# Named -> Type -> Agreg
+# AstNode -> Type -> Agreg
 #------------------------------------------------------------------------
 class Field:
     def __init__(self, typ:Type, *names):
@@ -861,7 +898,7 @@ class Iface(Agreg):
 
 
 #------------------------------------------------------------------------
-# Named -> Type -> Arr
+# AstNode -> Type -> Arr
 #------------------------------------------------------------------------
 class Arr(Type):
     def __init__(self, typ:Type, dims, *, name=None):
@@ -880,10 +917,10 @@ class Arr(Type):
 
 
 #------------------------------------------------------------------------
-# Named -> Type -> Enu
+# AstNode -> Type -> Enu
 #------------------------------------------------------------------------
 class Enu(Type):
-    def __init__(self, vals, *, style:EnuCoding = EnuCoding.autoIncr, 
+    def __init__(self, *vals, style:EnuCoding = EnuCoding.autoIncr, 
             name=None):
         self.valDict = {}
         super().__init__(name)
@@ -919,6 +956,21 @@ class Enu(Type):
 
     def last(self):
         return self.valNames[-1]
+
+    def min(self):
+        return min(self.valDict.values())
+
+    def max(self):
+        return max(self.valDict.values())
+
+    def __getattr__(self, key):
+        if key in self.valDict.keys():
+            return key
+        raise KeyError(f"invalid enum constant {self.name}.{key}")
+
+    @property
+    def width(self):
+        return bitsFor(self.max())
 
     def __repr__(self):
         valStr = f"{self.valDict}"
@@ -969,6 +1021,8 @@ def WrapExpr(x):
         return x
     if isinstance(x, int):
         return CInt(x)
+    if isinstance(x, str):
+        return CEnu(x)
     if isinstance(x, list):
         return Concat(*x)
     raise TypeError(f"Don't know how to covert {x!r} to an expression")
@@ -1023,6 +1077,7 @@ class Expr(AstNode):
 
     def used(self):      return self.apply('used', self.all())
     def paramUsed(self): return self.apply('paramUsed', self.all())
+    def typesUsed(self): return self.apply('typesUsed', self.all())
 
     def argsStr(self):
         return listRepr(*self.args)
@@ -1045,7 +1100,8 @@ class UnaryExpr(Expr):
         r = self.args[0].Eval()
         return eval(f"{self.op} {r}")
 
-    #https://stackoverflow.com/questions/53518981/inheritance-hash-sets-to-none-in-a-subclass
+    #https://stackoverflow.com/questions/53518981/
+    #inheritance-hash-sets-to-none-in-a-subclass
     __hash__ = Expr.__hash__
 
 
@@ -1061,6 +1117,7 @@ class CInt(UnaryExpr):
 
     def used(self):      return set()
     def paramUsed(self): return set()
+    def typesUsed(self): return set()
 
     def Eval(self):
         return self.args[0]
@@ -1090,6 +1147,32 @@ class CInt(UnaryExpr):
         if self.width is not None:
             return f'CInt({self.args[0]!r}, width={self.width}){suf}'
         return f'CInt({self.args[0]!r}){suf}'
+
+
+class CEnu(UnaryExpr):
+    def __init__(self, val, width=None, signed=False):
+        self.op = '.'
+        self.pri = getPri(self.op, numOps=1)
+        self.const = False
+        self.args = [val]
+        self.width = width
+        self.signed = signed
+        self.base = 'b' if width==1 else 'd'
+
+    def used(self):      return set()
+    def paramUsed(self): return set()
+    def typesUsed(self): return set()
+
+    def Eval(self):
+        return self.args[0]
+
+    def __repr__(self):
+        if self.signed:
+            return f'CEnu({self.args[0]!r}, width={self.width}, ' + \
+                   f'signed={self.signed})'
+        if self.width is not None:
+            return f'CEnu({self.args[0]!r}, width={self.width}){suf}'
+        return f'CEnu({self.args[0]!r})'
 
 
 class Parameter(UnaryExpr, Named):

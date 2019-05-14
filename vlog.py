@@ -205,17 +205,23 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
     #convert parameters to verilog
     paramStr = ''
-    if node.params != []:
+    if node.params:
         paramStr = indListAsStr((dump(p, 0, ctx=Ctx.io) for p in node.params), 
                                 indLvl+1, sep=",\n")
         paramStr = ind('\n#(\n', indLvl) + paramStr + ')\n'
 
+    #type declarations
+    typeStr = ''
+    if node.types:
+        typeStr = '\n// types\n' + \
+                  indListAsStr((dump(p, 0) for p in node.types), indLvl, sep=",\n") + \
+                  ';\n'
     return instancesStr + \
            f'//'+ (76*'-') +'\n'+ \
            f'// {node.name}\n'+ \
            f'//'+ (76*'-') +'\n'+ \
            f'module {node.name} {paramStr}(\n{ioStr}\n);\n'+ \
-           f'{undeclUsedStr}\n{regDeclStr}\n\n'+ \
+           f'{typeStr}{undeclUsedStr}\n{regDeclStr}\n\n'+ \
            f'{bodyStr}\n\nendmodule\n'
 
 
@@ -334,6 +340,11 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if sz + sgn + node.base == "'d": # omit 'd prefix if alone
         return prefix + num
     return prefix + sz + sgn + node.base + num
+
+
+@dump.register(chipo.CEnu)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return node.args[0]
 
 
 @dump.register(chipo.Parameter)

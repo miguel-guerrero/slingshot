@@ -29,3 +29,10 @@ def tupleize(x):
         x = (x,)
     return x
 
+def bitsFor(n: int):
+    assert n >= 0
+    bits, limit = 1, 2
+    while limit <= n:
+        limit <<= 1
+        bits += 1
+    return bits
