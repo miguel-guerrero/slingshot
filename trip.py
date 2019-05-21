@@ -119,7 +119,8 @@ def genPython(
     #serialize tripio dictionary and let the generated code load it
     import pickle
     tripioSer = pickle.dumps(tripio)
-    out.append(f'import pickle, {modName}')
+    out.append(f'import sys, pickle, {modName}')
+    out.append(f'sys.path.insert(0, "./")')
     out.append(f'tripio = pickle.loads({tripioSer})')
     out.append(f'# tripio = {tripio} # for debug')
     #param struct will contain parameters from file with potential
