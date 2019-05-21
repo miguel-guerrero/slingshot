@@ -163,6 +163,9 @@ def genPython(
                         out, buf = flushBuffer()
                     out.append(line)
                     needIndent = re.search(r':\s*$', line) is not None
+                elif re.match(leading.rstrip(), line):
+                    raise ValueError(
+                        f"input python must start with '{leading}', found '{line}'")
                 else:
                     line = quote(line, leftExprDelim, rightExprDelim)
                     buf.append(f"emit(f'{line}')")
