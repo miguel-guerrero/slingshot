@@ -27,7 +27,7 @@ reg [2:0] b;
 reg [2:0] c;
 
 always @(posedge clk or negedge rst_n) begin : my_process_p
-    if (a == 1) 
+    if (a == 1) begin
         if (b == 2) begin
             c <= 4;
             b <= 5;
@@ -36,6 +36,7 @@ always @(posedge clk or negedge rst_n) begin : my_process_p
             a <= 3;
             b <= 6;
         end
+    end
     else begin
         a <= b;
         a <= 1 + b * (3 + 5 * a);
@@ -43,8 +44,9 @@ always @(posedge clk or negedge rst_n) begin : my_process_p
         a <= b & a | ~(c & a);
         a <= 1 & a > 1;
     end
-    if (a < 22) 
+    if (a < 22) begin
         a <= a + 1;
+    end
     c <= c + 1;
     while (a < 5) begin
         a <= a + 1;

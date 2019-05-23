@@ -24,6 +24,7 @@ from enum import Enum
 import re
 import copy
 from collections import defaultdict
+from itertools import takewhile
 
 import gencore
 from varname import makeCounter, Named
@@ -34,6 +35,8 @@ try:
     from enforce import runtime_validation, config
     config({'mode':'covariant'})
 except:
+    import sys
+    print('please run: pip3 install enforce', file=sys.stderr)
     runtime_validation = lambda x : x
 
 serialNumber = makeCounter()
@@ -41,6 +44,10 @@ serialNumber = makeCounter()
 #------------------------------------------------------------------------------
 # Utilities
 #------------------------------------------------------------------------------
+def simplify(e):
+    if isinstance(e, Expr):
+        return e.simplify()
+    return e
 
 def sortedAsList(s):
     return sorted(s, key=lambda x : modkey(x.name))
@@ -70,7 +77,7 @@ class ApiGenerator(gencore.GeneratorBase):
 
     def runGeneration(self, name, passedParamDict):
         import vlog
-        assert self.module.name == name 
+        assert self.module.name == name
         s = vlog.dump(self.module.getAst())
         return s, self.module
 
@@ -102,7 +109,7 @@ class AstNode:
 
     #apply a set-returning method 'm' to non-None items in list and return
     #the union of all returned sets
-    def apply(self, m, lst): 
+    def apply(self, m, lst):
         return set.union(*[getattr(x,m)() for x in lst if x is not None])
 
 
@@ -293,8 +300,8 @@ class InstanceLegacy(InstanceBase):
         super().__init__(insName)
 
     def used(self):      return set()
-    def paramUsed(self): return set() #TODO 
-    def typesUsed(self): return set() #TODO 
+    def paramUsed(self): return set() #TODO
+    def typesUsed(self): return set() #TODO
 
     def modName(self):
         return self.moduleName
@@ -399,7 +406,7 @@ class Instance(InstanceBase):
 
     def paramUsed(self):
         conn = [self.ioMapDict.get(io.name, io) for io in self.mod.IOs]
-        return set.union(*[io.paramUsed() for io in conn 
+        return set.union(*[io.paramUsed() for io in conn
                 if isinstance(io, gencore.IoBase)])
 
     def typesUsed(self):
@@ -579,7 +586,7 @@ class Switch(AstProcStatement):
 
         def __getitem__(self, stmts):
             return self.doCase(tupleize(stmts))
-    
+
         def Do(self, *stmts):
             return self.doCase(stmts)
 
@@ -589,7 +596,7 @@ class Switch(AstProcStatement):
         def typesUsed(self): return self.apply('typesUsed', self.all())
 
         def all(self):
-            return [self.body] + self.conditionExpr 
+            return [self.body] + self.conditionExpr
 
         def __repr__(self):
             return f"Case({self.conditionExpr!r}).Do({self.body!r})"
@@ -663,7 +670,7 @@ class SigAssign(AssignBase):
 # AstNode -> Module
 #-----------------------------------------------------------
 class Module(AstNode, gencore.ModuleBase, Named):
-    def __init__(self, name=None, *, types=[], IOs=[], params=[], bd=[]):    
+    def __init__(self, name=None, *, types=[], IOs=[], params=[], bd=[]):
         Named.__init__(self, name)
         gencore.ModuleBase.__init__(self, IOs)
         self.params = list(params)
@@ -704,21 +711,21 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self
 
     def assigned(self, typ=None):
-        typ = typ or (Signal, Variable) 
-        return {x for stm in self.body for x in stm.assigned() 
+        typ = typ or (Signal, Variable)
+        return {x for stm in self.body for x in stm.assigned()
                 if isinstance(x, typ)}
 
     def used(self, typ=None):
-        typ = typ or (Signal, Variable) 
-        return {x for stm in self.body for x in stm.used() 
+        typ = typ or (Signal, Variable)
+        return {x for stm in self.body for x in stm.used()
                 if isinstance(x, typ)}
 
     def driven(self):
         return {x for stm in self.body for x in stm.driven()}
 
     def declared(self, typ=None):
-        typ = typ or (Signal, Variable) 
-        return {x for stm in self.body for x in stm.declared() 
+        typ = typ or (Signal, Variable)
+        return {x for stm in self.body for x in stm.declared()
                 if isinstance(x, typ)}
 
     def paramUsed(self):
@@ -728,7 +735,7 @@ class Module(AstNode, gencore.ModuleBase, Named):
     def typesUsed(self):
         return set.union({x for stm in self.body for x in stm.typesUsed()},
                          {x for io  in self.IOs  for x in io.typesUsed()})
-          
+
     def getInstances(self):
         return [stm for stm in self.body if isinstance(stm, InstanceBase)]
 
@@ -863,13 +870,16 @@ class Field:
         self.names = names
 
     def __repr__(self):
-        return f"{self.typ} {self.names}"
+        inner = listRepr(*self.names)
+        return f"Field({self.typ}, {inner})"
 
 
 class Agreg(Type):
     def __init__(self, *, name=None):
         super().__init__(name)
         self.body = []
+        self.fieldDict = {}
+        self.fieldList = []
 
     def __getitem__(self, stmts):
         return self.Body(*tupleize(stmts))
@@ -877,8 +887,32 @@ class Agreg(Type):
     def Body(self, *stmts):
         for stm in stmts:
             assert isinstance(stm, Field)
-            self.body.append(stm)
+            for nm in stm.names:
+                if nm in self.fieldDict:
+                    raise KeyError(f"Repeated field name {name}.{nm}")
+                if nm in self.__dir__():
+                    raise KeyError(f"Field name is reserved {name}.{nm}")
+                self.body.append(Field(stm.typ, nm))
+                self.fieldDict[nm] = stm.typ
+                self.fieldList.append(nm)
         return self
+
+    @staticmethod
+    def sumList(lst):
+        return simplify(sum(lst))
+
+    @property
+    def width(self):
+        return Agreg.sumList(f.typ.width for f in self.body)
+
+    def offset(self, fieldName:str):
+        assert fieldName in self.fieldDict
+        priorFields = takewhile(lambda f : f.names[0] != fieldName, self.body)
+        return Agreg.sumList(f.typ.width for f in priorFields)
+
+    def fldWidth(self, fieldName:str):
+        assert fieldName in self.fieldDict
+        return self.fieldDict[fieldName].width
 
     def __repr__(self):
         inner = listRepr(*self.body)
@@ -889,8 +923,54 @@ class Rec(Agreg):
     kind='Rec'
 
 
+def isMultParam(a):
+    return isinstance(a, BinExpr) and a.op=='*' and type(a.args[0])==CInt and type(a.args[1])==Parameter
+
+
+def isParamMult(a):
+    return isinstance(a, BinExpr) and a.op=='*' and type(a.args[1])==CInt and type(a.args[0])==Parameter
+
+
+def normalizeTerm(a):
+    if type(a)==Parameter:
+        a = BinExpr('*', CInt(1), a)
+    if isParamMult(a):
+        e = BinExpr('*', a.args[1], a.args[0])
+        assert isMultParam(e)
+        return e
+    return a
+
+
+def maxExpr(lst):
+    lst = list(set(lst))
+    if len(lst) == 1:
+        return lst[0]
+    if len(lst) == 2:
+        a, b = lst
+        a = normalizeTerm(a)
+        b = normalizeTerm(b)
+        if isinstance(a, BinExpr) and isinstance(b, BinExpr):
+            if isMultParam(a) and isMultParam(b) and repr(a.args[1])==repr(b.args[1]):
+                mx = max(a.args[0].args[0], b.args[0].args[0])
+                if mx == 1:
+                    return a.args[1]
+                return BinExpr('*', mx, a.args[1])
+    return IfCond(lst[0] > maxExpr(lst[1:]), lst[0], maxExpr(lst[1:]))
+
+
 class Union(Agreg):
     kind='Union'
+
+    def offset(self, fieldName:str):
+        return 0
+
+    @property
+    def width(self):
+        fldw = [f.typ.width for f in self.body]
+        if all(isInt(x) for x in fldw):
+            return max(intVal(w) for w in fldw)
+        else:
+            return maxExpr(fldw)
 
 
 class Iface(Agreg):
@@ -920,7 +1000,7 @@ class Arr(Type):
 # AstNode -> Type -> Enu
 #------------------------------------------------------------------------
 class Enu(Type):
-    def __init__(self, *vals, style:EnuCoding = EnuCoding.autoIncr, 
+    def __init__(self, *vals, style:EnuCoding = EnuCoding.autoIncr,
             name=None):
         self.valDict = {}
         super().__init__(name)
@@ -964,7 +1044,7 @@ class Enu(Type):
         return max(self.valDict.values())
 
     def __getattr__(self, key):
-        if key in self.valDict.keys():
+        if key in self.valDict:
             return key
         raise KeyError(f"invalid enum constant {self.name}.{key}")
 
@@ -988,13 +1068,13 @@ def opPri():
                 pri[op] = priority
         return pri
 
-    priMon = fillUpPri({ 
-        ('.',):100, ('~', '&', '|', '^', '~^', '^~', '~&', '~|'):90, 
+    priMon = fillUpPri({
+        ('.',):100, ('~', '&', '|', '^', '~^', '^~', '~&', '~|'):90,
         ('+', '-'):80 })
 
     priBin = fillUpPri({
-        ('*', '/'):20, ('+', '-'):19, ('<<', '>>'):18, ('>', '<', '>='): 17,
-        ('==', '!='): 16, 
+        ('.'):99, ('*', '/'):20, ('+', '-'):19, ('<<', '>>'):18,
+        ('>', '<', '>='): 17, ('==', '!='): 16,
         ('&',): 15, ('^',): 14, ('|',): 13, #not intuitive
         ('&&',): 12, ('||',): 11 })
 
@@ -1066,8 +1146,14 @@ class Expr(AstNode):
 
     def __neg__(self):          return UnaryExpr('-', self)
     def __invert__(self):       return UnaryExpr('~', self)
-    
+
     def __getitem__(self, slc): return BitExtract(self, slc)
+
+    def simplify(self):
+        return self
+
+    def Eval(self):
+        raise TypeError(f"{self!r} cannot be Eval'ed")
 
     def all(self):
         return self.args
@@ -1175,6 +1261,8 @@ class CEnu(UnaryExpr):
         return f'CEnu({self.args[0]!r})'
 
 
+
+
 class Parameter(UnaryExpr, Named):
     def __init__(self, val, name=None):
         super().__init__('.', val)
@@ -1218,12 +1306,26 @@ class Assignable(UnaryExpr, Named):
         if isinstance(self.args[0], BitVec):
             self.args[0].Signed()
             return self
-        raise TypeError(f"Cannot set signed on non-BitVector {self}")
+        raise TypeError(f"Cannot set signed on non-BitVec {self}")
 
     def width(self):
         if isinstance(self.args[0], BitVec):
             return self.args[0].width
         raise NotImplementedError(f"no width for {self}")
+
+    def __getattr__(self, key):
+        if key.startswith("_"):
+            return self.__getattribute__(key)
+        typ = self.args[0]
+        assert isinstance(typ, Agreg), f"{self.name} is not aggregate type"
+        if key in typ.fieldDict:
+            return DotExpr(self, key)
+        raise KeyError(f"invalid Rec/Union/Iface field {self.name}.{key} for {self}")
+
+    #def __getitem__(self, lst):
+    #    typ = self.args[0]
+    #    assert isinstance(typ, Arr), f"{self.name} is not indexable type"
+    #    raise NotImplementedError
 
     def used(self):
         return set([self])
@@ -1291,7 +1393,7 @@ class Reset(In):
         return self if self.lowTrue else ~self
 
     def __repr__(self):
-        suffix = reprStr(["asyn", self.asyn, True], 
+        suffix = reprStr(["asyn", self.asyn, True],
                          ["lowTrue", self.lowTrue, True])
         return f"Reset(name={self.name!r}{suffix})"
 
@@ -1310,7 +1412,7 @@ class Variable(Assignable):
             return VarAssign(self, rhs)
         return Expr('!=', self, rhs)
 
-    def __matmul__(self, n): # x @ x + 1 
+    def __matmul__(self, n): # x @ x + 1
         return VarAssign(self, n)
 
     # TODO, add support for var.a = var.x + 1
@@ -1319,6 +1421,18 @@ class Variable(Assignable):
 #------------------------------------------------------------------------
 # AstNode -> Expr -> BinExpr
 #------------------------------------------------------------------------
+@runtime_validation
+def isInt(obj) -> bool:
+    return isinstance(obj, (CInt, int))
+
+
+def intVal(obj):
+    if isinstance(obj, CInt):
+        return obj.args[0]
+    if isinstance(obj, int):
+        return obj
+
+
 class BinExpr(Expr):
     def __init__(self, op, lhs, rhs):
         super().__init__(op, lhs, rhs)
@@ -1328,8 +1442,65 @@ class BinExpr(Expr):
         r = self.args[1].Eval()
         return eval(f"{l} {self.op} {r}")
 
+    def simplify(self):
+        from simplify import simplifyBinExpr
+        return simplifyBinExpr(self)
+
     def __repr__(self):
         return f"({self.args[0]!r} {self.op} {self.args[1]!r})"
+
+
+class DotExpr(BinExpr):
+    def __init__(self, parent, key, root=None):
+        self.op = '.'
+        self.pri = getPri(self.op, numOps=2)
+        self.const = False
+        root = root or parent
+        self.typ = parent.args[0].fieldDict[key]
+        self.args = [self.typ, parent, key]
+        self.root = root
+
+    def used(self):      return set([self.root])
+    def paramUsed(self): return set()
+    def typesUsed(self): return set()
+
+    def offset(self, key):
+        lsb = 0
+        curr = self
+        while isinstance(curr, DotExpr):
+            parent = curr.args[1]
+            parentTyp = parent.args[0]
+            lsb += parentTyp.offset(key)
+            curr = parent
+            if isinstance(curr, DotExpr):
+                key = curr.args[2]
+        return lsb
+
+    def __getattr__(self, key):
+        parent = self.args[0]
+        typ = self.typ
+        assert isinstance(typ, Agreg), f"{typ.name}={typ!r} is not aggregate type"
+        if key in typ.fieldDict:
+            return DotExpr(self, key, self.root)
+        raise KeyError(f"invalid Rec/Union/Iface field {self.name}.{key} for {self}")
+
+    def __getitem__(self, slc): 
+        typ = self.args[0]
+        assert isinstance(typ, BitVec), f"{self.name} is not indexable type"
+        return BitExtract(self, slc)
+
+    def lvalue(self):
+        return set([self.args[0]])
+
+    def Eval(self):
+        return self.args[0]
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+    def __repr__(self):
+        suffix = reprStr(["root", self.root, None])
+        return f'DotExpr(parent={self.args[1]!r}, key={self.args[2]!r}{suffix})'
 
 
 #------------------------------------------------------------------------

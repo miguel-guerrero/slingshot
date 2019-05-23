@@ -11,9 +11,9 @@ import vlog
 States = Enu('IDLE', 'GO', 'DONE')
 clk = Clock()
 rst_n = Reset()
-ctl = Output()
-done = Output()
-state, state_nxt = Signal(States) ** 2
+ctl, done = Output() ** 2
+state = Signal(States, default='IDLE')
+state_nxt = Signal(States)
 
 fsm = Module()
 
@@ -31,7 +31,7 @@ fsm += Combo() [
             state_nxt <= States.IDLE
         ].
         Default(
-            state_nxt <= 'IDLE',
+            state_nxt <= 'IDLE', #can also do this, but no checking here
             ctl <= 0
         )
 ]

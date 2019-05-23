@@ -16,21 +16,26 @@ module counter2
 
 
 
-always @(*) 
+always @(*) begin
     eq <= cnt == max_val;
+end
 
 // clear and increment logic
 // goes here
 
-always @(posedge clk or negedge rst_n) 
-    if (~rst_n) 
+always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
         cnt <= 0;
-    else 
+    end
+    else begin
         if (clr) begin
             // clear has priority
             cnt <= 0;
         end
-        else if (inc) 
+        else if (inc) begin
             cnt <= cnt + 1;
+        end
+    end
+end
 
 endmodule

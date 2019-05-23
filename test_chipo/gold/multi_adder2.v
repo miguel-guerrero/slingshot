@@ -24,7 +24,7 @@ always @(*) begin
     sm <= res;
 end
 
-always @(posedge clk or negedge rst_n) 
+always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
         sm_r <= 0;
         sm_zero_r <= 0;
@@ -33,6 +33,7 @@ always @(posedge clk or negedge rst_n)
         sm_r <= sm;
         sm_zero_r <= sm == 0;
     end
+end
 
 endmodule
 

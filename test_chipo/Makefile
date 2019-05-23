@@ -6,94 +6,134 @@ VRUN=vvp
 all: reg_test reg_test2 ex1 ex2 ex3 g2p_ex1 g2p_ex2 vlog
 
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
- multi_adder multi_adder2 multi_adder3
+ multi_adder multi_adder2 multi_adder3 rec rec2 rec3 rec4 rec5 rec6 uni uni2
 
 reg_test:
-	./reg_test.py > reg_test.ralf
-	diff -wb gold/reg_test.ralf .
+	./$@.py > $@.ralf
+	diff -wb gold/$@.ralf .
 
 reg_test2:
-	./reg_test2.py > reg_test2.xml
-	diff -wb gold/reg_test2.xml .
+	./$@.py > $@.xml
+	diff -wb gold/$@.xml .
 
 ex1:
-	./ex1.py > ex1.v
-	$(VCOMP) ex1.v
-	diff -wb gold/ex1.v .
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff -wb gold/$@.v .
 
 ex2:
-	./ex2.py > ex2.log
-	diff -wb gold/ex2.log .
+	./$@.py > $@.log
+	diff -wb gold/$@.log .
 
 ex3:
-	./ex3.py > ex3.log
-	diff -wb gold/ex3.log .
+	./$@.py > $@.log
+	diff -wb gold/$@.log .
 
 ex4:
-	./ex4.py > ex4.log
-	diff -wb gold/ex4.log .
+	./$@.py > $@.log
+	diff -wb gold/$@.log .
 
 adder:
-	./adder.py > adder.v
-	$(VCOMP) adder.v tb.v
-	$(VRUN) a.out > adder.log
-	diff gold/adder.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
 
 adder2:
-	./adder2.py > adder2.v
-	$(VCOMP) adder2.v tb.v
-	$(VRUN) a.out > adder2.log
-	diff gold/adder2.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
 
 adder3:
-	./adder3.py > adder3.v
-	$(VCOMP) adder3.v tb.v
-	$(VRUN) a.out > adder3.log
-	diff gold/adder3.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
 
 adder4:
-	./adder4.py > adder4.v
-	$(VCOMP) adder4.v tb.v
-	$(VRUN) a.out > adder4.log
-	diff gold/adder4.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
 
 adder5:
-	./adder5.py > adder5.v
-	$(VCOMP) adder5.v tb.v
-	$(VRUN) a.out > adder5.log
-	diff gold/adder5.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
 
 sadder4:
-	./sadder4.py > sadder4.v
-	$(VCOMP) sadder4.v stb.v
-	$(VRUN) a.out > sadder4.log
-	diff gold/sadder4.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v stb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
+
+rec:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+rec2:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+rec3:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+rec4:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+rec5:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+rec6:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+uni:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
+uni2:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
 
 multi_adder:
-	./multi_adder.py > multi_adder.v
-	$(VCOMP) ./multi_adder.v
-	diff gold/multi_adder.v .
+	./$@.py > $@.v
+	$(VCOMP) ./$@.v
+	diff gold/$@.v .
 
 multi_adder2:
-	./multi_adder2.py > multi_adder2.v
-	$(VCOMP) ./multi_adder2.v
-	diff gold/multi_adder2.v .
+	./$@.py > $@.v
+	$(VCOMP) ./$@.v
+	diff gold/$@.v .
 
 multi_adder3:
-	./multi_adder3.py > multi_adder3.v
-	$(VCOMP) ./multi_adder3.v
-	diff gold/multi_adder3.v .
+	./$@.py > $@.v
+	$(VCOMP) ./$@.v
+	diff gold/$@.v .
 
 g2p_ex1:
-	./g2p_ex1.py > g2p_ex1.log
+	./$@.py > $@.log
 	diff gold/adder_WIDTH32.v build
-	diff gold/g2p_ex1.log .
+	diff gold/$@.log .
 
 g2p_ex2:
-	./g2p_ex2.py > g2p_ex2.log
+	./$@.py > $@.log
 	diff gold/adder_WIDTH32_2.v build/adder_WIDTH32.v
-	diff gold/g2p_ex2.log .
+	diff gold/$@.log .
 
 clean:
-	$(RM) -r __pycache__ a.out ex*.v *adder*.v build *.ralf *.xml debug_apb_csr*
+	$(RM) -r __pycache__ a.out ex*.v *adder*.v rec*.v uni*.v build *.ralf *.xml 
 	$(RM) *.log 

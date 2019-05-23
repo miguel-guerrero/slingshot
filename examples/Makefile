@@ -6,25 +6,25 @@ VRUN=vvp
 all: counter counter2 fsm adder
 
 counter:
-	./counter.py > counter.v
-	$(VCOMP) counter.v
-	diff gold/counter.v .
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
 
 counter2:
-	./counter2.py
-	$(VCOMP) counter2.v
-	diff gold/counter2.v counter2.v
+	./$@.py
+	$(VCOMP) $@.v
+	diff gold/$@.v $@.v
 
 fsm:
-	./fsm.py > fsm.v
-	$(VCOMP) fsm.v
-	diff gold/fsm.v .
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
 
 adder:
-	./adder.py > adder.v
-	$(VCOMP) adder.v tb/stb.v
-	$(VRUN) a.out > adder.log
-	diff gold/adder.log .
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb/stb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.log .
 
 clean:
 	$(RM) -r __pycache__ a.out *.v build *.xml 

@@ -1,26 +1,19 @@
 //----------------------------------------------------------------------------
-// adder_WIDTH32
+// adder
 //----------------------------------------------------------------------------
-module adder_WIDTH32 
-#(
-    parameter WIDTH = 32,
-    parameter SWIDTH = WIDTH + 1)
-(
-    input cin,
-    input [WIDTH-1:0] x,
-    input [WIDTH-1:0] y,
-    output reg [SWIDTH-1:0] sm,
-    output reg [SWIDTH-1:0] sm_r,
-    output reg sm_zero_r,
+module adder (
     input clk,
-    input rst_n
+    input [64:0] ins,
+    input rst_n,
+    output reg [9:0] sm,
+    output reg [9:0] sm_r,
+    output reg sm_zero_r
 );
 
-reg [SWIDTH-1:0] res;
+
 
 always @(*) begin : combo_logic
-    res = x + y + cin;
-    sm <= res;
+    sm <= ins/*.s1.x*/[7:0] + ins/*.s1.y*/[15:8] + ins/*.s1.z*/[23:16] + ins/*.s1.w*/[31:24] + ins/*.s2.x*/[40:33] + ins/*.s2.y*/[48:41] + ins/*.s2.z*/[56:49] + ins/*.s2.w*/[64:57] + ins/*.cin*/[32];
 end
 
 always @(posedge clk or negedge rst_n) begin
@@ -35,3 +28,4 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 endmodule
+

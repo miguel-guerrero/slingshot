@@ -34,6 +34,7 @@ class Ctx(Enum):
     default=0
     io=1
     event=2
+    compact=3
 
 # not planned:
 #  1995    - IEEE1364-1995
@@ -46,6 +47,8 @@ class Style(IntEnum):
 
 STYLE = Style.v2001
 #STYLE = Style.sv2005l
+#STYLE = Style.sv2009
+#STYLE = Style.sv2012
 def setStyle(x:Style):
     global STYLE
     STYLE = x
@@ -70,9 +73,10 @@ def indListAsStr(lst:list, n:int, sep=',\n') -> str:
 
 # convert expr to vlog and parenthesize if expr operator is lower pri than 
 # node.op/pri
-def paren(node, expr):
-    v = dump(expr)
-    if isinstance(expr, chipo.Expr) and expr.pri < node.pri:
+def paren(node, expr, ctx=Ctx.default):
+    v = dump(expr, ctx=ctx)
+    forceParen = False #for debug
+    if isinstance(expr, chipo.Expr) and (expr.pri < node.pri or forceParen):
         return '('+v+')'
     return v
 
@@ -99,11 +103,12 @@ def dumpIoPass(node, indLvl):
 
 
 def dumpMsb(node):
-    if isinstance(node.width, chipo.Parameter):
-        return f"{node.width.name}-1"
-    if isinstance(node.width, chipo.Expr):
-        return dump(chipo.Expr('-', node.width, chipo.CInt(1)))
-    return f"{node.width-1}"
+    width = node.width
+    if isinstance(width, chipo.Parameter):
+        return f"{width.name}-1"
+    if isinstance(width, chipo.Expr):
+        return dump(chipo.simplify(width-1), ctx=Ctx.compact)
+    return f"{width-1}"
 
 
 #has only temporary life while converting to vlog
@@ -212,10 +217,11 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
     #type declarations
     typeStr = ''
-    if node.types:
+    typeStrLst = [x for x in (dump(p) for p in node.types) if x != ""]
+    if len(typeStrLst) > 0:
         typeStr = '\n// types\n' + \
-                  indListAsStr((dump(p, 0) for p in node.types), indLvl, sep=",\n") + \
-                  ';\n'
+            indListAsStr(typeStrLst, indLvl, sep=",\n") + ';\n'
+
     return instancesStr + \
            f'//'+ (76*'-') +'\n'+ \
            f'// {node.name}\n'+ \
@@ -267,8 +273,9 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 @dump.register(chipo.Block)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    if len(node.stmts) == 1 and node.name is None:
-        return "\n" + dump(node.stmts[0], indLvl+1)
+    if False: #omit begin/end if single stmt
+        if len(node.stmts) == 1 and node.name is None:
+            return "\n" + dump(node.stmts[0], indLvl+1)
     v = [dump(stm, indLvl+1) for stm in node.stmts]
     name = "" if node.name is None else " : " + node.name
     return f"begin{name}\n" + \
@@ -319,7 +326,9 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 @dump.register(chipo.Expr)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return paren(node, node.args[0]) + " " + node.op + " " + paren(node, node.args[1])
+    sep = "" if ctx==Ctx.compact else " "
+    return paren(node, node.args[0], ctx) + sep + node.op + sep + \
+           paren(node, node.args[1], ctx)
 
 
 #-----------------------------------------------------------------------------
@@ -327,13 +336,14 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 @dump.register(chipo.UnaryExpr)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return node.op + paren(node, node.args[0]) 
+    return node.op + paren(node, node.args[0], ctx) 
 
 
 @dump.register(chipo.CInt)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    width = node.width
     prefix = '-' if node.signed and node.args[0] < 0 else ''
-    sz = "'" if node.width is None else f"{node.width}'"
+    sz = "'" if width is None else f"{width}'"
     sgn = 's' if node.signed else ''
     fmt = 'x' if node.base == 'h' else node.base
     num = f'{abs(node.args[0]):{fmt}}'
@@ -345,6 +355,32 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.CEnu)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     return node.args[0]
+
+
+def keyPath(key, parent):
+    if type(parent)==chipo.DotExpr:
+        return keyPath(parent.args[2], parent.args[1]) + "." + key
+    return key
+
+
+@dump.register(chipo.DotExpr)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+
+    typ, parent, key = node.args
+    parentTyp = parent.args[0]
+    keyName = keyPath(key, parent)
+
+    if STYLE >= Style.sv2012:
+        return f"{node.root.name}.{keyName}"
+    else:
+        lsb = node.offset(key)
+        msb = parentTyp.fldWidth(key) + lsb - 1
+
+        lsbStr = dump(chipo.simplify(lsb), ctx=Ctx.compact)
+        msbStr = dump(chipo.simplify(msb), ctx=Ctx.compact)
+
+        suffix = '' if msbStr == lsbStr else f':{lsbStr}'
+        return f"{node.root.name}/*.{keyName}*/[{msbStr}{suffix}]"
 
 
 @dump.register(chipo.Parameter)
@@ -359,7 +395,8 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     v = f'{node.name}'
     if ctx == Ctx.io:
-        v = f"//Signal {node.name} {dump(node.args[0], ctx=ctx)}"
+        v = f"//Signal name={node.name} typ={node.args[0]}"
+        assert False, "Only derived from Assignable are expected to be vlog.dump'ed"
     return v
 
 
@@ -418,8 +455,21 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 @dump.register(chipo.BitExtract)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    lsbv = '' if node.args[2] is None else ':' + dump(node.args[2])
-    return paren(node, node.args[0]) + '['+ dump(node.args[1]) + lsbv +']'
+    typ, msb, lsb = node.args
+    if isinstance(typ, chipo.DotExpr):
+        _, parent, key = typ.args
+        offs = typ.offset(key)
+
+        msbStr = dump(chipo.simplify(msb+offs), ctx=Ctx.compact)
+        keyName = keyPath(key, parent)
+
+        suff = ":"+dump(chipo.simplify(lsb+offs), ctx=Ctx.compact) if lsb else ""
+        suffC= ":"+dump(lsb) if lsb else ""
+        return f"{typ.root.name}/*.{keyName}[{dump(msb)}{suffC}]*/[{msbStr}{suff}]"
+    else:
+        msbStr = dump(chipo.simplify(msb), ctx=Ctx.compact)
+        suff = ":"+dump(chipo.simplify(lsb), ctx=Ctx.compact) if lsb else ""
+        return paren(node, typ) + f"[{msbStr}{suff}]"
 
 
 @dump.register(chipo.Concat)
@@ -430,8 +480,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.IfCond)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     return paren(node, node.args[0]) + ' ? ' + dump(node.args[1]) + \
-                                       ' : ' + dump(node.args[2]) 
-
+                                       ' : ' + dump(node.args[2])
 
 @dump.register(chipo.ExprReduce)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
@@ -445,10 +494,17 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     v = f'{node.name}'
     if ctx == Ctx.io:
-        if isinstance(node.width, int) and node.width != 1 or \
-           isinstance(node.width, chipo.Expr):
+        width = node.width
+        if isinstance(width, int) and width != 1 or \
+           isinstance(width, chipo.Expr):
             v += f"[{dumpMsb(node)}:0]"
     return v
+
+
+@dump.register(int)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return f"{node}"
+
 
 #TODO Agreg, Arr, Enu
 
@@ -499,18 +555,41 @@ def _(typ, indLvl=0):
 
 
 @runtime_validation
-def dumpFieldDecl(fld:chipo.Field):
-    return f"{fld.typ.name} {', '.join(fld.names)}"
+def dumpFieldDecl(fld:chipo.Field, indLvl):
+    namesStr = ', '.join(fld.names)
+    typeStr = ind(fld.typ.name, indLvl+1)
+    if type(fld.typ) == chipo.BitVec:
+        if fld.typ.name == 'self':
+            width = fld.typ.width
+            v = 'logic'
+            if isinstance(width, int) and width != 1 or \
+               isinstance(width, chipo.Expr):
+                v = f"logic [{dumpMsb(fld.typ)}:0]"
+            typeStr = ind(v, indLvl+1)
+
+    return typeStr + " " + namesStr
 
 
 @dump.register(chipo.Rec)
 def _(typ, indLvl=0):
     if STYLE >= Style.sv2012:
-        recStr = ind("typedef struct {\n", indLvl)
+        recStr = ind("typedef packed struct {\n", indLvl)
         for fld in typ.body:
-            recStr += ind(dumpFieldDecl(fld) + ";\n", indLvl+1)
-        recStr += ind("}", indLvl)
+            recStr += dumpFieldDecl(fld, indLvl) + ";\n"
+        recStr += ind("} " f"{typ.name}", indLvl)
         return recStr
     else:
-        raise NotImplementedError
+        return ""
+
+
+@dump.register(chipo.Union)
+def _(typ, indLvl=0):
+    if STYLE >= Style.sv2012:
+        recStr = ind("typedef packed union {\n", indLvl)
+        for fld in typ.body:
+            recStr += dumpFieldDecl(fld, indLvl) + ";\n"
+        recStr += ind("} " f"{typ.name}", indLvl)
+        return recStr
+    else:
+        return ""
 
