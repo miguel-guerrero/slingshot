@@ -1620,10 +1620,6 @@ def Output(n=1, **kwargs):
 #------------------------------------------------------------------------------
 # High level 
 #------------------------------------------------------------------------------
-def debug(*args):
-    if False:
-        print(*args)
-
 class Stage(AstNode):
     def __init__(self, stmts):
         self.stmts = stmts
@@ -1685,12 +1681,8 @@ class Pipeline:
     def replaceUses(stm, s, ss):
         def f(x):
             if isinstance(x, (BinExpr, MultiExpr)) or type(x)==UnaryExpr:
-                debug(f' replaceUses trying {x} looking for {s}')
                 for i, e in enumerate(x.args):
-                    debug(f'  {i}: e = {e}')
                     if repr(e) == repr(s): # and isinstance(x.args[0], Signal):
-                        debug(f'  replaceUses {s.name} -> {ss.name}')
-                        debug(f'  type(e) -> {type(e)}')
                         x.args[i] = ss
 
         stm.applyFunc(f)
@@ -1699,12 +1691,9 @@ class Pipeline:
     def replaceAssigned(stm, s, ss):
         def f(x):
             if isinstance(x, SigAssign):
-                debug(f' replaceAssigned trying {x} looking for {s}')
                 if repr(x.lhs) == repr(s): # and isinstance(x.args[0], Signal):
-                    debug(f'  replaced assigned {s.name} -> {ss.name}')
                     x.lhs = ss
 
-        debug(f'replaceAssigned stm={stm} s={s}')
         stm.applyFunc(f)
 
     #def _autoKeep(self): # = {drivenSig} - {usedSig} - {declared}
@@ -1734,15 +1723,6 @@ class Pipeline:
             passed_i = outs_i - assigned_i
 
             m = Clocked(self.clk).Name(f"{self.name}_stage{currStageNum}")
-            if False:
-                m += Comment(f"stage{currStageNum}")
-                m += Comment(f"assigned {[x.name for x in assigned_i]}")
-                m += Comment(f"used {[x.name for x in stg.used()]}")
-                m += Comment(f"outs {[x.name for x in outs_i]} prevIns")
-                m += Comment(f"ins {[x.name for x in ins_i]} outs+used-assigned")
-                m += Comment(f"passed {[x.name for x in passed_i]} outs-assigned")
-
-            debug(f'------ STAGE {currStageNum} ------')
 
             if self.vld:
                 vld_i   = StagedSignal(self.vld, currStageNum,   lastStageNum, self.name)
@@ -1754,12 +1734,12 @@ class Pipeline:
 
             load_data = None
             if self.vld and self.rdy:
-                #E.g. for stg3:  sad_stg3_vld <= sad_stg2_vld & sad_stg3_rdy;
                 m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
-                ###load_data = vld_im1 #& rdy_i
+                #E.g. for stg3:  if (sad_stg2_vld & sad_stg3_rdy) .. load on stg3
                 load_data = vld_im1 & rdy_i
+                #E.g. for stg3:  sad_stg3_vld <= sad_stg3_rdy ? sad_stg2_vld : sad_stg3_vld
                 m2 += SigAssign(vld_i, IfCond(rdy_i, vld_im1, vld_i))
-                #E.g. for stg3:  assign sad_stg3_rdy = sad_stg4_rdy & ~sad_stg3_vld;
+                #E.g. for stg3:  assign sad_stg3_rdy = sad_stg4_rdy | ~sad_stg3_vld;
                 c = Assign(rdy_i, rdy_ip1 | ~vld_i)
                 pipeList.insert(0, c)
                 pipeList.insert(0, m2)
@@ -1782,7 +1762,6 @@ class Pipeline:
                 body = m
 
             for stm in stg.stmts:
-                debug(f'--- {stm} ---')
                 if currStageNum != 1:
                     for s in stm.used():
                         ss = StagedSignal(s, currStageNum-1, lastStageNum, self.name)
@@ -1820,10 +1799,10 @@ class Pipeline:
             pipeList.append(Comment('hook to downstream rdy'))
             rdy_last = StagedSignal(self.rdy, lastStageNum+1, lastStageNum, self.name)
             pipeList.append(Assign(rdy_last, self.rdy_dn))
+            #E.g. assign sad_rdy = sad_stg1_rdy;
             pipeList.append(Comment('hook to upstream rdy'))
             rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
             pipeList.append(Assign(rdy_first, rdy_i))
-
 
         return pipeList, lastStageSigs
 
