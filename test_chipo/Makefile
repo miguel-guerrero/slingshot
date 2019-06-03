@@ -6,7 +6,9 @@ VRUN=vvp
 all: reg_test reg_test2 ex1 ex2 ex3 g2p_ex1 g2p_ex2 vlog
 
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
- multi_adder multi_adder2 multi_adder3 rec rec2 rec3 rec4 rec5 rec6 uni uni2
+ multi_adder multi_adder2 multi_adder3 \
+ rec rec2 rec3 rec4 rec5 rec6 uni uni2 \
+ pipe1
 
 reg_test:
 	./$@.py > $@.ralf
@@ -35,37 +37,37 @@ ex4:
 
 adder:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb.v
+	$(VCOMP) $@.v tb/tb.v
 	$(VRUN) a.out > $@.log
 	diff gold/$@.log .
 
 adder2:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb.v
+	$(VCOMP) $@.v tb/tb.v
 	$(VRUN) a.out > $@.log
 	diff gold/$@.log .
 
 adder3:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb.v
+	$(VCOMP) $@.v tb/tb.v
 	$(VRUN) a.out > $@.log
 	diff gold/$@.log .
 
 adder4:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb.v
+	$(VCOMP) $@.v tb/tb.v
 	$(VRUN) a.out > $@.log
 	diff gold/$@.log .
 
 adder5:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb.v
+	$(VCOMP) $@.v tb/tb.v
 	$(VRUN) a.out > $@.log
 	diff gold/$@.log .
 
 sadder4:
 	./$@.py > $@.v
-	$(VCOMP) $@.v stb.v
+	$(VCOMP) $@.v tb/stb.v
 	$(VRUN) a.out > $@.log
 	diff gold/$@.log .
 
@@ -109,6 +111,11 @@ uni2:
 	$(VCOMP) $@.v
 	diff gold/$@.v .
 
+pipe1:
+	./$@.py > $@.v
+	$(VCOMP) $@.v
+	diff gold/$@.v .
+
 multi_adder:
 	./$@.py > $@.v
 	$(VCOMP) ./$@.v
@@ -135,5 +142,5 @@ g2p_ex2:
 	diff gold/$@.log .
 
 clean:
-	$(RM) -r __pycache__ a.out ex*.v *adder*.v rec*.v uni*.v build *.ralf *.xml 
+	$(RM) -r __pycache__ a.out *.v build *.ralf *.xml *.vcd
 	$(RM) *.log 
