@@ -30,6 +30,12 @@ reg sad_stg2_vld;
 reg sad_stg3_rdy;
 reg sad_stg4_rdy;
 
+// hook to upstream rdy
+
+always @(*) begin
+    sad_rdy <= sad_stg1_rdy;
+end
+
 // hook to upsstream vld
 
 always @(*) begin
@@ -105,12 +111,6 @@ end
 
 always @(*) begin
     sad_stg4_rdy <= rdy_dn;
-end
-
-// hook to upstream rdy
-
-always @(*) begin
-    sad_rdy <= sad_stg1_rdy;
 end
 
 endmodule

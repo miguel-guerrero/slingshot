@@ -1795,14 +1795,14 @@ class Pipeline:
             pipeList.insert(0, Comment('hook to upsstream vld'))
 
         if self.rdy:
+            #E.g. assign sad_rdy = sad_stg1_rdy;
+            rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
+            pipeList.insert(0, Assign(rdy_first, rdy_i))
+            pipeList.insert(0, Comment('hook to upstream rdy'))
             #E.g. assign sad_stg4_rdy = dn_rdy;
             pipeList.append(Comment('hook to downstream rdy'))
             rdy_last = StagedSignal(self.rdy, lastStageNum+1, lastStageNum, self.name)
             pipeList.append(Assign(rdy_last, self.rdy_dn))
-            #E.g. assign sad_rdy = sad_stg1_rdy;
-            pipeList.append(Comment('hook to upstream rdy'))
-            rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
-            pipeList.append(Assign(rdy_first, rdy_i))
 
         return pipeList, lastStageSigs
 
