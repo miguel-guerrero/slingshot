@@ -47,8 +47,7 @@ AstNode -> assigned/used/paramUsed/driven/declared -> empty sets
                *AndReduce
                *XorReduce
 
-*Named
-   *Type
+   *Type  <- Named
        *BitVec(signed or not) -> uint(n), int(n)
             // allow width to be derived from context as a mode?
        *Agreg

@@ -28,7 +28,7 @@ from itertools import takewhile
 
 import gencore
 from varname import makeCounter, Named
-from helper import reprStr, listRepr, modkey, tupleize, bitsFor
+from helper import reprStr, listRepr, modkey, tupleize, Struct
 
 try:
     #https://github.com/RussBaz/enforce
@@ -431,7 +431,10 @@ class Instance(InstanceBase):
 # AstNode -> AstProcStatement : things that can go under a procedural contruct
 #------------------------------------------------------------------------------
 class AstProcStatement(AstNode):
-    pass
+    def applyFunc(self, f):
+        f(self)
+        for s in self.all():
+            s.applyFunc(f)
 
 
 #-----------------------------------------------------------
@@ -459,6 +462,7 @@ class Block(AstProcStatement):
     def typesUsed(self): return self.apply('typesUsed', self.stmts)
     def driven(self):    return self.apply('driven',    self.stmts)
     def declared(self):  return self.apply('declared',  self.stmts)
+    def all(self):       return self.stmts
 
     def __repr__(self):
         s = ", ".join(repr(stm) for stm in self.stmts)
@@ -502,7 +506,7 @@ class If(AstProcStatement):
 
     def __init__(self, cond=1):
         self.cond = WrapExpr(cond)
-        self.trueBlock = None
+        self.trueBlock = Block()
         self.falseBlock = None
         self.elifBlock = []
         self.elifCond = []
@@ -688,7 +692,11 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self
 
     def __iadd__(self, x):
-        self.body.append(x)
+        if isinstance(x, (tuple, list)):
+            for xi in x:
+                self.body.append(xi)
+        else:
+            self.body.append(x)
         return self
 
     def Ios(self, *ios):
@@ -803,7 +811,7 @@ class Module(AstNode, gencore.ModuleBase, Named):
                    .autoTypes().autoInstanceName()
 
     def elab(self):
-        s = self.vlog() #for now resolves all names
+        s = self.vlog() #for now resolves all names FIXME
         return self.autoReset()
 
     def __repr__(self):
@@ -1050,7 +1058,7 @@ class Enu(Type):
 
     @property
     def width(self):
-        return bitsFor(self.max())
+        return self.max().bit_length()
 
     def __repr__(self):
         valStr = f"{self.valDict}"
@@ -1155,6 +1163,12 @@ class Expr(AstNode):
     def Eval(self):
         raise TypeError(f"{self!r} cannot be Eval'ed")
 
+
+    def applyFunc(self, f):
+        f(self)
+        for s in self.all():
+            s.applyFunc(f)
+
     def all(self):
         return self.args
 
@@ -1185,6 +1199,9 @@ class UnaryExpr(Expr):
     def Eval(self):
         r = self.args[0].Eval()
         return eval(f"{self.op} {r}")
+
+    def applyFunc(self, f):
+        f(self)
 
     #https://stackoverflow.com/questions/53518981/
     #inheritance-hash-sets-to-none-in-a-subclass
@@ -1259,8 +1276,6 @@ class CEnu(UnaryExpr):
         if self.width is not None:
             return f'CEnu({self.args[0]!r}, width={self.width}){suf}'
         return f'CEnu({self.args[0]!r})'
-
-
 
 
 class Parameter(UnaryExpr, Named):
@@ -1601,4 +1616,248 @@ def Output(n=1, **kwargs):
     if isinstance(n, (Expr, int)):
         return Out(BitVec(n), **kwargs)
     return Out(n, **kwargs)
+
+#------------------------------------------------------------------------------
+# High level 
+#------------------------------------------------------------------------------
+def debug(*args):
+    if False:
+        print(*args)
+
+class Stage(AstNode):
+    def __init__(self, stmts):
+        self.stmts = stmts
+
+    def assigned(self):  return self.apply('assigned',  self.stmts)
+    def used(self):      return self.apply('used',      self.stmts)
+    def paramUsed(self): return self.apply('paramUsed', self.stmts)
+    def typesUsed(self): return self.apply('typesUsed', self.stmts)
+    def driven(self):    return self.apply('driven',    self.stmts)
+    def declared(self):  return self.apply('declared',  self.stmts)
+
+    def __repr__(self):
+        return f"Stage({self.stmts})"
+
+
+class StagedSignal(Signal):
+    def __init__(self, s:Signal, stageNum:int, lastStageNum:int, pipeName:str):
+        super().__init__(s.args[0], s.name, s.default)
+        self.stageNum = stageNum
+        self.lastStageNum = lastStageNum
+        self.pipeName = pipeName
+        self.origSignal = s
+        self._origName = s.name
+
+    @property
+    def name(self):
+        if self.stageNum != self.lastStageNum:
+            return f"{self.pipeName}_stg{self.stageNum}_{self._origName}"
+            #return f"{self.pipeName}{self.stageNum}_{self._origName}"
+        return f"{self.pipeName}_{self._origName}"
+
+    @property
+    def origName(self):
+        return self._origName
+    
+
+class Pipeline:
+    def __init__(self, name, clk, rst, *, keep, vld=None, rdy=None):
+        self.name = name
+        self.clk, self.rst = clk, rst
+        self.keep = list(keep)
+        self.body = []
+        self.vld_up = vld
+        self.rdy_dn = rdy
+        self.vld = Signal(1, name='vld') if vld is not None else None
+        self.rdy = Signal(1, name='rdy') if rdy is not None else None
+
+    def __iadd__(self, x):
+        self.body.append(x)
+        return self
+
+    def __getitem__(self, stmts):
+        for stm in tupleize(stmts):
+            assert isinstance(stm, AstProcStatement) or stm is ...
+            self.body.append(stm)
+        return self
+
+    @staticmethod
+    def replaceUses(stm, s, ss):
+        def f(x):
+            if isinstance(x, (BinExpr, MultiExpr)) or type(x)==UnaryExpr:
+                debug(f' replaceUses trying {x} looking for {s}')
+                for i, e in enumerate(x.args):
+                    debug(f'  {i}: e = {e}')
+                    if repr(e) == repr(s): # and isinstance(x.args[0], Signal):
+                        debug(f'  replaceUses {s.name} -> {ss.name}')
+                        debug(f'  type(e) -> {type(e)}')
+                        x.args[i] = ss
+
+        stm.applyFunc(f)
+
+    @staticmethod
+    def replaceAssigned(stm, s, ss):
+        def f(x):
+            if isinstance(x, SigAssign):
+                debug(f' replaceAssigned trying {x} looking for {s}')
+                if repr(x.lhs) == repr(s): # and isinstance(x.args[0], Signal):
+                    debug(f'  replaced assigned {s.name} -> {ss.name}')
+                    x.lhs = ss
+
+        debug(f'replaceAssigned stm={stm} s={s}')
+        stm.applyFunc(f)
+
+    #def _autoKeep(self): # = {drivenSig} - {usedSig} - {declared}
+    #    usedSig = {s for s in self.used(Signal) if not isinstance(s, Out)}
+    #    declared = self.declared()
+    #    drivenSig = self.assigned(Signal).union(self.driven())
+    #    return (drivenSig.difference(usedSig)).difference(declared)
+
+    def processStages(self, stages):
+
+        allUsed = set()
+        allAssigned = set()
+        for stg in stages:
+            allUsed = allUsed.union(stg.used())
+            allAssigned = allAssigned.union(stg.assigned())
+
+        prevIns = set(self.keep)
+        pipeList = []
+        lastStageNum = len(stages)
+        currStageNum = lastStageNum
+        lastStageSigs = []
+
+        for stg in reversed(stages):
+            assigned_i = stg.assigned()
+            outs_i = prevIns
+            ins_i = set.union(outs_i, stg.used()) - assigned_i
+            passed_i = outs_i - assigned_i
+
+            m = Clocked(self.clk).Name(f"{self.name}_stage{currStageNum}")
+            if False:
+                m += Comment(f"stage{currStageNum}")
+                m += Comment(f"assigned {[x.name for x in assigned_i]}")
+                m += Comment(f"used {[x.name for x in stg.used()]}")
+                m += Comment(f"outs {[x.name for x in outs_i]} prevIns")
+                m += Comment(f"ins {[x.name for x in ins_i]} outs+used-assigned")
+                m += Comment(f"passed {[x.name for x in passed_i]} outs-assigned")
+
+            debug(f'------ STAGE {currStageNum} ------')
+
+            if self.vld:
+                vld_i   = StagedSignal(self.vld, currStageNum,   lastStageNum, self.name)
+                vld_im1 = StagedSignal(self.vld, currStageNum-1, -1, self.name)
+
+            if self.rdy:
+                rdy_i   = StagedSignal(self.rdy, currStageNum,   -1, self.name)
+                rdy_ip1 = StagedSignal(self.rdy, currStageNum+1, -1, self.name)
+
+            load_data = None
+            if self.vld and self.rdy:
+                #E.g. for stg3:  sad_stg3_vld <= sad_stg2_vld & sad_stg3_rdy;
+                m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
+                ###load_data = vld_im1 #& rdy_i
+                load_data = vld_im1 & rdy_i
+                m2 += SigAssign(vld_i, IfCond(rdy_i, vld_im1, vld_i))
+                #E.g. for stg3:  assign sad_stg3_rdy = sad_stg4_rdy & ~sad_stg3_vld;
+                c = Assign(rdy_i, rdy_ip1 | ~vld_i)
+                pipeList.insert(0, c)
+                pipeList.insert(0, m2)
+
+                enaStm = If(load_data)
+                m += enaStm
+                body = enaStm.trueBlock
+
+            elif self.vld:
+                m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
+                load_data = vld_im1
+                m2 += SigAssign(vld_i, vld_im1)
+                pipeList.insert(0, m2)
+
+                enaStm = If(load_data)
+                m += enaStm
+                body = enaStm.trueBlock
+
+            else:
+                body = m
+
+            for stm in stg.stmts:
+                debug(f'--- {stm} ---')
+                if currStageNum != 1:
+                    for s in stm.used():
+                        ss = StagedSignal(s, currStageNum-1, lastStageNum, self.name)
+                        Pipeline.replaceUses(stm, s, ss)
+                for s in stm.assigned():
+                    ss = StagedSignal(s, currStageNum, lastStageNum, self.name)
+                    if currStageNum == lastStageNum:
+                        lastStageSigs.append(ss)
+                    Pipeline.replaceAssigned(stm, s, ss)
+                body += stm
+
+            for s in passed_i:
+                ss = StagedSignal(s, currStageNum, lastStageNum, self.name)
+                if currStageNum != 1:
+                    body += SigAssign(ss, StagedSignal(s, currStageNum-1, lastStageNum, self.name))
+                else:
+                    body += SigAssign(ss, s)
+                if currStageNum == lastStageNum:
+                    lastStageSigs.append(ss)
+
+            pipeList.insert(0, m)
+            pipeList.insert(0, Comment(f"--- Stage {currStageNum} ---"))
+
+            prevIns = ins_i
+            currStageNum -= 1
+
+        if self.vld:
+            #E.g. assign sad_stg0_vld = up_vld;
+            vld_0 = StagedSignal(self.vld, 0, lastStageNum, self.name)
+            pipeList.insert(0, Assign(vld_0, self.vld_up))
+            pipeList.insert(0, Comment('hook to upsstream vld'))
+
+        if self.rdy:
+            #E.g. assign sad_stg4_rdy = dn_rdy;
+            pipeList.append(Comment('hook to downstream rdy'))
+            rdy_last = StagedSignal(self.rdy, lastStageNum+1, lastStageNum, self.name)
+            pipeList.append(Assign(rdy_last, self.rdy_dn))
+            pipeList.append(Comment('hook to upstream rdy'))
+            rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
+            pipeList.append(Assign(rdy_first, rdy_i))
+
+
+        return pipeList, lastStageSigs
+
+    def expand(self):
+        stages = []
+        curr = []
+        body = self.body + [...]
+        for stm in body:
+            if stm == ...:
+                stages.append(Stage(curr))
+                curr = []
+            else:
+                curr.append(stm)
+        self.logic_, sigs = self.processStages(stages)
+        self.outs_ = Struct()
+        for s in sigs:
+            self.outs_[s.origName] = s
+        return self.logic_
+
+    @property
+    def logic(self):
+        if self.logic_ is None:
+            self.expand()
+        return self.logic_
+
+    @property
+    def outs(self):
+        if self.logic_ is None:
+            self.expand()
+        return self.outs_
+
+    def __repr__(self):
+        s = f"Pipeline({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
+        s+= "\n   ,".join(repr(stm) for stm in self.body)
+        s += ']'
+        return s
 

@@ -396,7 +396,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     v = f'{node.name}'
     if ctx == Ctx.io:
         v = f"//Signal name={node.name} typ={node.args[0]}"
-        assert False, "Only derived from Assignable are expected to be vlog.dump'ed"
+        assert False, f"Only derived from Assignable are expected to be vlog.dump'ed, got {node}"
     return v
 
 

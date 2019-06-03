@@ -29,10 +29,33 @@ def tupleize(x):
         x = (x,)
     return x
 
-def bitsFor(n: int):
-    assert n >= 0
-    bits, limit = 1, 2
-    while limit <= n:
-        limit <<= 1
-        bits += 1
-    return bits
+
+#a structure that returns None for not-defined fields
+#and can be used as a dict too
+class Struct:
+    def __init__(self, **kwargs):
+        self.argDict = kwargs
+
+    def setDict(self, argDict):
+        self.argDict = argDict
+
+    def getDict(self):
+        return self.argDict
+
+    def __getattr__(self, key):
+        if key in self.argDict.keys():
+            return self.argDict[key]
+        raise KeyError(f'key {key} not found in {self}')
+
+    def __setattr__(self, key, val):
+        if key != "argDict":
+            self.argDict[key] = val
+        else:
+            object.__setattr__(self, key, val)
+
+    __getitem__ = __getattr__
+    __setitem__ = __setattr__
+
+    def __repr__(self):
+        return "Struct(" + ", ".join(f"{k}={v!r}" 
+                for k, v in self.argDict.items()) + ")"
