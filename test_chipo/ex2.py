@@ -24,7 +24,7 @@ if __name__=='__main__':
 
     if True:
         p = Clocked(clk, rst_n).Name('my_process_p') [
-             If (a == 1).Then(
+             If(a == 1).Then(
                  If(2 == b) [
                     c<=4,
                     b<=5
@@ -32,13 +32,13 @@ if __name__=='__main__':
                     a<=3,
                     b<=6
                  ]
-             ).Else[
+             ).Else(
                a <= b,
                a <= 1 + b*(3 + 5*a),
                b <= b*3 - CInt(5, width=3).Signed().Hex()*d,
                a <= b & a | ~(c & a),
                a <= 1 & (a > 1)
-             ],
+             ),
              If (a < 22) [
                 a <= a + 1
              ]
@@ -82,7 +82,7 @@ if __name__=='__main__':
         a = Input(32)
         b2 = Input(32)
         alu = Module().Ios(res, op, a, b2).Body(
-            Combo.Body(
+            Combo().Body(
                 res <= a + b2
             )
         )

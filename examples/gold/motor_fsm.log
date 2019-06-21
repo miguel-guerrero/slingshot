@@ -1,0 +1,33 @@
+#RUNNING RTL code
+VCD info: dumpfile tb.vcd opened for output.
+                  10 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                  30 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                  50 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                  70 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                  90 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                 110 ACTIVATING
+                 110 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                 130 activate 1 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                 150 activate 1 up_limit 1 dn_limit 0 motor_dn 1 motor_up 0
+                 170 activate 0 up_limit 0 dn_limit 0 motor_dn 1 motor_up 0
+                 190 activate 0 up_limit 0 dn_limit 0 motor_dn 1 motor_up 0
+                 210 activate 0 up_limit 0 dn_limit 0 motor_dn 1 motor_up 0
+                 230 REPORTING dn_limit
+                 230 activate 0 up_limit 0 dn_limit 0 motor_dn 1 motor_up 0
+                 250 activate 0 up_limit 0 dn_limit 1 motor_dn 1 motor_up 0
+                 270 activate 0 up_limit 0 dn_limit 1 motor_dn 0 motor_up 0
+                 290 activate 0 up_limit 0 dn_limit 1 motor_dn 0 motor_up 0
+                 290 ACTIVATING
+                 310 activate 1 up_limit 0 dn_limit 1 motor_dn 0 motor_up 0
+                 330 activate 1 up_limit 0 dn_limit 1 motor_dn 0 motor_up 1
+                 350 activate 0 up_limit 0 dn_limit 0 motor_dn 0 motor_up 1
+                 370 activate 0 up_limit 0 dn_limit 0 motor_dn 0 motor_up 1
+                 390 activate 0 up_limit 0 dn_limit 0 motor_dn 0 motor_up 1
+                 410 activate 0 up_limit 0 dn_limit 0 motor_dn 0 motor_up 1
+                 430 activate 0 up_limit 0 dn_limit 0 motor_dn 0 motor_up 1
+                 450 activate 0 up_limit 0 dn_limit 0 motor_dn 0 motor_up 1
+                 450 REPORTING up_limit
+                 470 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 1
+                 490 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0
+                 510 Normal termination
+                 510 activate 0 up_limit 1 dn_limit 0 motor_dn 0 motor_up 0

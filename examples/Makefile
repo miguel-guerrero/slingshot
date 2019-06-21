@@ -3,7 +3,7 @@ include ../common/include.mk
 VCOMP=iverilog -g2001
 VRUN=vvp
 
-all: counter counter2 adder fsm pipe
+all: counter counter2 adder fsm pipe motor_fsm
 
 counter:
 	./$@.py > $@.v
@@ -32,6 +32,13 @@ pipe:
 	$(VRUN) a.out > $@.log
 	@grep -q "RESULT: PASS" $@.log || (echo "RESULT: FAIL" && exit 1)
 	diff gold/$@.v .
+
+motor_fsm:
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb/motor_tb.v
+	$(VRUN) a.out > $@.log
+	diff gold/$@.v $@.v
+	diff gold/$@.log .
 
 clean:
 	$(RM) -r __pycache__ a.out *.v build *.xml *.vcd

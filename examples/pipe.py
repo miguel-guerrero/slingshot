@@ -5,6 +5,7 @@
 import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
+from hlc import Pipeline
 
 # example of auto-pipelining
 

@@ -110,7 +110,10 @@ class AstNode:
     #apply a set-returning method 'm' to non-None items in list and return
     #the union of all returned sets
     def apply(self, m, lst):
-        return set.union(*[getattr(x,m)() for x in lst if x is not None])
+        lst = [getattr(x,m)() for x in lst if x is not None and x is not ...]
+        if lst:
+            return set.union(*lst)
+        return set()
 
 
     def __repr__(self): raise NotImplementedError
@@ -152,8 +155,7 @@ class Clocked(AstStatement):
         return self.Body(*tupleize(stmts))
 
     def Body(self, *stmts):
-        for stm in stmts:
-            self.body += stm
+        appendStms(self.body, stmts)
         return self
 
     def assigned(self):  return self.body.assigned()
@@ -199,8 +201,7 @@ class Combo(AstStatement):
         return self.Body(*tupleize(stmts))
 
     def Body(self, *stmts):
-        for stm in stmts:
-            self.body += stm
+        appendStms(self.body, stmts)
         return self
 
     def assigned(self):  return self.body.assigned()
@@ -463,6 +464,12 @@ class Block(AstProcStatement):
     def driven(self):    return self.apply('driven',    self.stmts)
     def declared(self):  return self.apply('declared',  self.stmts)
     def all(self):       return self.stmts
+
+    def __len__(self):
+        return len(self.stmts)
+
+    def __getitem__(self, slc):
+        return self.stmts.__getitem__(slc)
 
     def __repr__(self):
         s = ", ".join(repr(stm) for stm in self.stmts)
@@ -1309,36 +1316,42 @@ class Assignable(UnaryExpr, Named):
     @runtime_validation
     def __init__(self, typ=None, name=None, default=0):
         Named.__init__(self, name)
-        if isinstance(typ, (Expr, int)):
+        if isinstance(typ, Assignable): #from other signal/var
+            typ = typ._type()
+        elif isinstance(typ, (Expr, int)):
             typ = BitVec(typ)
         elif typ is None:
             typ = BitVec(1)
-        assert isinstance(typ, Type)
+        else:
+            assert isinstance(typ, Type)
         UnaryExpr.__init__(self, '.', typ)
         self.default = default
 
+    def _type(self):
+        return self.args[0]
+
     def Signed(self):
-        if isinstance(self.args[0], BitVec):
-            self.args[0].Signed()
+        if isinstance(self._type(), BitVec):
+            self._type().Signed()
             return self
         raise TypeError(f"Cannot set signed on non-BitVec {self}")
 
     def width(self):
-        if isinstance(self.args[0], BitVec):
-            return self.args[0].width
+        if isinstance(self._type(), BitVec):
+            return self._type().width
         raise NotImplementedError(f"no width for {self}")
 
     def __getattr__(self, key):
         if key.startswith("_"):
             return self.__getattribute__(key)
-        typ = self.args[0]
+        typ = self._type()
         assert isinstance(typ, Agreg), f"{self.name} is not aggregate type"
         if key in typ.fieldDict:
             return DotExpr(self, key)
         raise KeyError(f"invalid Rec/Union/Iface field {self.name}.{key} for {self}")
 
     #def __getitem__(self, lst):
-    #    typ = self.args[0]
+    #    typ = self._type()
     #    assert isinstance(typ, Arr), f"{self.name} is not indexable type"
     #    raise NotImplementedError
 
@@ -1353,7 +1366,7 @@ class Assignable(UnaryExpr, Named):
 
     def __repr__(self):
         suffix = reprStr(["default", self.default, 0])
-        return f"{self.kind}(typ={self.args[0]!r}, name={self.name!r}{suffix})"
+        return f"{self.kind}(typ={self._type()!r}, name={self.name!r}{suffix})"
 
 
 #------------------------------------------------------------------------
@@ -1617,226 +1630,8 @@ def Output(n=1, **kwargs):
         return Out(BitVec(n), **kwargs)
     return Out(n, **kwargs)
 
-#------------------------------------------------------------------------------
-# High level 
-#------------------------------------------------------------------------------
-class Stage(AstNode):
-    def __init__(self, stmts):
-        self.stmts = stmts
 
-    def assigned(self):  return self.apply('assigned',  self.stmts)
-    def used(self):      return self.apply('used',      self.stmts)
-    def paramUsed(self): return self.apply('paramUsed', self.stmts)
-    def typesUsed(self): return self.apply('typesUsed', self.stmts)
-    def driven(self):    return self.apply('driven',    self.stmts)
-    def declared(self):  return self.apply('declared',  self.stmts)
-
-    def __repr__(self):
-        return f"Stage({self.stmts})"
-
-
-class StagedSignal(Signal):
-    def __init__(self, s:Signal, stageNum:int, lastStageNum:int, pipeName:str):
-        super().__init__(s.args[0], s.name, s.default)
-        self.stageNum = stageNum
-        self.lastStageNum = lastStageNum
-        self.pipeName = pipeName
-        self.origSignal = s
-        self._origName = s.name
-
-    @property
-    def name(self):
-        if self.stageNum != self.lastStageNum:
-            return f"{self.pipeName}_stg{self.stageNum}_{self._origName}"
-            #return f"{self.pipeName}{self.stageNum}_{self._origName}"
-        return f"{self.pipeName}_{self._origName}"
-
-    @property
-    def origName(self):
-        return self._origName
-    
-
-class Pipeline:
-    def __init__(self, name, clk, rst, *, keep, vld=None, rdy=None):
-        self.name = name
-        self.clk, self.rst = clk, rst
-        self.keep = list(keep)
-        self.body = []
-        self.vld_up = vld
-        self.rdy_dn = rdy
-        self.vld = Signal(1, name='vld') if vld is not None else None
-        self.rdy = Signal(1, name='rdy') if rdy is not None else None
-
-    def __iadd__(self, x):
-        self.body.append(x)
-        return self
-
-    def __getitem__(self, stmts):
-        for stm in tupleize(stmts):
-            assert isinstance(stm, AstProcStatement) or stm is ...
-            self.body.append(stm)
-        return self
-
-    @staticmethod
-    def replaceUses(stm, s, ss):
-        def f(x):
-            if isinstance(x, (BinExpr, MultiExpr)) or type(x)==UnaryExpr:
-                for i, e in enumerate(x.args):
-                    if repr(e) == repr(s): # and isinstance(x.args[0], Signal):
-                        x.args[i] = ss
-
-        stm.applyFunc(f)
-
-    @staticmethod
-    def replaceAssigned(stm, s, ss):
-        def f(x):
-            if isinstance(x, SigAssign):
-                if repr(x.lhs) == repr(s): # and isinstance(x.args[0], Signal):
-                    x.lhs = ss
-
-        stm.applyFunc(f)
-
-    #def _autoKeep(self): # = {drivenSig} - {usedSig} - {declared}
-    #    usedSig = {s for s in self.used(Signal) if not isinstance(s, Out)}
-    #    declared = self.declared()
-    #    drivenSig = self.assigned(Signal).union(self.driven())
-    #    return (drivenSig.difference(usedSig)).difference(declared)
-
-    def processStages(self, stages):
-
-        allUsed = set()
-        allAssigned = set()
-        for stg in stages:
-            allUsed = allUsed.union(stg.used())
-            allAssigned = allAssigned.union(stg.assigned())
-
-        prevIns = set(self.keep)
-        pipeList = []
-        lastStageNum = len(stages)
-        currStageNum = lastStageNum
-        lastStageSigs = []
-
-        for stg in reversed(stages):
-            assigned_i = stg.assigned()
-            outs_i = prevIns
-            ins_i = set.union(outs_i, stg.used()) - assigned_i
-            passed_i = outs_i - assigned_i
-
-            m = Clocked(self.clk).Name(f"{self.name}_stage{currStageNum}")
-
-            if self.vld:
-                vld_i   = StagedSignal(self.vld, currStageNum,   lastStageNum, self.name)
-                vld_im1 = StagedSignal(self.vld, currStageNum-1, -1, self.name)
-
-            if self.rdy:
-                rdy_i   = StagedSignal(self.rdy, currStageNum,   -1, self.name)
-                rdy_ip1 = StagedSignal(self.rdy, currStageNum+1, -1, self.name)
-
-            load_data = None
-            if self.vld and self.rdy:
-                m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
-                #E.g. for stg3:  if (sad_stg2_vld & sad_stg3_rdy) .. load on stg3
-                load_data = vld_im1 & rdy_i
-                #E.g. for stg3:  sad_stg3_vld <= sad_stg3_rdy ? sad_stg2_vld : sad_stg3_vld
-                m2 += SigAssign(vld_i, IfCond(rdy_i, vld_im1, vld_i))
-                #E.g. for stg3:  assign sad_stg3_rdy = sad_stg4_rdy | ~sad_stg3_vld;
-                c = Assign(rdy_i, rdy_ip1 | ~vld_i)
-                pipeList.insert(0, c)
-                pipeList.insert(0, m2)
-
-                enaStm = If(load_data)
-                m += enaStm
-                body = enaStm.trueBlock
-
-            elif self.vld:
-                m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
-                load_data = vld_im1
-                m2 += SigAssign(vld_i, vld_im1)
-                pipeList.insert(0, m2)
-
-                enaStm = If(load_data)
-                m += enaStm
-                body = enaStm.trueBlock
-
-            else:
-                body = m
-
-            for stm in stg.stmts:
-                if currStageNum != 1:
-                    for s in stm.used():
-                        ss = StagedSignal(s, currStageNum-1, lastStageNum, self.name)
-                        Pipeline.replaceUses(stm, s, ss)
-                for s in stm.assigned():
-                    ss = StagedSignal(s, currStageNum, lastStageNum, self.name)
-                    if currStageNum == lastStageNum:
-                        lastStageSigs.append(ss)
-                    Pipeline.replaceAssigned(stm, s, ss)
-                body += stm
-
-            for s in passed_i:
-                ss = StagedSignal(s, currStageNum, lastStageNum, self.name)
-                if currStageNum != 1:
-                    body += SigAssign(ss, StagedSignal(s, currStageNum-1, lastStageNum, self.name))
-                else:
-                    body += SigAssign(ss, s)
-                if currStageNum == lastStageNum:
-                    lastStageSigs.append(ss)
-
-            pipeList.insert(0, m)
-            pipeList.insert(0, Comment(f"--- Stage {currStageNum} ---"))
-
-            prevIns = ins_i
-            currStageNum -= 1
-
-        if self.vld:
-            #E.g. assign sad_stg0_vld = up_vld;
-            vld_0 = StagedSignal(self.vld, 0, lastStageNum, self.name)
-            pipeList.insert(0, Assign(vld_0, self.vld_up))
-            pipeList.insert(0, Comment('hook to upsstream vld'))
-
-        if self.rdy:
-            #E.g. assign sad_rdy = sad_stg1_rdy;
-            rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
-            pipeList.insert(0, Assign(rdy_first, rdy_i))
-            pipeList.insert(0, Comment('hook to upstream rdy'))
-            #E.g. assign sad_stg4_rdy = dn_rdy;
-            pipeList.append(Comment('hook to downstream rdy'))
-            rdy_last = StagedSignal(self.rdy, lastStageNum+1, lastStageNum, self.name)
-            pipeList.append(Assign(rdy_last, self.rdy_dn))
-
-        return pipeList, lastStageSigs
-
-    def expand(self):
-        stages = []
-        curr = []
-        body = self.body + [...]
-        for stm in body:
-            if stm == ...:
-                stages.append(Stage(curr))
-                curr = []
-            else:
-                curr.append(stm)
-        self.logic_, sigs = self.processStages(stages)
-        self.outs_ = Struct()
-        for s in sigs:
-            self.outs_[s.origName] = s
-        return self.logic_
-
-    @property
-    def logic(self):
-        if self.logic_ is None:
-            self.expand()
-        return self.logic_
-
-    @property
-    def outs(self):
-        if self.logic_ is None:
-            self.expand()
-        return self.outs_
-
-    def __repr__(self):
-        s = f"Pipeline({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
-        s+= "\n   ,".join(repr(stm) for stm in self.body)
-        s += ']'
-        return s
+def appendStms(body, stmts):
+    for stm in stmts:
+        body += stm
 
