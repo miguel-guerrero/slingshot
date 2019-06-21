@@ -27,6 +27,11 @@ from collections import Counter
 from chipo import *
 from simplify import isIntVal
 
+try:
+    from enforce import runtime_validation, config
+    config({'mode':'covariant'}) # base class type covers type of subclasses
+except:
+    runtime_validation = lambda x : x
 
 #------------------------------------------------------------------------------
 # Pipeline
@@ -258,13 +263,6 @@ class Pipeline:
 #------------------------------------------------------------------------------
 # Fsm
 #------------------------------------------------------------------------------
-
-try:
-    from enforce import runtime_validation, config
-    config({'mode':'covariant'}) # base class type covers type of subclasses
-except:
-    runtime_validation = lambda x : x
-
 class NodeType(Enum):
     ife=0
     stm=1
@@ -303,9 +301,6 @@ class Node:
     def __str__(self):
         return f"id{self.uid}"
 
-    def clone(self):
-        return Node(self.typ, code=self.code, bt=self.bt, bf=self.bf, clone_id=self.uid)
-
     @staticmethod
     def nxIter(n):
         while n:
@@ -328,13 +323,6 @@ class Node:
     def succ(self):
         return self.bf or self.nx
 
-    def copyFldsFrom(self, n):
-        self.typ = n.typ
-        self.code = n.code
-        self.bt = n.bt
-        self.bf = n.bf
-        self.nx = n.nx
-
     @staticmethod
     def linksTo(dst):
         to={}
@@ -355,10 +343,10 @@ class Node:
         node.typ = NodeType.removed
 
 #--------------------------------------------------------------------
-# Parse tree related routines
+# DAG related routines
 #--------------------------------------------------------------------
 @runtime_validation
-def showFromNode(root:Node, tab=" ") -> str:
+def showFromNode(root:Node, tab="\t") -> str:
 
     @runtime_validation
     def subPr(ind:str, n:Node) -> str:
@@ -368,9 +356,9 @@ def showFromNode(root:Node, tab=" ") -> str:
         out = ind + n.toStr()
         nxStr = subPr(ind, n.nx) if n.nx else ''
         if n.bt:
-            out += '\n' + subPr(ind + tab, n.bt)
+            out += '\n' + subPr(ind+tab, n.bt)
         if n.bf:
-            out += '\n' + subPr(ind + tab, n.bf)
+            out += '\n' + subPr(ind+tab, n.bf)
         if n.nx:
             out += '\n' + nxStr
         return out
@@ -380,6 +368,7 @@ def showFromNode(root:Node, tab=" ") -> str:
 
 
 #------------------------------------------------------------------------------
+# Main Fsm class
 #------------------------------------------------------------------------------
 class Fsm:
     def __init__(self, name, clk, rst, *, keep=[]):
@@ -388,7 +377,6 @@ class Fsm:
         self.keep = list(keep)
         self.body = Block()
         self.logic_ = None
-        self.renameStates = True
         self.renameState = {}
         self.oprefix = "SM_"+name.upper()+"_"
         self.Q = "_q"
@@ -463,24 +451,18 @@ class Fsm:
         self.wfeCounter = 0
         return toDagSub(self.body, nx=None)
 
-    def stateName(self, node):
-        stName = f"{self.oprefix}S{node.code}";
-        if self.renameStates:
-            renamed = self.renameState.get(node)
-            if renamed is not None:
-                stName = f"{self.oprefix}S{renamed}"
-        return stName
+    def stateName(self, node:Node) -> str:
+        return f"{self.oprefix}S{self.renameState.get(node, node.code)}"
 
     def varAssigned(self):
         return set([v for v in self.body.assigned() if isinstance(v, Variable)])
 
     @runtime_validation
     def dumpTree(self, root:Node) -> Clocked:
-
         self.root = root
  
         #create dict that links wfe nodes with its id
-        wfes={}
+        wfes = {}
         for node in Node.all:
             if node.typ == NodeType.wfe:
                 node.code = self.wfeCounter - node.code - 1
@@ -488,9 +470,9 @@ class Fsm:
  
         #give unique names to the estates based on wfe nodes
         stateNames = []
-        for cnt, code in enumerate(sorted(wfes.keys())):
+        for i, code in enumerate(sorted(wfes)):
             node = wfes[code]
-            self.renameState[node] = cnt
+            self.renameState[node] = i
             stateNames.append(self.stateName(node))
 
         #create state type
@@ -517,7 +499,7 @@ class Fsm:
         #create transition switch statement
         switch = Switch(state)
 
-        for code in sorted(wfes.keys()):
+        for code in sorted(wfes):
             visited = set()
             node = wfes[code]
             stName = self.stateName(node)
@@ -536,34 +518,24 @@ class Fsm:
 
     @runtime_validation
     def dumpSubtreeFsm(self, node:Node, mode:str, stateNode:Node, state:Variable, visitedIn):
-
-        def isOne(x):
-            return isIntVal(x, 1)
-
-        def isZero(x):
-            return isIntVal(x, 0)
-
-        def flaggedVisited(node):
-           if visited is not None:
-               visited.add(node.uid)
-
         visited = set(visitedIn) # make a value copy
         out = Block()
         while node:
-            if visited and node.uid in visited:
-               visited_str = ', '.join([str(x) for x in visited])
-               showFromNode(self.root)
-               raise ValueError(f"SM There is a loop path without ... within "+\
-                                f"the set of nodes {visited_str}. Currently @{node.uid}")
+            if node.uid in visited:
+                import sys
+                visitedStr = ', '.join([str(x) for x in visited])
+                print(showFromNode(self.root), file=sys.stderr)
+                raise ValueError(f"SM There is a loop path without ... within "+\
+                                f"the set of nodes {visitedStr}. Currently @{node.uid}")
 
             bt, bf, nx = node.bt, node.bf, node.nx
             if node.typ == NodeType.ife:
-                flaggedVisited(node)
+                visited.add(node.uid)
                 cond = node.code
-                if isOne(cond):
+                if isIntVal(cond, 1):
                     blk = self.dumpSubtreeFsm(bt, mode, stateNode, state, visited)
                     appendStms(out, blk.toList())
-                elif isZero(cond):
+                elif isIntVal(cond, 0):
                     n = bf or nx
                     if n:
                         blk = self.dumpSubtreeFsm(n, mode, stateNode, state, visited)
@@ -580,7 +552,7 @@ class Fsm:
                     out += ife
                 node = None
             elif node.typ == NodeType.stm: 
-                flaggedVisited(node)
+                visited.add(node.uid)
                 out += node.code
                 node = node.succ()
             elif node.typ == NodeType.wfe:
@@ -595,65 +567,35 @@ class Fsm:
         return out
 
     def mergeStates(self, root):
-        cnt = 0
+        state = Variable(1, name='__theState__') #dummy name
         someMerge = True
-        state = Variable(1, name='__theState__') #dummy
         while someMerge:
             someMerge = False
-            wfes={}
-            for node in Node.all:
-                if node.typ == NodeType.wfe:
-                    wfes[node.code] = node
-            for mode in ("abs", "rel"): #TODO rel
-                code_cnt = Counter()
-                code_by_node = {}
-  
-                for code in wfes: #TODO sort
-                    visited = set()
+            wfes = {node.code:node for node in Node.all if node.typ == NodeType.wfe}
+            for mode in ("abs", "rel"):
+                codeCnt = Counter()
+                codeByNode = {}
+                for code in sorted(wfes):
                     node = wfes[code]
-                    out = repr(self.dumpSubtreeFsm(node.succ(), mode, node, state, visited))
-                    code_cnt[out] += 1
-                    code_by_node[node] = out
-  
-                for code in code_cnt.keys():
-                    cnt = code_cnt[code]
+                    out = repr(self.dumpSubtreeFsm(node.succ(), mode, node, state, set()))
+                    codeCnt[out] += 1
+                    codeByNode[node] = out
+                for code, cnt in codeCnt.items():
                     if cnt > 1:
-                        nodes_to_merge=[]
-                        for i in code_by_node:
-                            if code_by_node[i] == code:
-                               nodes_to_merge.append(i)
-    
-                        if mode == "abs": #TODO
-                            someMerge = self.mergeIdsAbs(nodes_to_merge, code)
-                        else:
-                            someMerge = self.mergeIdsRel(nodes_to_merge, code)
-                        if someMerge:
-                            break
-        #while someMerge
+                        nodesToMerge=[n for n in codeByNode if codeByNode[n] == code]
+                        self.mergeKeepingFirst(nodesToMerge[0], nodesToMerge[1])
+                        someMerge = True
+                        break
 
-    def mergeIdsAbs(self, nodes_to_merge, code):
-        nodeA, nodeB = nodes_to_merge[:2]
-        self.merge_keeping_first(nodeA, nodeB)
-        return True
-
-    def mergeIdsRel(self, nodes_to_merge, code):
-        nodeA, nodeB = nodes_to_merge[:2]
-        self.merge_keeping_first(nodeA, nodeB)
-        return True
-
-    def merge_keeping_first(self, nodeA, nodeB):
-        linkTypeGivenNode = Node.linksTo(nodeB)
-        nodesLinkingToB = list(linkTypeGivenNode.keys()) # TODO sort
-        #anything pointing to b should now point to a
-        for nodeFrom in nodesLinkingToB:
-            link_types = linkTypeGivenNode[nodeFrom]
-            for t in link_types:
-                if t == "bt":
-                    nodeFrom.bt = nodeA
-                if t == "bf":
-                    nodeFrom.bf = nodeA
-                if t == "nx":
-                    nodeFrom.nx = nodeA
+    #anything pointing to B should now point to A
+    def mergeKeepingFirst(self, nodeA, nodeB):
+        for nodeFrom, linkTypes in Node.linksTo(nodeB).items():
+            if 'bt' in linkTypes:
+                nodeFrom.bt = nodeA
+            if 'bf' in linkTypes:
+                nodeFrom.bf = nodeA
+            if 'nx' in linkTypes:
+                nodeFrom.nx = nodeA
         Node.remove(nodeB) #... removed
 
     def expand(self):
@@ -673,10 +615,11 @@ class Fsm:
         return self.logic_
 
     def __repr__(self):
-        s = f"Fsm({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
-        s+= "\n   ,".join(repr(stm) for stm in self.body)
+        s  = f"Fsm({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
+        s += "\n   ,".join(repr(stm) for stm in self.body)
         s += ']'
         return s
+
 
 def Wait(expr):
     return While(~(expr)) [...]
