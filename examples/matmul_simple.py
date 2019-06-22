@@ -56,9 +56,6 @@ a_i0, a_ik, b_0j, b_kj, c_i0, c_ij = Signal(MEM_AW) ** 6
 acc = Signal(MEM_DW)
 a = Signal(PREC)
 
-x = a_i0 <= aBASE
-print(f"// x={x}")
-
 matmul = Module() [
     Fsm('matmul_fsm', clk, rst_n) [
         ret <= 0,
