@@ -1,4 +1,4 @@
 digraph legend {
-  executable [shape=rectangle];
+  executable [shape=rectangle, color=blue];
   module;
 }
