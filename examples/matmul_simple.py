@@ -77,7 +77,7 @@ matmul = Module() [
                 k <= 0,
                 ..., MEM_read(a_ik), incr(a_ik),
                 ..., MEM_read(b_kj), incr(b_kj, bSTRIDE),
-                While (~(k == aCOLS)) [
+                While (k != aCOLS) [
                     ..., incr(k),
                     ..., MEM_read(a_ik), incr(a_ik),          a <= mem_rdata[PREC-1:0],
                     ..., MEM_read(b_kj), incr(b_kj,bSTRIDE),  incr(acc, a[PREC-1:0]*mem_rdata[PREC-1:0]),

@@ -489,14 +489,13 @@ class Fsm:
         #create state type
         States = Enu(*stateNames, name=self.name+f"{self.name}_state_t")
 
-        if self.sigFsm:
-            self.state = Signal(States, name=f'{self.name}_state')
-        else:
-            self.state = Variable(States, name=f'{self.name}_state')
-
         #find initial state
-        initState = self.findFirstWfe(root)
-        initStateName = self.stateName(initState)
+        initStateName = self.stateName(self.findFirstWfe(root))
+
+        if self.sigFsm:
+            self.state = Signal(States, name=f'{self.name}_state', default=initStateName)
+        else:
+            self.state = Variable(States, name=f'{self.name}_state', default=initStateName)
 
         #start building the logic
         clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
@@ -505,11 +504,10 @@ class Fsm:
         switch = Switch(self.state)
 
         for code in sorted(wfes):
-            visited = set()
             node = wfes[code]
             stName = self.stateName(node)
             switch = switch.Case(stName) [
-                self.dumpSubtreeFsm(node.succ(), "rel", node, visited)
+                self.dumpSubtreeFsm(node.succ(), "rel", node, visitedIn=set())
             ]
 
         if self.sigFsm:

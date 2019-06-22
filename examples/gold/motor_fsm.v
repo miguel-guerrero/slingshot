@@ -21,7 +21,7 @@ localparam SM_CONTROL_S2=2;
 
 always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
-        control_state <= 0;
+        control_state <= SM_CONTROL_S0;
         motor_dn <= 0;
         motor_up <= 0;
     end

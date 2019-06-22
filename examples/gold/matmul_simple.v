@@ -68,7 +68,7 @@ always @(posedge clk or negedge rst_n) begin
         i <= 0;
         j <= 0;
         k <= 0;
-        matmul_fsm_state <= 0;
+        matmul_fsm_state <= SM_MATMUL_FSM_S0;
         mem_addr <= 0;
         mem_req <= 0;
         mem_wdata <= 0;
@@ -131,7 +131,7 @@ always @(posedge clk or negedge rst_n) begin
                 mem_write <= 0;
                 mem_req <= 1;
                 b_kj <= b_kj + bSTRIDE;
-                if (~(aCOLS == k)) begin
+                if (aCOLS != k) begin
                     matmul_fsm_state <= SM_MATMUL_FSM_S6;
                 end
                 else begin
@@ -157,7 +157,7 @@ always @(posedge clk or negedge rst_n) begin
                 mem_req <= 1;
                 b_kj <= b_kj + bSTRIDE;
                 acc <= acc + a[PREC-1:0] * mem_rdata[PREC-1:0];
-                if (~(aCOLS == k)) begin
+                if (aCOLS != k) begin
                     matmul_fsm_state <= SM_MATMUL_FSM_S6;
                 end
                 else begin
