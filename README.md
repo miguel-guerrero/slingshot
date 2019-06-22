@@ -83,8 +83,25 @@ Other:
   Currently at proof of concept level for simple registers but proven in one design.
   Optionally used by Chipo
 
+- hlc.py:
+  High Level Construct built as a layer on top of chipo. Currently includes Pipeline
+  for automatic flow controllable pipeline generation (see examples/pipe.py), 
+  and Fsm, to generate state machines out of algorithmical sequential code (see 
+  examples/motor_ctl.py and examples/matmul_simple.py)
+
+- vlog.py:
+  Verilog code generator for chipo
+
+- simplify.py:
+  Algebraic expression simplification, mostly used to improve readability on expressions 
+  involving arithmetic with parameters
+
 - varname.py:
-  Utility to find out a variable name at run time. Used by Chipo.
+  Utility to find out a variable name at run time.
+
+- helper.py:
+  Misc. utilities
+
 
 See README.md on respective test\* directories for more documentation.
 

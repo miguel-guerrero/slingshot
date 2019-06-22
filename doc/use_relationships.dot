@@ -5,12 +5,16 @@ digraph use_relationships {
   g2p -> gencore;
   chipo -> gencore;
   chipo -> varname;
+  chipo -> helper;
+  chipo -> vlog;
   regs -> chipo;
+  hlc -> chipo;
   g2p, trip_design -> trip;
   regs -> gen_csrs
+  chipo -> simplify
 
   chipo_design -> chipo;
-  chipo_design -> regs, g2p [style=dashed];
+  chipo_design -> regs, hlc, g2p [style=dashed];
   g2p_design -> g2p;
   regs -> g2p;
 
