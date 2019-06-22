@@ -702,6 +702,9 @@ class Module(AstNode, gencore.ModuleBase, Named):
         if isinstance(x, (tuple, list)):
             for xi in x:
                 self.body.append(xi)
+        elif isinstance(x, Block) and x.name is None:
+            for xi in x.toList():
+                self.body.append(xi)
         else:
             self.body.append(x)
         return self
@@ -722,7 +725,8 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self.Body(*tupleize(stmts))
 
     def Body(self, *stmts):
-        self.body += stmts
+        for x in stmts:
+            self += x  # invoke __iadd__
         return self
 
     def assigned(self, typ=None):

@@ -458,7 +458,7 @@ class Fsm:
         return set([v for v in self.body.assigned() if isinstance(v, Variable)])
 
     @runtime_validation
-    def dumpTree(self, root:Node) -> Clocked:
+    def dumpTree(self, root:Node):
         self.root = root
  
         #create dict that links wfe nodes with its id
@@ -487,14 +487,16 @@ class Fsm:
         state = Variable(States, name=f'{self.name}_state')
 
         #start building the logic
-        clocked = Clocked(self.clk, self.rst).Name(f"{self.name}")
+        clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
+
+        combo = Combo().Name(f"{self.name}_combo")
 
         #set next state variables to right default (flop output)
         vAssigned = sortedAsList(self.varAssigned())
         for v in vAssigned:
             vQ = Signal(v, name=v.name+self.Q)
-            clocked += v.eq(vQ)
-        clocked += state.eq(stateQ)
+            combo += v.eq(vQ)
+        combo += state.eq(stateQ)
 
         #create transition switch statement
         switch = Switch(state)
@@ -507,14 +509,14 @@ class Fsm:
                 self.dumpSubtreeFsm(node.succ(), "rel", node, state, visited)
             ]
 
-        clocked += switch
+        combo += switch
 
         for v in vAssigned:
             vQ = Signal(v, name=v.name+self.Q)
             clocked += vQ <= v
         clocked += stateQ <= state
 
-        return clocked
+        return Block(combo, clocked)
 
     @runtime_validation
     def dumpSubtreeFsm(self, node:Node, mode:str, stateNode:Node, state:Variable, visitedIn):
@@ -600,9 +602,7 @@ class Fsm:
 
     def expand(self):
         if self.logic_ is None:
-            body = Block() 
-            body += While(1).Do( ..., *self.body.stmts )
-            self.body = body
+            self.body = Block( While(1).Do(..., *self.body.stmts) ) 
             root = self.toDAG()
             self.mergeStates(root)
             self.logic_ = self.dumpTree(root)
