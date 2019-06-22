@@ -367,11 +367,16 @@ def showFromNode(root:Node, tab="\t") -> str:
     return subPr("", root)
 
 
+
 #------------------------------------------------------------------------------
 # Main Fsm class
 #------------------------------------------------------------------------------
+def Wait(expr): #conveniece macro within Fsm body's
+    return While(~(expr)) [...]
+
+
 class Fsm:
-    def __init__(self, name, clk, rst, *, keep=[]):
+    def __init__(self, name, clk, rst, *, sigFsm=True, keep=[]):
         self.name = name
         self.clk, self.rst = clk, rst
         self.keep = list(keep)
@@ -381,6 +386,11 @@ class Fsm:
         self.oprefix = "SM_"+name.upper()+"_"
         self.Q = "_q"
         self.wfeCounter = 0
+        self.sigFsm = sigFsm
+        if sigFsm:  # dummy state name for mergeStates
+            self.state = Signal(1, name='__theState__')
+        else:
+            self.state = Variable(1, name='__theState__') 
 
     def __iadd__(self, x):
         self.body += x
@@ -479,6 +489,11 @@ class Fsm:
         #create state type
         States = Enu(*stateNames, name=self.name+f"{self.name}_state_t")
 
+        if self.sigFsm:
+            self.state = Signal(States, name=f'{self.name}_state')
+        else:
+            self.state = Variable(States, name=f'{self.name}_state')
+
         #find initial state
         initState = self.findFirstWfe(root)
         initStateName = self.stateName(initState)
@@ -486,24 +501,18 @@ class Fsm:
         #start building the logic
         clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
 
-        if self.sigFsm:
-            state = Signal(States, name=f'{self.name}_state')
-        else:
-            state = Variable(States, name=f'{self.name}_state')
-
         #create transition switch statement
-        switch = Switch(state)
+        switch = Switch(self.state)
 
         for code in sorted(wfes):
             visited = set()
             node = wfes[code]
             stName = self.stateName(node)
             switch = switch.Case(stName) [
-                self.dumpSubtreeFsm(node.succ(), "rel", node, state, visited)
+                self.dumpSubtreeFsm(node.succ(), "rel", node, visited)
             ]
 
         if self.sigFsm:
-            #create state signal and variable
             clocked += switch
             return clocked
         else:
@@ -523,39 +532,11 @@ class Fsm:
             clocked += stateQ <= state
             return Block(combo, clocked)
 
-
     def sigAssigned(self):
         return set([v for v in self.body.assigned() if isinstance(v, Signal)])
 
-    def dumpTree2(self, root:Node):
-        self.root = root
- 
-        #create dict that links wfe nodes with its id
-        wfes = {}
-        for node in Node.all:
-            if node.typ == NodeType.wfe:
-                node.code = self.wfeCounter - node.code - 1
-                wfes[node.code] = node
- 
-        #give unique names to the estates based on wfe nodes
-        stateNames = []
-        for i, code in enumerate(sorted(wfes)):
-            node = wfes[code]
-            self.renameState[node] = i
-            stateNames.append(self.stateName(node))
-
-        #create state type
-        States = Enu(*stateNames, name=self.name+f"{self.name}_state_t")
-
-        #find initial state
-        initState = self.findFirstWfe(root)
-        initStateName = self.stateName(initState)
-
-
-        return clocked
-
     @runtime_validation
-    def dumpSubtreeFsm(self, node:Node, mode:str, stateNode:Node, state, visitedIn):
+    def dumpSubtreeFsm(self, node:Node, mode:str, stateNode:Node, visitedIn):
         visited = set(visitedIn) # make a value copy
         out = Block()
         while node:
@@ -571,21 +552,21 @@ class Fsm:
                 visited.add(node.uid)
                 cond = node.code
                 if isIntVal(cond, 1):
-                    blk = self.dumpSubtreeFsm(bt, mode, stateNode, state, visited)
+                    blk = self.dumpSubtreeFsm(bt, mode, stateNode, visited)
                     appendStms(out, blk.toList())
                 elif isIntVal(cond, 0):
                     n = bf or nx
                     if n:
-                        blk = self.dumpSubtreeFsm(n, mode, stateNode, state, visited)
+                        blk = self.dumpSubtreeFsm(n, mode, stateNode, visited)
                         appendStms(out, blk.toList())
                 else:
                     ife = If(cond) [
-                              self.dumpSubtreeFsm(bt, mode, stateNode, state, visited)
+                              self.dumpSubtreeFsm(bt, mode, stateNode, visited)
                            ]
                     n = bf or nx
                     if n:
                         ife = ife.Else[
-                            self.dumpSubtreeFsm(n, mode, stateNode, state, visited)
+                            self.dumpSubtreeFsm(n, mode, stateNode, visited)
                         ]
                     out += ife
                 node = None
@@ -597,8 +578,8 @@ class Fsm:
                 if mode == "rel" and node == stateNode:
                     out += Comment("stay")
                 else:
-                    out += SigAssign(state, self.stateName(node)) if self.sigFsm else \
-                           VarAssign(state, self.stateName(node))
+                    out += SigAssign(self.state, self.stateName(node)) if self.sigFsm else \
+                           VarAssign(self.state, self.stateName(node))
                 node = None
             else:
                 out += Comment(f"// Ignoring node={node} typ={node.typ} code='{node.code}'")
@@ -606,10 +587,6 @@ class Fsm:
         return out
 
     def mergeStates(self, root):
-        if self.sigFsm:
-            state = Signal(1, name='__theState__') #dummy name
-        else:
-            state = Variable(1, name='__theState__') #dummy name
         someMerge = True
         while someMerge:
             someMerge = False
@@ -619,7 +596,7 @@ class Fsm:
                 codeByNode = {}
                 for code in sorted(wfes):
                     node = wfes[code]
-                    out = repr(self.dumpSubtreeFsm(node.succ(), mode, node, state, set()))
+                    out = repr(self.dumpSubtreeFsm(node.succ(), mode, node, set()))
                     codeCnt[out] += 1
                     codeByNode[node] = out
                 for code, cnt in codeCnt.items():
@@ -640,9 +617,8 @@ class Fsm:
                 nodeFrom.nx = nodeA
         Node.remove(nodeB) #... removed
 
-    def expand(self, sigFsm=True):
+    def expand(self):
         if self.logic_ is None:
-            self.sigFsm = sigFsm
             self.body = Block( While(1).Do(..., *self.body.stmts) ) 
             root = self.toDAG()
             self.mergeStates(root)
@@ -660,8 +636,3 @@ class Fsm:
         s += "\n   ,".join(repr(stm) for stm in self.body)
         s += ']'
         return s
-
-
-def Wait(expr):
-    return While(~(expr)) [...]
-
