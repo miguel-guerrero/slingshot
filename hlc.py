@@ -27,12 +27,6 @@ from collections import Counter
 from chipo import *
 from simplify import isIntVal
 
-try:
-    from enforce import runtime_validation, config
-    config({'mode':'covariant'}) # base class type covers type of subclasses
-except:
-    runtime_validation = lambda x : x
-
 #------------------------------------------------------------------------------
 # Pipeline
 #------------------------------------------------------------------------------
@@ -123,7 +117,6 @@ class Pipeline:
     #    return (drivenSig.difference(usedSig)).difference(declared)
 
     def processStages(self, stages):
-
         allUsed = set()
         allAssigned = set()
         for stg in stages:
@@ -135,7 +128,6 @@ class Pipeline:
         lastStageNum = len(stages)
         currStageNum = lastStageNum
         lastStageSigs = []
-
         for stg in reversed(stages):
             assigned_i = stg.assigned()
             outs_i = prevIns
@@ -167,7 +159,6 @@ class Pipeline:
                 enaStm = If(load_data)
                 m += enaStm
                 body = enaStm.trueBlock
-
             elif self.vld:
                 m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
                 load_data = vld_im1
@@ -177,7 +168,6 @@ class Pipeline:
                 enaStm = If(load_data)
                 m += enaStm
                 body = enaStm.trueBlock
-
             else:
                 body = m
 
@@ -204,7 +194,6 @@ class Pipeline:
 
             pipeList.insert(0, m)
             pipeList.insert(0, Comment(f"--- Stage {currStageNum} ---"))
-
             prevIns = ins_i
             currStageNum -= 1
 
@@ -276,14 +265,13 @@ class Node:
     cnt = 0
     all = []
 
-    def __init__(self, typ, *, code=None, bt=None, bf=None, nx=None, clone_id=None):
+    def __init__(self, typ, *, code=None, bt=None, bf=None, nx=None):
         self.typ = typ
         self.code = code
         self.bt = bt
         self.bf = bf
         self.nx = nx
         self.visited = False
-        self.clone_id = clone_id or Node.cnt
         self.uid = Node.cnt
         Node.cnt += 1
         Node.all.append(self)
@@ -345,10 +333,7 @@ class Node:
 #--------------------------------------------------------------------
 # DAG related routines
 #--------------------------------------------------------------------
-@runtime_validation
 def showFromNode(root:Node, tab="\t") -> str:
-
-    @runtime_validation
     def subPr(ind:str, n:Node) -> str:
         if n.visited:
             return ""
@@ -403,7 +388,6 @@ class Fsm:
             self.body += stm
         return self
 
-    @runtime_validation
     def findFirstWfe(self, node:Node):
         def findFirstWfeSub(node):
             if node is None or node.visited:
@@ -422,11 +406,9 @@ class Fsm:
             return node
         raise ValueError("Cannot determine initial state (no ...?)")
 
-    @runtime_validation
     def hasWfeList(self, n:Node) -> bool : 
         return any(self.hasWfe(i) for i in Node.nxIter(n))
 
-    @runtime_validation
     def hasWfe(self, n:Node) -> bool:
         if n is None or n.typ == NodeType.stm:
             return False
@@ -468,7 +450,6 @@ class Fsm:
     def varAssigned(self):
         return set([v for v in self.body.assigned() if isinstance(v, Variable)])
 
-    @runtime_validation
     def dumpTree(self, root:Node):
         self.root = root
  
@@ -528,7 +509,6 @@ class Fsm:
     def sigAssigned(self):
         return set([v for v in self.body.assigned() if isinstance(v, Signal)])
 
-    @runtime_validation
     def dumpSubtreeFsm(self, node:Node, mode:str, stateNode:Node, visitedIn):
         visited = set(visitedIn) # make a value copy
         out = Block()
@@ -629,3 +609,4 @@ class Fsm:
         s += "\n   ,".join(repr(stm) for stm in self.body)
         s += ']'
         return s
+
