@@ -387,7 +387,7 @@ class Fsm:
         self.Q = "_q"
         self.wfeCounter = 0
         self.sigFsm = sigFsm
-        if sigFsm:  # dummy state name for mergeStates
+        if sigFsm: # dummy state name for mergeStates
             self.state = Signal(1, name='__theState__')
         else:
             self.state = Variable(1, name='__theState__') 
@@ -502,7 +502,6 @@ class Fsm:
 
         #create transition switch statement
         switch = Switch(self.state)
-
         for code in sorted(wfes):
             node = wfes[code]
             stName = self.stateName(node)
@@ -514,20 +513,16 @@ class Fsm:
             clocked += switch
             return clocked
         else:
-            #create state signal and variable
+            #create state signal
             stateQ = Signal(States, name=f'{self.name}_state'+self.Q, default=initStateName)
             combo = Combo().Name(f"{self.name}_combo")
             #set next state variables to right default (flop output)
-            vAssigned = sortedAsList(self.varAssigned())
-            for v in vAssigned:
-                vQ = Signal(v, name=v.name+self.Q)
-                combo += v.eq(vQ)
-            combo += state.eq(stateQ)
+            sigs = {Signal(v, name=v.name+self.Q):v for v in sortedAsList(self.varAssigned())}
+            sigs[stateQ] = state
+            for s, v in sigs.items():
+                clocked += SigAssign(s, v)
+                combo   += VarAssign(v, s)
             combo += switch
-            for v in vAssigned:
-                vQ = Signal(v, name=v.name+self.Q)
-                clocked += vQ <= v
-            clocked += stateQ <= state
             return Block(combo, clocked)
 
     def sigAssigned(self):
