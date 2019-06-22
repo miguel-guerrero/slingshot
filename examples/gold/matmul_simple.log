@@ -1,0 +1,1059 @@
+#RUNNING RTL code
+VCD info: dumpfile tb.vcd opened for output.
+                   1 TEST starts
+                   1 Reseting
+                   1 init_incr called tb.i_mem.init_incr                   1
+                  10 i=    0 j=    0 k=    0 acc=00000000
+                  20 i=    0 j=    0 k=    0 acc=00000000
+                  30 i=    0 j=    0 k=    0 acc=00000000
+                  40 i=    0 j=    0 k=    0 acc=00000000
+                  50 i=    0 j=    0 k=    0 acc=00000000
+                  60 i=    0 j=    0 k=    0 acc=00000000
+                  70 i=    0 j=    0 k=    0 acc=00000000
+                  80 i=    0 j=    0 k=    0 acc=00000000
+                  90 i=    0 j=    0 k=    0 acc=00000000
+                 100 i=    0 j=    0 k=    0 acc=00000000
+                 110 i=    0 j=    0 k=    0 acc=00000000
+                 120 i=    0 j=    0 k=    0 acc=00000000
+                 130 i=    0 j=    0 k=    0 acc=00000000
+                 140 i=    0 j=    0 k=    0 acc=00000000
+                 150 i=    0 j=    0 k=    0 acc=00000000
+                 160 i=    0 j=    0 k=    0 acc=00000000
+                 170 i=    0 j=    0 k=    0 acc=00000000
+                 180 i=    0 j=    0 k=    0 acc=00000000
+                 190 i=    0 j=    0 k=    0 acc=00000000
+                 200 i=    0 j=    0 k=    0 acc=00000000
+                 210 i=    0 j=    0 k=    0 acc=00000000
+                 220 i=    0 j=    0 k=    0 acc=00000000
+                 230 i=    0 j=    0 k=    0 acc=00000000
+                 240 i=    0 j=    0 k=    0 acc=00000000
+                 250 i=    0 j=    0 k=    0 acc=00000000
+                 260 i=    0 j=    0 k=    0 acc=00000000
+                 270 i=    0 j=    0 k=    0 acc=00000000
+                 280 i=    0 j=    0 k=    0 acc=00000000
+                 290 i=    0 j=    0 k=    0 acc=00000000
+                 300 i=    0 j=    0 k=    0 acc=00000000
+                 310 i=    0 j=    0 k=    0 acc=00000000
+                 320 i=    0 j=    0 k=    0 acc=00000000
+                 330 i=    0 j=    0 k=    0 acc=00000000
+                 340 i=    0 j=    0 k=    0 acc=00000000
+                 350 i=    0 j=    0 k=    0 acc=00000000
+                 360 i=    0 j=    0 k=    0 acc=00000000
+                 370 i=    0 j=    0 k=    0 acc=00000000
+                 380 i=    0 j=    0 k=    0 acc=00000000
+                 390 i=    0 j=    0 k=    0 acc=00000000
+                 400 i=    0 j=    0 k=    0 acc=00000000
+                 410 i=    0 j=    0 k=    0 acc=00000000
+                 420 i=    0 j=    0 k=    0 acc=00000000
+                 430 i=    0 j=    0 k=    0 acc=00000000
+                 440 i=    0 j=    0 k=    0 acc=00000000
+                 450 i=    0 j=    0 k=    0 acc=00000000
+                 460 i=    0 j=    0 k=    0 acc=00000000
+                 470 i=    0 j=    0 k=    0 acc=00000000
+                 480 i=    0 j=    0 k=    0 acc=00000000
+                 490 i=    0 j=    0 k=    0 acc=00000000
+                 500 i=    0 j=    0 k=    0 acc=00000000
+                 510 i=    0 j=    0 k=    0 acc=00000000
+                 520 i=    0 j=    0 k=    0 acc=00000000
+                 530 i=    0 j=    0 k=    0 acc=00000000
+                 540 i=    0 j=    0 k=    0 acc=00000000
+                 550 i=    0 j=    0 k=    0 acc=00000000
+                 560 i=    0 j=    0 k=    0 acc=00000000
+                 570 i=    0 j=    0 k=    0 acc=00000000
+                 580 i=    0 j=    0 k=    0 acc=00000000
+                 590 i=    0 j=    0 k=    0 acc=00000000
+                 600 Reseting
+                 600 i=    0 j=    0 k=    0 acc=00000000
+                 610 i=    0 j=    0 k=    0 acc=00000000
+                 620 i=    0 j=    0 k=    0 acc=00000000
+                 630 i=    0 j=    0 k=    0 acc=00000000
+                 640 i=    0 j=    0 k=    0 acc=00000000
+                 650 i=    0 j=    0 k=    0 acc=00000000
+                 660 i=    0 j=    0 k=    0 acc=00000000
+                 670 i=    0 j=    0 k=    0 acc=00000000
+                 680 i=    0 j=    0 k=    0 acc=00000000
+                 690 i=    0 j=    0 k=    0 acc=00000000
+                 700 i=    0 j=    0 k=    0 acc=00000000
+                 710 i=    0 j=    0 k=    0 acc=00000000
+                 720 i=    0 j=    0 k=    0 acc=00000000
+                 730 i=    0 j=    0 k=    0 acc=00000000
+                 740 i=    0 j=    0 k=    0 acc=00000000
+                 750 i=    0 j=    0 k=    0 acc=00000000
+                 760 i=    0 j=    0 k=    0 acc=00000000
+                 770 i=    0 j=    0 k=    0 acc=00000000
+                 780 i=    0 j=    0 k=    0 acc=00000000
+                 790 i=    0 j=    0 k=    0 acc=00000000
+                 800 i=    0 j=    0 k=    0 acc=00000000
+                 810 i=    0 j=    0 k=    0 acc=00000000
+                 820 i=    0 j=    0 k=    0 acc=00000000
+                 830 i=    0 j=    0 k=    0 acc=00000000
+                 840 i=    0 j=    0 k=    0 acc=00000000
+                 850 i=    0 j=    0 k=    0 acc=00000000
+                 860 i=    0 j=    0 k=    0 acc=00000000
+                 870 i=    0 j=    0 k=    0 acc=00000000
+                 880 i=    0 j=    0 k=    0 acc=00000000
+                 890 i=    0 j=    0 k=    0 acc=00000000
+                 900 i=    0 j=    0 k=    0 acc=00000000
+                 910 i=    0 j=    0 k=    0 acc=00000000
+                 920 i=    0 j=    0 k=    0 acc=00000000
+                 930 i=    0 j=    0 k=    0 acc=00000000
+                 940 i=    0 j=    0 k=    0 acc=00000000
+                 950 i=    0 j=    0 k=    0 acc=00000000
+                 960 i=    0 j=    0 k=    0 acc=00000000
+                 970 i=    0 j=    0 k=    0 acc=00000000
+                 980 i=    0 j=    0 k=    0 acc=00000000
+                 990 i=    0 j=    0 k=    0 acc=00000000
+                 995 Start
+                1000 i=    0 j=    0 k=    0 acc=00000000
+                1010 i=    0 j=    0 k=    0 acc=00000000
+                1020 i=    0 j=    0 k=    0 acc=00000000
+                1030 i=    0 j=    0 k=    0 acc=00000000
+                1040 MEM[0100] => 000000100 tb.i_mem.read
+                1040 i=    0 j=    0 k=    0 acc=00000000
+                1050 MEM[0200] => 000000200 tb.i_mem.read
+                1050 i=    0 j=    0 k=    0 acc=00000000
+                1060 MEM[0200] => 000000200 tb.i_mem.read
+                1060 i=    0 j=    0 k=    1 acc=00000000
+                1070 MEM[0101] => 000000101 tb.i_mem.read
+                1070 i=    0 j=    0 k=    1 acc=00000000
+                1080 MEM[0205] => 000000205 tb.i_mem.read
+                1080 i=    0 j=    0 k=    1 acc=00020000
+                1090 MEM[0205] => 000000205 tb.i_mem.read
+                1090 i=    0 j=    0 k=    2 acc=00020000
+                1100 MEM[0102] => 000000102 tb.i_mem.read
+                1100 i=    0 j=    0 k=    2 acc=00020000
+                1110 MEM[020a] => 00000020a tb.i_mem.read
+                1110 i=    0 j=    0 k=    2 acc=00040705
+                1120 MEM[020a] => 00000020a tb.i_mem.read
+                1120 i=    0 j=    0 k=    3 acc=00040705
+                1130 MEM[0103] => 000000103 tb.i_mem.read
+                1130 i=    0 j=    0 k=    3 acc=00040705
+                1140 MEM[020f] => 00000020f tb.i_mem.read
+                1140 i=    0 j=    0 k=    3 acc=00061519
+                1150 MEM[020f] => 00000020f tb.i_mem.read
+                1150 i=    0 j=    0 k=    4 acc=00061519
+                1160 MEM[0104] => 000000104 tb.i_mem.read
+                1160 i=    0 j=    0 k=    4 acc=00061519
+                1170 i=    0 j=    0 k=    4 acc=00082a46
+                1180 MEM[0300] <= 00082a46 tb.i_mem.write
+                1180 i=    0 j=    1 k=    4 acc=00082a46
+                1190 i=    0 j=    1 k=    0 acc=00000000
+                1200 MEM[0100] => 000000100 tb.i_mem.read
+                1200 i=    0 j=    1 k=    0 acc=00000000
+                1210 MEM[0201] => 000000201 tb.i_mem.read
+                1210 i=    0 j=    1 k=    0 acc=00000000
+                1220 MEM[0201] => 000000201 tb.i_mem.read
+                1220 i=    0 j=    1 k=    1 acc=00000000
+                1230 MEM[0101] => 000000101 tb.i_mem.read
+                1230 i=    0 j=    1 k=    1 acc=00000000
+                1240 MEM[0206] => 000000206 tb.i_mem.read
+                1240 i=    0 j=    1 k=    1 acc=00020100
+                1250 MEM[0206] => 000000206 tb.i_mem.read
+                1250 i=    0 j=    1 k=    2 acc=00020100
+                1260 MEM[0102] => 000000102 tb.i_mem.read
+                1260 i=    0 j=    1 k=    2 acc=00020100
+                1270 MEM[020b] => 00000020b tb.i_mem.read
+                1270 i=    0 j=    1 k=    2 acc=00040906
+                1280 MEM[020b] => 00000020b tb.i_mem.read
+                1280 i=    0 j=    1 k=    3 acc=00040906
+                1290 MEM[0103] => 000000103 tb.i_mem.read
+                1290 i=    0 j=    1 k=    3 acc=00040906
+                1300 MEM[0210] => 000000210 tb.i_mem.read
+                1300 i=    0 j=    1 k=    3 acc=0006181c
+                1310 MEM[0210] => 000000210 tb.i_mem.read
+                1310 i=    0 j=    1 k=    4 acc=0006181c
+                1320 MEM[0104] => 000000104 tb.i_mem.read
+                1320 i=    0 j=    1 k=    4 acc=0006181c
+                1330 i=    0 j=    1 k=    4 acc=00082e4c
+                1340 MEM[0301] <= 00082e4c tb.i_mem.write
+                1340 i=    0 j=    2 k=    4 acc=00082e4c
+                1350 i=    0 j=    2 k=    0 acc=00000000
+                1360 MEM[0100] => 000000100 tb.i_mem.read
+                1360 i=    0 j=    2 k=    0 acc=00000000
+                1370 MEM[0202] => 000000202 tb.i_mem.read
+                1370 i=    0 j=    2 k=    0 acc=00000000
+                1380 MEM[0202] => 000000202 tb.i_mem.read
+                1380 i=    0 j=    2 k=    1 acc=00000000
+                1390 MEM[0101] => 000000101 tb.i_mem.read
+                1390 i=    0 j=    2 k=    1 acc=00000000
+                1400 MEM[0207] => 000000207 tb.i_mem.read
+                1400 i=    0 j=    2 k=    1 acc=00020200
+                1410 MEM[0207] => 000000207 tb.i_mem.read
+                1410 i=    0 j=    2 k=    2 acc=00020200
+                1420 MEM[0102] => 000000102 tb.i_mem.read
+                1420 i=    0 j=    2 k=    2 acc=00020200
+                1430 MEM[020c] => 00000020c tb.i_mem.read
+                1430 i=    0 j=    2 k=    2 acc=00040b07
+                1440 MEM[020c] => 00000020c tb.i_mem.read
+                1440 i=    0 j=    2 k=    3 acc=00040b07
+                1450 MEM[0103] => 000000103 tb.i_mem.read
+                1450 i=    0 j=    2 k=    3 acc=00040b07
+                1460 MEM[0211] => 000000211 tb.i_mem.read
+                1460 i=    0 j=    2 k=    3 acc=00061b1f
+                1470 MEM[0211] => 000000211 tb.i_mem.read
+                1470 i=    0 j=    2 k=    4 acc=00061b1f
+                1480 MEM[0104] => 000000104 tb.i_mem.read
+                1480 i=    0 j=    2 k=    4 acc=00061b1f
+                1490 i=    0 j=    2 k=    4 acc=00083252
+                1500 MEM[0302] <= 00083252 tb.i_mem.write
+                1500 i=    0 j=    3 k=    4 acc=00083252
+                1510 i=    0 j=    3 k=    0 acc=00000000
+                1520 MEM[0100] => 000000100 tb.i_mem.read
+                1520 i=    0 j=    3 k=    0 acc=00000000
+                1530 MEM[0203] => 000000203 tb.i_mem.read
+                1530 i=    0 j=    3 k=    0 acc=00000000
+                1540 MEM[0203] => 000000203 tb.i_mem.read
+                1540 i=    0 j=    3 k=    1 acc=00000000
+                1550 MEM[0101] => 000000101 tb.i_mem.read
+                1550 i=    0 j=    3 k=    1 acc=00000000
+                1560 MEM[0208] => 000000208 tb.i_mem.read
+                1560 i=    0 j=    3 k=    1 acc=00020300
+                1570 MEM[0208] => 000000208 tb.i_mem.read
+                1570 i=    0 j=    3 k=    2 acc=00020300
+                1580 MEM[0102] => 000000102 tb.i_mem.read
+                1580 i=    0 j=    3 k=    2 acc=00020300
+                1590 MEM[020d] => 00000020d tb.i_mem.read
+                1590 i=    0 j=    3 k=    2 acc=00040d08
+                1600 MEM[020d] => 00000020d tb.i_mem.read
+                1600 i=    0 j=    3 k=    3 acc=00040d08
+                1610 MEM[0103] => 000000103 tb.i_mem.read
+                1610 i=    0 j=    3 k=    3 acc=00040d08
+                1620 MEM[0212] => 000000212 tb.i_mem.read
+                1620 i=    0 j=    3 k=    3 acc=00061e22
+                1630 MEM[0212] => 000000212 tb.i_mem.read
+                1630 i=    0 j=    3 k=    4 acc=00061e22
+                1640 MEM[0104] => 000000104 tb.i_mem.read
+                1640 i=    0 j=    3 k=    4 acc=00061e22
+                1650 i=    0 j=    3 k=    4 acc=00083658
+                1660 MEM[0303] <= 00083658 tb.i_mem.write
+                1660 i=    0 j=    4 k=    4 acc=00083658
+                1670 i=    0 j=    4 k=    0 acc=00000000
+                1680 MEM[0100] => 000000100 tb.i_mem.read
+                1680 i=    0 j=    4 k=    0 acc=00000000
+                1690 MEM[0204] => 000000204 tb.i_mem.read
+                1690 i=    0 j=    4 k=    0 acc=00000000
+                1700 MEM[0204] => 000000204 tb.i_mem.read
+                1700 i=    0 j=    4 k=    1 acc=00000000
+                1710 MEM[0101] => 000000101 tb.i_mem.read
+                1710 i=    0 j=    4 k=    1 acc=00000000
+                1720 MEM[0209] => 000000209 tb.i_mem.read
+                1720 i=    0 j=    4 k=    1 acc=00020400
+                1730 MEM[0209] => 000000209 tb.i_mem.read
+                1730 i=    0 j=    4 k=    2 acc=00020400
+                1740 MEM[0102] => 000000102 tb.i_mem.read
+                1740 i=    0 j=    4 k=    2 acc=00020400
+                1750 MEM[020e] => 00000020e tb.i_mem.read
+                1750 i=    0 j=    4 k=    2 acc=00040f09
+                1760 MEM[020e] => 00000020e tb.i_mem.read
+                1760 i=    0 j=    4 k=    3 acc=00040f09
+                1770 MEM[0103] => 000000103 tb.i_mem.read
+                1770 i=    0 j=    4 k=    3 acc=00040f09
+                1780 MEM[0213] => 000000213 tb.i_mem.read
+                1780 i=    0 j=    4 k=    3 acc=00062125
+                1790 MEM[0213] => 000000213 tb.i_mem.read
+                1790 i=    0 j=    4 k=    4 acc=00062125
+                1800 MEM[0104] => 000000104 tb.i_mem.read
+                1800 i=    0 j=    4 k=    4 acc=00062125
+                1810 i=    0 j=    4 k=    4 acc=00083a5e
+                1820 MEM[0304] <= 00083a5e tb.i_mem.write
+                1820 i=    0 j=    5 k=    4 acc=00083a5e
+                1830 i=    1 j=    5 k=    4 acc=00083a5e
+                1840 i=    1 j=    0 k=    4 acc=00083a5e
+                1850 i=    1 j=    0 k=    0 acc=00000000
+                1860 MEM[0104] => 000000104 tb.i_mem.read
+                1860 i=    1 j=    0 k=    0 acc=00000000
+                1870 MEM[0200] => 000000200 tb.i_mem.read
+                1870 i=    1 j=    0 k=    0 acc=00000000
+                1880 MEM[0200] => 000000200 tb.i_mem.read
+                1880 i=    1 j=    0 k=    1 acc=00000000
+                1890 MEM[0105] => 000000105 tb.i_mem.read
+                1890 i=    1 j=    0 k=    1 acc=00000000
+                1900 MEM[0205] => 000000205 tb.i_mem.read
+                1900 i=    1 j=    0 k=    1 acc=00020800
+                1910 MEM[0205] => 000000205 tb.i_mem.read
+                1910 i=    1 j=    0 k=    2 acc=00020800
+                1920 MEM[0106] => 000000106 tb.i_mem.read
+                1920 i=    1 j=    0 k=    2 acc=00020800
+                1930 MEM[020a] => 00000020a tb.i_mem.read
+                1930 i=    1 j=    0 k=    2 acc=00041719
+                1940 MEM[020a] => 00000020a tb.i_mem.read
+                1940 i=    1 j=    0 k=    3 acc=00041719
+                1950 MEM[0107] => 000000107 tb.i_mem.read
+                1950 i=    1 j=    0 k=    3 acc=00041719
+                1960 MEM[020f] => 00000020f tb.i_mem.read
+                1960 i=    1 j=    0 k=    3 acc=00062d55
+                1970 MEM[020f] => 00000020f tb.i_mem.read
+                1970 i=    1 j=    0 k=    4 acc=00062d55
+                1980 MEM[0108] => 000000108 tb.i_mem.read
+                1980 i=    1 j=    0 k=    4 acc=00062d55
+                1990 i=    1 j=    0 k=    4 acc=00084abe
+                2000 MEM[0308] <= 00084abe tb.i_mem.write
+                2000 i=    1 j=    1 k=    4 acc=00084abe
+                2010 i=    1 j=    1 k=    0 acc=00000000
+                2020 MEM[0104] => 000000104 tb.i_mem.read
+                2020 i=    1 j=    1 k=    0 acc=00000000
+                2030 MEM[0201] => 000000201 tb.i_mem.read
+                2030 i=    1 j=    1 k=    0 acc=00000000
+                2040 MEM[0201] => 000000201 tb.i_mem.read
+                2040 i=    1 j=    1 k=    1 acc=00000000
+                2050 MEM[0105] => 000000105 tb.i_mem.read
+                2050 i=    1 j=    1 k=    1 acc=00000000
+                2060 MEM[0206] => 000000206 tb.i_mem.read
+                2060 i=    1 j=    1 k=    1 acc=00020904
+                2070 MEM[0206] => 000000206 tb.i_mem.read
+                2070 i=    1 j=    1 k=    2 acc=00020904
+                2080 MEM[0106] => 000000106 tb.i_mem.read
+                2080 i=    1 j=    1 k=    2 acc=00020904
+                2090 MEM[020b] => 00000020b tb.i_mem.read
+                2090 i=    1 j=    1 k=    2 acc=00041922
+                2100 MEM[020b] => 00000020b tb.i_mem.read
+                2100 i=    1 j=    1 k=    3 acc=00041922
+                2110 MEM[0107] => 000000107 tb.i_mem.read
+                2110 i=    1 j=    1 k=    3 acc=00041922
+                2120 MEM[0210] => 000000210 tb.i_mem.read
+                2120 i=    1 j=    1 k=    3 acc=00063064
+                2130 MEM[0210] => 000000210 tb.i_mem.read
+                2130 i=    1 j=    1 k=    4 acc=00063064
+                2140 MEM[0108] => 000000108 tb.i_mem.read
+                2140 i=    1 j=    1 k=    4 acc=00063064
+                2150 i=    1 j=    1 k=    4 acc=00084ed4
+                2160 MEM[0309] <= 00084ed4 tb.i_mem.write
+                2160 i=    1 j=    2 k=    4 acc=00084ed4
+                2170 i=    1 j=    2 k=    0 acc=00000000
+                2180 MEM[0104] => 000000104 tb.i_mem.read
+                2180 i=    1 j=    2 k=    0 acc=00000000
+                2190 MEM[0202] => 000000202 tb.i_mem.read
+                2190 i=    1 j=    2 k=    0 acc=00000000
+                2200 MEM[0202] => 000000202 tb.i_mem.read
+                2200 i=    1 j=    2 k=    1 acc=00000000
+                2210 MEM[0105] => 000000105 tb.i_mem.read
+                2210 i=    1 j=    2 k=    1 acc=00000000
+                2220 MEM[0207] => 000000207 tb.i_mem.read
+                2220 i=    1 j=    2 k=    1 acc=00020a08
+                2230 MEM[0207] => 000000207 tb.i_mem.read
+                2230 i=    1 j=    2 k=    2 acc=00020a08
+                2240 MEM[0106] => 000000106 tb.i_mem.read
+                2240 i=    1 j=    2 k=    2 acc=00020a08
+                2250 MEM[020c] => 00000020c tb.i_mem.read
+                2250 i=    1 j=    2 k=    2 acc=00041b2b
+                2260 MEM[020c] => 00000020c tb.i_mem.read
+                2260 i=    1 j=    2 k=    3 acc=00041b2b
+                2270 MEM[0107] => 000000107 tb.i_mem.read
+                2270 i=    1 j=    2 k=    3 acc=00041b2b
+                2280 MEM[0211] => 000000211 tb.i_mem.read
+                2280 i=    1 j=    2 k=    3 acc=00063373
+                2290 MEM[0211] => 000000211 tb.i_mem.read
+                2290 i=    1 j=    2 k=    4 acc=00063373
+                2300 MEM[0108] => 000000108 tb.i_mem.read
+                2300 i=    1 j=    2 k=    4 acc=00063373
+                2310 i=    1 j=    2 k=    4 acc=000852ea
+                2320 MEM[030a] <= 000852ea tb.i_mem.write
+                2320 i=    1 j=    3 k=    4 acc=000852ea
+                2330 i=    1 j=    3 k=    0 acc=00000000
+                2340 MEM[0104] => 000000104 tb.i_mem.read
+                2340 i=    1 j=    3 k=    0 acc=00000000
+                2350 MEM[0203] => 000000203 tb.i_mem.read
+                2350 i=    1 j=    3 k=    0 acc=00000000
+                2360 MEM[0203] => 000000203 tb.i_mem.read
+                2360 i=    1 j=    3 k=    1 acc=00000000
+                2370 MEM[0105] => 000000105 tb.i_mem.read
+                2370 i=    1 j=    3 k=    1 acc=00000000
+                2380 MEM[0208] => 000000208 tb.i_mem.read
+                2380 i=    1 j=    3 k=    1 acc=00020b0c
+                2390 MEM[0208] => 000000208 tb.i_mem.read
+                2390 i=    1 j=    3 k=    2 acc=00020b0c
+                2400 MEM[0106] => 000000106 tb.i_mem.read
+                2400 i=    1 j=    3 k=    2 acc=00020b0c
+                2410 MEM[020d] => 00000020d tb.i_mem.read
+                2410 i=    1 j=    3 k=    2 acc=00041d34
+                2420 MEM[020d] => 00000020d tb.i_mem.read
+                2420 i=    1 j=    3 k=    3 acc=00041d34
+                2430 MEM[0107] => 000000107 tb.i_mem.read
+                2430 i=    1 j=    3 k=    3 acc=00041d34
+                2440 MEM[0212] => 000000212 tb.i_mem.read
+                2440 i=    1 j=    3 k=    3 acc=00063682
+                2450 MEM[0212] => 000000212 tb.i_mem.read
+                2450 i=    1 j=    3 k=    4 acc=00063682
+                2460 MEM[0108] => 000000108 tb.i_mem.read
+                2460 i=    1 j=    3 k=    4 acc=00063682
+                2470 i=    1 j=    3 k=    4 acc=00085700
+                2480 MEM[030b] <= 00085700 tb.i_mem.write
+                2480 i=    1 j=    4 k=    4 acc=00085700
+                2490 i=    1 j=    4 k=    0 acc=00000000
+                2500 MEM[0104] => 000000104 tb.i_mem.read
+                2500 i=    1 j=    4 k=    0 acc=00000000
+                2510 MEM[0204] => 000000204 tb.i_mem.read
+                2510 i=    1 j=    4 k=    0 acc=00000000
+                2520 MEM[0204] => 000000204 tb.i_mem.read
+                2520 i=    1 j=    4 k=    1 acc=00000000
+                2530 MEM[0105] => 000000105 tb.i_mem.read
+                2530 i=    1 j=    4 k=    1 acc=00000000
+                2540 MEM[0209] => 000000209 tb.i_mem.read
+                2540 i=    1 j=    4 k=    1 acc=00020c10
+                2550 MEM[0209] => 000000209 tb.i_mem.read
+                2550 i=    1 j=    4 k=    2 acc=00020c10
+                2560 MEM[0106] => 000000106 tb.i_mem.read
+                2560 i=    1 j=    4 k=    2 acc=00020c10
+                2570 MEM[020e] => 00000020e tb.i_mem.read
+                2570 i=    1 j=    4 k=    2 acc=00041f3d
+                2580 MEM[020e] => 00000020e tb.i_mem.read
+                2580 i=    1 j=    4 k=    3 acc=00041f3d
+                2590 MEM[0107] => 000000107 tb.i_mem.read
+                2590 i=    1 j=    4 k=    3 acc=00041f3d
+                2600 MEM[0213] => 000000213 tb.i_mem.read
+                2600 i=    1 j=    4 k=    3 acc=00063991
+                2610 MEM[0213] => 000000213 tb.i_mem.read
+                2610 i=    1 j=    4 k=    4 acc=00063991
+                2620 MEM[0108] => 000000108 tb.i_mem.read
+                2620 i=    1 j=    4 k=    4 acc=00063991
+                2630 i=    1 j=    4 k=    4 acc=00085b16
+                2640 MEM[030c] <= 00085b16 tb.i_mem.write
+                2640 i=    1 j=    5 k=    4 acc=00085b16
+                2650 i=    2 j=    5 k=    4 acc=00085b16
+                2660 i=    2 j=    0 k=    4 acc=00085b16
+                2670 i=    2 j=    0 k=    0 acc=00000000
+                2680 MEM[0108] => 000000108 tb.i_mem.read
+                2680 i=    2 j=    0 k=    0 acc=00000000
+                2690 MEM[0200] => 000000200 tb.i_mem.read
+                2690 i=    2 j=    0 k=    0 acc=00000000
+                2700 MEM[0200] => 000000200 tb.i_mem.read
+                2700 i=    2 j=    0 k=    1 acc=00000000
+                2710 MEM[0109] => 000000109 tb.i_mem.read
+                2710 i=    2 j=    0 k=    1 acc=00000000
+                2720 MEM[0205] => 000000205 tb.i_mem.read
+                2720 i=    2 j=    0 k=    1 acc=00021000
+                2730 MEM[0205] => 000000205 tb.i_mem.read
+                2730 i=    2 j=    0 k=    2 acc=00021000
+                2740 MEM[010a] => 00000010a tb.i_mem.read
+                2740 i=    2 j=    0 k=    2 acc=00021000
+                2750 MEM[020a] => 00000020a tb.i_mem.read
+                2750 i=    2 j=    0 k=    2 acc=0004272d
+                2760 MEM[020a] => 00000020a tb.i_mem.read
+                2760 i=    2 j=    0 k=    3 acc=0004272d
+                2770 MEM[010b] => 00000010b tb.i_mem.read
+                2770 i=    2 j=    0 k=    3 acc=0004272d
+                2780 MEM[020f] => 00000020f tb.i_mem.read
+                2780 i=    2 j=    0 k=    3 acc=00064591
+                2790 MEM[020f] => 00000020f tb.i_mem.read
+                2790 i=    2 j=    0 k=    4 acc=00064591
+                2800 MEM[010c] => 00000010c tb.i_mem.read
+                2800 i=    2 j=    0 k=    4 acc=00064591
+                2810 i=    2 j=    0 k=    4 acc=00086b36
+                2820 MEM[0310] <= 00086b36 tb.i_mem.write
+                2820 i=    2 j=    1 k=    4 acc=00086b36
+                2830 i=    2 j=    1 k=    0 acc=00000000
+                2840 MEM[0108] => 000000108 tb.i_mem.read
+                2840 i=    2 j=    1 k=    0 acc=00000000
+                2850 MEM[0201] => 000000201 tb.i_mem.read
+                2850 i=    2 j=    1 k=    0 acc=00000000
+                2860 MEM[0201] => 000000201 tb.i_mem.read
+                2860 i=    2 j=    1 k=    1 acc=00000000
+                2870 MEM[0109] => 000000109 tb.i_mem.read
+                2870 i=    2 j=    1 k=    1 acc=00000000
+                2880 MEM[0206] => 000000206 tb.i_mem.read
+                2880 i=    2 j=    1 k=    1 acc=00021108
+                2890 MEM[0206] => 000000206 tb.i_mem.read
+                2890 i=    2 j=    1 k=    2 acc=00021108
+                2900 MEM[010a] => 00000010a tb.i_mem.read
+                2900 i=    2 j=    1 k=    2 acc=00021108
+                2910 MEM[020b] => 00000020b tb.i_mem.read
+                2910 i=    2 j=    1 k=    2 acc=0004293e
+                2920 MEM[020b] => 00000020b tb.i_mem.read
+                2920 i=    2 j=    1 k=    3 acc=0004293e
+                2930 MEM[010b] => 00000010b tb.i_mem.read
+                2930 i=    2 j=    1 k=    3 acc=0004293e
+                2940 MEM[0210] => 000000210 tb.i_mem.read
+                2940 i=    2 j=    1 k=    3 acc=000648ac
+                2950 MEM[0210] => 000000210 tb.i_mem.read
+                2950 i=    2 j=    1 k=    4 acc=000648ac
+                2960 MEM[010c] => 00000010c tb.i_mem.read
+                2960 i=    2 j=    1 k=    4 acc=000648ac
+                2970 i=    2 j=    1 k=    4 acc=00086f5c
+                2980 MEM[0311] <= 00086f5c tb.i_mem.write
+                2980 i=    2 j=    2 k=    4 acc=00086f5c
+                2990 i=    2 j=    2 k=    0 acc=00000000
+                3000 MEM[0108] => 000000108 tb.i_mem.read
+                3000 i=    2 j=    2 k=    0 acc=00000000
+                3010 MEM[0202] => 000000202 tb.i_mem.read
+                3010 i=    2 j=    2 k=    0 acc=00000000
+                3020 MEM[0202] => 000000202 tb.i_mem.read
+                3020 i=    2 j=    2 k=    1 acc=00000000
+                3030 MEM[0109] => 000000109 tb.i_mem.read
+                3030 i=    2 j=    2 k=    1 acc=00000000
+                3040 MEM[0207] => 000000207 tb.i_mem.read
+                3040 i=    2 j=    2 k=    1 acc=00021210
+                3050 MEM[0207] => 000000207 tb.i_mem.read
+                3050 i=    2 j=    2 k=    2 acc=00021210
+                3060 MEM[010a] => 00000010a tb.i_mem.read
+                3060 i=    2 j=    2 k=    2 acc=00021210
+                3070 MEM[020c] => 00000020c tb.i_mem.read
+                3070 i=    2 j=    2 k=    2 acc=00042b4f
+                3080 MEM[020c] => 00000020c tb.i_mem.read
+                3080 i=    2 j=    2 k=    3 acc=00042b4f
+                3090 MEM[010b] => 00000010b tb.i_mem.read
+                3090 i=    2 j=    2 k=    3 acc=00042b4f
+                3100 MEM[0211] => 000000211 tb.i_mem.read
+                3100 i=    2 j=    2 k=    3 acc=00064bc7
+                3110 MEM[0211] => 000000211 tb.i_mem.read
+                3110 i=    2 j=    2 k=    4 acc=00064bc7
+                3120 MEM[010c] => 00000010c tb.i_mem.read
+                3120 i=    2 j=    2 k=    4 acc=00064bc7
+                3130 i=    2 j=    2 k=    4 acc=00087382
+                3140 MEM[0312] <= 00087382 tb.i_mem.write
+                3140 i=    2 j=    3 k=    4 acc=00087382
+                3150 i=    2 j=    3 k=    0 acc=00000000
+                3160 MEM[0108] => 000000108 tb.i_mem.read
+                3160 i=    2 j=    3 k=    0 acc=00000000
+                3170 MEM[0203] => 000000203 tb.i_mem.read
+                3170 i=    2 j=    3 k=    0 acc=00000000
+                3180 MEM[0203] => 000000203 tb.i_mem.read
+                3180 i=    2 j=    3 k=    1 acc=00000000
+                3190 MEM[0109] => 000000109 tb.i_mem.read
+                3190 i=    2 j=    3 k=    1 acc=00000000
+                3200 MEM[0208] => 000000208 tb.i_mem.read
+                3200 i=    2 j=    3 k=    1 acc=00021318
+                3210 MEM[0208] => 000000208 tb.i_mem.read
+                3210 i=    2 j=    3 k=    2 acc=00021318
+                3220 MEM[010a] => 00000010a tb.i_mem.read
+                3220 i=    2 j=    3 k=    2 acc=00021318
+                3230 MEM[020d] => 00000020d tb.i_mem.read
+                3230 i=    2 j=    3 k=    2 acc=00042d60
+                3240 MEM[020d] => 00000020d tb.i_mem.read
+                3240 i=    2 j=    3 k=    3 acc=00042d60
+                3250 MEM[010b] => 00000010b tb.i_mem.read
+                3250 i=    2 j=    3 k=    3 acc=00042d60
+                3260 MEM[0212] => 000000212 tb.i_mem.read
+                3260 i=    2 j=    3 k=    3 acc=00064ee2
+                3270 MEM[0212] => 000000212 tb.i_mem.read
+                3270 i=    2 j=    3 k=    4 acc=00064ee2
+                3280 MEM[010c] => 00000010c tb.i_mem.read
+                3280 i=    2 j=    3 k=    4 acc=00064ee2
+                3290 i=    2 j=    3 k=    4 acc=000877a8
+                3300 MEM[0313] <= 000877a8 tb.i_mem.write
+                3300 i=    2 j=    4 k=    4 acc=000877a8
+                3310 i=    2 j=    4 k=    0 acc=00000000
+                3320 MEM[0108] => 000000108 tb.i_mem.read
+                3320 i=    2 j=    4 k=    0 acc=00000000
+                3330 MEM[0204] => 000000204 tb.i_mem.read
+                3330 i=    2 j=    4 k=    0 acc=00000000
+                3340 MEM[0204] => 000000204 tb.i_mem.read
+                3340 i=    2 j=    4 k=    1 acc=00000000
+                3350 MEM[0109] => 000000109 tb.i_mem.read
+                3350 i=    2 j=    4 k=    1 acc=00000000
+                3360 MEM[0209] => 000000209 tb.i_mem.read
+                3360 i=    2 j=    4 k=    1 acc=00021420
+                3370 MEM[0209] => 000000209 tb.i_mem.read
+                3370 i=    2 j=    4 k=    2 acc=00021420
+                3380 MEM[010a] => 00000010a tb.i_mem.read
+                3380 i=    2 j=    4 k=    2 acc=00021420
+                3390 MEM[020e] => 00000020e tb.i_mem.read
+                3390 i=    2 j=    4 k=    2 acc=00042f71
+                3400 MEM[020e] => 00000020e tb.i_mem.read
+                3400 i=    2 j=    4 k=    3 acc=00042f71
+                3410 MEM[010b] => 00000010b tb.i_mem.read
+                3410 i=    2 j=    4 k=    3 acc=00042f71
+                3420 MEM[0213] => 000000213 tb.i_mem.read
+                3420 i=    2 j=    4 k=    3 acc=000651fd
+                3430 MEM[0213] => 000000213 tb.i_mem.read
+                3430 i=    2 j=    4 k=    4 acc=000651fd
+                3440 MEM[010c] => 00000010c tb.i_mem.read
+                3440 i=    2 j=    4 k=    4 acc=000651fd
+                3450 i=    2 j=    4 k=    4 acc=00087bce
+                3460 MEM[0314] <= 00087bce tb.i_mem.write
+                3460 i=    2 j=    5 k=    4 acc=00087bce
+                3470 i=    3 j=    5 k=    4 acc=00087bce
+                3480 i=    3 j=    0 k=    4 acc=00087bce
+                3490 i=    3 j=    0 k=    0 acc=00000000
+                3500 MEM[010c] => 00000010c tb.i_mem.read
+                3500 i=    3 j=    0 k=    0 acc=00000000
+                3510 MEM[0200] => 000000200 tb.i_mem.read
+                3510 i=    3 j=    0 k=    0 acc=00000000
+                3520 MEM[0200] => 000000200 tb.i_mem.read
+                3520 i=    3 j=    0 k=    1 acc=00000000
+                3530 MEM[010d] => 00000010d tb.i_mem.read
+                3530 i=    3 j=    0 k=    1 acc=00000000
+                3540 MEM[0205] => 000000205 tb.i_mem.read
+                3540 i=    3 j=    0 k=    1 acc=00021800
+                3550 MEM[0205] => 000000205 tb.i_mem.read
+                3550 i=    3 j=    0 k=    2 acc=00021800
+                3560 MEM[010e] => 00000010e tb.i_mem.read
+                3560 i=    3 j=    0 k=    2 acc=00021800
+                3570 MEM[020a] => 00000020a tb.i_mem.read
+                3570 i=    3 j=    0 k=    2 acc=00043741
+                3580 MEM[020a] => 00000020a tb.i_mem.read
+                3580 i=    3 j=    0 k=    3 acc=00043741
+                3590 MEM[010f] => 00000010f tb.i_mem.read
+                3590 i=    3 j=    0 k=    3 acc=00043741
+                3600 MEM[020f] => 00000020f tb.i_mem.read
+                3600 i=    3 j=    0 k=    3 acc=00065dcd
+                3610 MEM[020f] => 00000020f tb.i_mem.read
+                3610 i=    3 j=    0 k=    4 acc=00065dcd
+                3620 MEM[0110] => 000000110 tb.i_mem.read
+                3620 i=    3 j=    0 k=    4 acc=00065dcd
+                3630 i=    3 j=    0 k=    4 acc=00088bae
+                3640 MEM[0318] <= 00088bae tb.i_mem.write
+                3640 i=    3 j=    1 k=    4 acc=00088bae
+                3650 i=    3 j=    1 k=    0 acc=00000000
+                3660 MEM[010c] => 00000010c tb.i_mem.read
+                3660 i=    3 j=    1 k=    0 acc=00000000
+                3670 MEM[0201] => 000000201 tb.i_mem.read
+                3670 i=    3 j=    1 k=    0 acc=00000000
+                3680 MEM[0201] => 000000201 tb.i_mem.read
+                3680 i=    3 j=    1 k=    1 acc=00000000
+                3690 MEM[010d] => 00000010d tb.i_mem.read
+                3690 i=    3 j=    1 k=    1 acc=00000000
+                3700 MEM[0206] => 000000206 tb.i_mem.read
+                3700 i=    3 j=    1 k=    1 acc=0002190c
+                3710 MEM[0206] => 000000206 tb.i_mem.read
+                3710 i=    3 j=    1 k=    2 acc=0002190c
+                3720 MEM[010e] => 00000010e tb.i_mem.read
+                3720 i=    3 j=    1 k=    2 acc=0002190c
+                3730 MEM[020b] => 00000020b tb.i_mem.read
+                3730 i=    3 j=    1 k=    2 acc=0004395a
+                3740 MEM[020b] => 00000020b tb.i_mem.read
+                3740 i=    3 j=    1 k=    3 acc=0004395a
+                3750 MEM[010f] => 00000010f tb.i_mem.read
+                3750 i=    3 j=    1 k=    3 acc=0004395a
+                3760 MEM[0210] => 000000210 tb.i_mem.read
+                3760 i=    3 j=    1 k=    3 acc=000660f4
+                3770 MEM[0210] => 000000210 tb.i_mem.read
+                3770 i=    3 j=    1 k=    4 acc=000660f4
+                3780 MEM[0110] => 000000110 tb.i_mem.read
+                3780 i=    3 j=    1 k=    4 acc=000660f4
+                3790 i=    3 j=    1 k=    4 acc=00088fe4
+                3800 MEM[0319] <= 00088fe4 tb.i_mem.write
+                3800 i=    3 j=    2 k=    4 acc=00088fe4
+                3810 i=    3 j=    2 k=    0 acc=00000000
+                3820 MEM[010c] => 00000010c tb.i_mem.read
+                3820 i=    3 j=    2 k=    0 acc=00000000
+                3830 MEM[0202] => 000000202 tb.i_mem.read
+                3830 i=    3 j=    2 k=    0 acc=00000000
+                3840 MEM[0202] => 000000202 tb.i_mem.read
+                3840 i=    3 j=    2 k=    1 acc=00000000
+                3850 MEM[010d] => 00000010d tb.i_mem.read
+                3850 i=    3 j=    2 k=    1 acc=00000000
+                3860 MEM[0207] => 000000207 tb.i_mem.read
+                3860 i=    3 j=    2 k=    1 acc=00021a18
+                3870 MEM[0207] => 000000207 tb.i_mem.read
+                3870 i=    3 j=    2 k=    2 acc=00021a18
+                3880 MEM[010e] => 00000010e tb.i_mem.read
+                3880 i=    3 j=    2 k=    2 acc=00021a18
+                3890 MEM[020c] => 00000020c tb.i_mem.read
+                3890 i=    3 j=    2 k=    2 acc=00043b73
+                3900 MEM[020c] => 00000020c tb.i_mem.read
+                3900 i=    3 j=    2 k=    3 acc=00043b73
+                3910 MEM[010f] => 00000010f tb.i_mem.read
+                3910 i=    3 j=    2 k=    3 acc=00043b73
+                3920 MEM[0211] => 000000211 tb.i_mem.read
+                3920 i=    3 j=    2 k=    3 acc=0006641b
+                3930 MEM[0211] => 000000211 tb.i_mem.read
+                3930 i=    3 j=    2 k=    4 acc=0006641b
+                3940 MEM[0110] => 000000110 tb.i_mem.read
+                3940 i=    3 j=    2 k=    4 acc=0006641b
+                3950 i=    3 j=    2 k=    4 acc=0008941a
+                3960 MEM[031a] <= 0008941a tb.i_mem.write
+                3960 i=    3 j=    3 k=    4 acc=0008941a
+                3970 i=    3 j=    3 k=    0 acc=00000000
+                3980 MEM[010c] => 00000010c tb.i_mem.read
+                3980 i=    3 j=    3 k=    0 acc=00000000
+                3990 MEM[0203] => 000000203 tb.i_mem.read
+                3990 i=    3 j=    3 k=    0 acc=00000000
+                4000 MEM[0203] => 000000203 tb.i_mem.read
+                4000 i=    3 j=    3 k=    1 acc=00000000
+                4010 MEM[010d] => 00000010d tb.i_mem.read
+                4010 i=    3 j=    3 k=    1 acc=00000000
+                4020 MEM[0208] => 000000208 tb.i_mem.read
+                4020 i=    3 j=    3 k=    1 acc=00021b24
+                4030 MEM[0208] => 000000208 tb.i_mem.read
+                4030 i=    3 j=    3 k=    2 acc=00021b24
+                4040 MEM[010e] => 00000010e tb.i_mem.read
+                4040 i=    3 j=    3 k=    2 acc=00021b24
+                4050 MEM[020d] => 00000020d tb.i_mem.read
+                4050 i=    3 j=    3 k=    2 acc=00043d8c
+                4060 MEM[020d] => 00000020d tb.i_mem.read
+                4060 i=    3 j=    3 k=    3 acc=00043d8c
+                4070 MEM[010f] => 00000010f tb.i_mem.read
+                4070 i=    3 j=    3 k=    3 acc=00043d8c
+                4080 MEM[0212] => 000000212 tb.i_mem.read
+                4080 i=    3 j=    3 k=    3 acc=00066742
+                4090 MEM[0212] => 000000212 tb.i_mem.read
+                4090 i=    3 j=    3 k=    4 acc=00066742
+                4100 MEM[0110] => 000000110 tb.i_mem.read
+                4100 i=    3 j=    3 k=    4 acc=00066742
+                4110 i=    3 j=    3 k=    4 acc=00089850
+                4120 MEM[031b] <= 00089850 tb.i_mem.write
+                4120 i=    3 j=    4 k=    4 acc=00089850
+                4130 i=    3 j=    4 k=    0 acc=00000000
+                4140 MEM[010c] => 00000010c tb.i_mem.read
+                4140 i=    3 j=    4 k=    0 acc=00000000
+                4150 MEM[0204] => 000000204 tb.i_mem.read
+                4150 i=    3 j=    4 k=    0 acc=00000000
+                4160 MEM[0204] => 000000204 tb.i_mem.read
+                4160 i=    3 j=    4 k=    1 acc=00000000
+                4170 MEM[010d] => 00000010d tb.i_mem.read
+                4170 i=    3 j=    4 k=    1 acc=00000000
+                4180 MEM[0209] => 000000209 tb.i_mem.read
+                4180 i=    3 j=    4 k=    1 acc=00021c30
+                4190 MEM[0209] => 000000209 tb.i_mem.read
+                4190 i=    3 j=    4 k=    2 acc=00021c30
+                4200 MEM[010e] => 00000010e tb.i_mem.read
+                4200 i=    3 j=    4 k=    2 acc=00021c30
+                4210 MEM[020e] => 00000020e tb.i_mem.read
+                4210 i=    3 j=    4 k=    2 acc=00043fa5
+                4220 MEM[020e] => 00000020e tb.i_mem.read
+                4220 i=    3 j=    4 k=    3 acc=00043fa5
+                4230 MEM[010f] => 00000010f tb.i_mem.read
+                4230 i=    3 j=    4 k=    3 acc=00043fa5
+                4240 MEM[0213] => 000000213 tb.i_mem.read
+                4240 i=    3 j=    4 k=    3 acc=00066a69
+                4250 MEM[0213] => 000000213 tb.i_mem.read
+                4250 i=    3 j=    4 k=    4 acc=00066a69
+                4260 MEM[0110] => 000000110 tb.i_mem.read
+                4260 i=    3 j=    4 k=    4 acc=00066a69
+                4270 i=    3 j=    4 k=    4 acc=00089c86
+                4280 MEM[031c] <= 00089c86 tb.i_mem.write
+                4280 i=    3 j=    5 k=    4 acc=00089c86
+                4290 i=    4 j=    5 k=    4 acc=00089c86
+                4300 i=    4 j=    0 k=    4 acc=00089c86
+                4310 i=    4 j=    0 k=    0 acc=00000000
+                4320 MEM[0110] => 000000110 tb.i_mem.read
+                4320 i=    4 j=    0 k=    0 acc=00000000
+                4330 MEM[0200] => 000000200 tb.i_mem.read
+                4330 i=    4 j=    0 k=    0 acc=00000000
+                4340 MEM[0200] => 000000200 tb.i_mem.read
+                4340 i=    4 j=    0 k=    1 acc=00000000
+                4350 MEM[0111] => 000000111 tb.i_mem.read
+                4350 i=    4 j=    0 k=    1 acc=00000000
+                4360 MEM[0205] => 000000205 tb.i_mem.read
+                4360 i=    4 j=    0 k=    1 acc=00022000
+                4370 MEM[0205] => 000000205 tb.i_mem.read
+                4370 i=    4 j=    0 k=    2 acc=00022000
+                4380 MEM[0112] => 000000112 tb.i_mem.read
+                4380 i=    4 j=    0 k=    2 acc=00022000
+                4390 MEM[020a] => 00000020a tb.i_mem.read
+                4390 i=    4 j=    0 k=    2 acc=00044755
+                4400 MEM[020a] => 00000020a tb.i_mem.read
+                4400 i=    4 j=    0 k=    3 acc=00044755
+                4410 MEM[0113] => 000000113 tb.i_mem.read
+                4410 i=    4 j=    0 k=    3 acc=00044755
+                4420 MEM[020f] => 00000020f tb.i_mem.read
+                4420 i=    4 j=    0 k=    3 acc=00067609
+                4430 MEM[020f] => 00000020f tb.i_mem.read
+                4430 i=    4 j=    0 k=    4 acc=00067609
+                4440 MEM[0114] => 000000114 tb.i_mem.read
+                4440 i=    4 j=    0 k=    4 acc=00067609
+                4450 i=    4 j=    0 k=    4 acc=0008ac26
+                4460 MEM[0320] <= 0008ac26 tb.i_mem.write
+                4460 i=    4 j=    1 k=    4 acc=0008ac26
+                4470 i=    4 j=    1 k=    0 acc=00000000
+                4480 MEM[0110] => 000000110 tb.i_mem.read
+                4480 i=    4 j=    1 k=    0 acc=00000000
+                4490 MEM[0201] => 000000201 tb.i_mem.read
+                4490 i=    4 j=    1 k=    0 acc=00000000
+                4500 MEM[0201] => 000000201 tb.i_mem.read
+                4500 i=    4 j=    1 k=    1 acc=00000000
+                4510 MEM[0111] => 000000111 tb.i_mem.read
+                4510 i=    4 j=    1 k=    1 acc=00000000
+                4520 MEM[0206] => 000000206 tb.i_mem.read
+                4520 i=    4 j=    1 k=    1 acc=00022110
+                4530 MEM[0206] => 000000206 tb.i_mem.read
+                4530 i=    4 j=    1 k=    2 acc=00022110
+                4540 MEM[0112] => 000000112 tb.i_mem.read
+                4540 i=    4 j=    1 k=    2 acc=00022110
+                4550 MEM[020b] => 00000020b tb.i_mem.read
+                4550 i=    4 j=    1 k=    2 acc=00044976
+                4560 MEM[020b] => 00000020b tb.i_mem.read
+                4560 i=    4 j=    1 k=    3 acc=00044976
+                4570 MEM[0113] => 000000113 tb.i_mem.read
+                4570 i=    4 j=    1 k=    3 acc=00044976
+                4580 MEM[0210] => 000000210 tb.i_mem.read
+                4580 i=    4 j=    1 k=    3 acc=0006793c
+                4590 MEM[0210] => 000000210 tb.i_mem.read
+                4590 i=    4 j=    1 k=    4 acc=0006793c
+                4600 MEM[0114] => 000000114 tb.i_mem.read
+                4600 i=    4 j=    1 k=    4 acc=0006793c
+                4610 i=    4 j=    1 k=    4 acc=0008b06c
+                4620 MEM[0321] <= 0008b06c tb.i_mem.write
+                4620 i=    4 j=    2 k=    4 acc=0008b06c
+                4630 i=    4 j=    2 k=    0 acc=00000000
+                4640 MEM[0110] => 000000110 tb.i_mem.read
+                4640 i=    4 j=    2 k=    0 acc=00000000
+                4650 MEM[0202] => 000000202 tb.i_mem.read
+                4650 i=    4 j=    2 k=    0 acc=00000000
+                4660 MEM[0202] => 000000202 tb.i_mem.read
+                4660 i=    4 j=    2 k=    1 acc=00000000
+                4670 MEM[0111] => 000000111 tb.i_mem.read
+                4670 i=    4 j=    2 k=    1 acc=00000000
+                4680 MEM[0207] => 000000207 tb.i_mem.read
+                4680 i=    4 j=    2 k=    1 acc=00022220
+                4690 MEM[0207] => 000000207 tb.i_mem.read
+                4690 i=    4 j=    2 k=    2 acc=00022220
+                4700 MEM[0112] => 000000112 tb.i_mem.read
+                4700 i=    4 j=    2 k=    2 acc=00022220
+                4710 MEM[020c] => 00000020c tb.i_mem.read
+                4710 i=    4 j=    2 k=    2 acc=00044b97
+                4720 MEM[020c] => 00000020c tb.i_mem.read
+                4720 i=    4 j=    2 k=    3 acc=00044b97
+                4730 MEM[0113] => 000000113 tb.i_mem.read
+                4730 i=    4 j=    2 k=    3 acc=00044b97
+                4740 MEM[0211] => 000000211 tb.i_mem.read
+                4740 i=    4 j=    2 k=    3 acc=00067c6f
+                4750 MEM[0211] => 000000211 tb.i_mem.read
+                4750 i=    4 j=    2 k=    4 acc=00067c6f
+                4760 MEM[0114] => 000000114 tb.i_mem.read
+                4760 i=    4 j=    2 k=    4 acc=00067c6f
+                4770 i=    4 j=    2 k=    4 acc=0008b4b2
+                4780 MEM[0322] <= 0008b4b2 tb.i_mem.write
+                4780 i=    4 j=    3 k=    4 acc=0008b4b2
+                4790 i=    4 j=    3 k=    0 acc=00000000
+                4800 MEM[0110] => 000000110 tb.i_mem.read
+                4800 i=    4 j=    3 k=    0 acc=00000000
+                4810 MEM[0203] => 000000203 tb.i_mem.read
+                4810 i=    4 j=    3 k=    0 acc=00000000
+                4820 MEM[0203] => 000000203 tb.i_mem.read
+                4820 i=    4 j=    3 k=    1 acc=00000000
+                4830 MEM[0111] => 000000111 tb.i_mem.read
+                4830 i=    4 j=    3 k=    1 acc=00000000
+                4840 MEM[0208] => 000000208 tb.i_mem.read
+                4840 i=    4 j=    3 k=    1 acc=00022330
+                4850 MEM[0208] => 000000208 tb.i_mem.read
+                4850 i=    4 j=    3 k=    2 acc=00022330
+                4860 MEM[0112] => 000000112 tb.i_mem.read
+                4860 i=    4 j=    3 k=    2 acc=00022330
+                4870 MEM[020d] => 00000020d tb.i_mem.read
+                4870 i=    4 j=    3 k=    2 acc=00044db8
+                4880 MEM[020d] => 00000020d tb.i_mem.read
+                4880 i=    4 j=    3 k=    3 acc=00044db8
+                4890 MEM[0113] => 000000113 tb.i_mem.read
+                4890 i=    4 j=    3 k=    3 acc=00044db8
+                4900 MEM[0212] => 000000212 tb.i_mem.read
+                4900 i=    4 j=    3 k=    3 acc=00067fa2
+                4910 MEM[0212] => 000000212 tb.i_mem.read
+                4910 i=    4 j=    3 k=    4 acc=00067fa2
+                4920 MEM[0114] => 000000114 tb.i_mem.read
+                4920 i=    4 j=    3 k=    4 acc=00067fa2
+                4930 i=    4 j=    3 k=    4 acc=0008b8f8
+                4940 MEM[0323] <= 0008b8f8 tb.i_mem.write
+                4940 i=    4 j=    4 k=    4 acc=0008b8f8
+                4950 i=    4 j=    4 k=    0 acc=00000000
+                4960 MEM[0110] => 000000110 tb.i_mem.read
+                4960 i=    4 j=    4 k=    0 acc=00000000
+                4970 MEM[0204] => 000000204 tb.i_mem.read
+                4970 i=    4 j=    4 k=    0 acc=00000000
+                4980 MEM[0204] => 000000204 tb.i_mem.read
+                4980 i=    4 j=    4 k=    1 acc=00000000
+                4990 MEM[0111] => 000000111 tb.i_mem.read
+                4990 i=    4 j=    4 k=    1 acc=00000000
+                5000 MEM[0209] => 000000209 tb.i_mem.read
+                5000 i=    4 j=    4 k=    1 acc=00022440
+                5010 MEM[0209] => 000000209 tb.i_mem.read
+                5010 i=    4 j=    4 k=    2 acc=00022440
+                5020 MEM[0112] => 000000112 tb.i_mem.read
+                5020 i=    4 j=    4 k=    2 acc=00022440
+                5030 MEM[020e] => 00000020e tb.i_mem.read
+                5030 i=    4 j=    4 k=    2 acc=00044fd9
+                5040 MEM[020e] => 00000020e tb.i_mem.read
+                5040 i=    4 j=    4 k=    3 acc=00044fd9
+                5050 MEM[0113] => 000000113 tb.i_mem.read
+                5050 i=    4 j=    4 k=    3 acc=00044fd9
+                5060 MEM[0213] => 000000213 tb.i_mem.read
+                5060 i=    4 j=    4 k=    3 acc=000682d5
+                5070 MEM[0213] => 000000213 tb.i_mem.read
+                5070 i=    4 j=    4 k=    4 acc=000682d5
+                5080 MEM[0114] => 000000114 tb.i_mem.read
+                5080 i=    4 j=    4 k=    4 acc=000682d5
+                5090 i=    4 j=    4 k=    4 acc=0008bd3e
+                5100 MEM[0324] <= 0008bd3e tb.i_mem.write
+                5100 i=    4 j=    5 k=    4 acc=0008bd3e
+                5110 i=    5 j=    5 k=    4 acc=0008bd3e
+                5120 i=    5 j=    0 k=    4 acc=0008bd3e
+                5130 i=    5 j=    0 k=    0 acc=00000000
+                5140 MEM[0114] => 000000114 tb.i_mem.read
+                5140 i=    5 j=    0 k=    0 acc=00000000
+                5150 MEM[0200] => 000000200 tb.i_mem.read
+                5150 i=    5 j=    0 k=    0 acc=00000000
+                5160 MEM[0200] => 000000200 tb.i_mem.read
+                5160 i=    5 j=    0 k=    1 acc=00000000
+                5170 MEM[0115] => 000000115 tb.i_mem.read
+                5170 i=    5 j=    0 k=    1 acc=00000000
+                5180 MEM[0205] => 000000205 tb.i_mem.read
+                5180 i=    5 j=    0 k=    1 acc=00022800
+                5190 MEM[0205] => 000000205 tb.i_mem.read
+                5190 i=    5 j=    0 k=    2 acc=00022800
+                5200 MEM[0116] => 000000116 tb.i_mem.read
+                5200 i=    5 j=    0 k=    2 acc=00022800
+                5210 MEM[020a] => 00000020a tb.i_mem.read
+                5210 i=    5 j=    0 k=    2 acc=00045769
+                5220 MEM[020a] => 00000020a tb.i_mem.read
+                5220 i=    5 j=    0 k=    3 acc=00045769
+                5230 MEM[0117] => 000000117 tb.i_mem.read
+                5230 i=    5 j=    0 k=    3 acc=00045769
+                5240 MEM[020f] => 00000020f tb.i_mem.read
+                5240 i=    5 j=    0 k=    3 acc=00068e45
+                5250 MEM[020f] => 00000020f tb.i_mem.read
+                5250 i=    5 j=    0 k=    4 acc=00068e45
+                5260 MEM[0118] => 000000118 tb.i_mem.read
+                5260 i=    5 j=    0 k=    4 acc=00068e45
+                5270 i=    5 j=    0 k=    4 acc=0008cc9e
+                5280 MEM[0328] <= 0008cc9e tb.i_mem.write
+                5280 i=    5 j=    1 k=    4 acc=0008cc9e
+                5290 i=    5 j=    1 k=    0 acc=00000000
+                5300 MEM[0114] => 000000114 tb.i_mem.read
+                5300 i=    5 j=    1 k=    0 acc=00000000
+                5310 MEM[0201] => 000000201 tb.i_mem.read
+                5310 i=    5 j=    1 k=    0 acc=00000000
+                5320 MEM[0201] => 000000201 tb.i_mem.read
+                5320 i=    5 j=    1 k=    1 acc=00000000
+                5330 MEM[0115] => 000000115 tb.i_mem.read
+                5330 i=    5 j=    1 k=    1 acc=00000000
+                5340 MEM[0206] => 000000206 tb.i_mem.read
+                5340 i=    5 j=    1 k=    1 acc=00022914
+                5350 MEM[0206] => 000000206 tb.i_mem.read
+                5350 i=    5 j=    1 k=    2 acc=00022914
+                5360 MEM[0116] => 000000116 tb.i_mem.read
+                5360 i=    5 j=    1 k=    2 acc=00022914
+                5370 MEM[020b] => 00000020b tb.i_mem.read
+                5370 i=    5 j=    1 k=    2 acc=00045992
+                5380 MEM[020b] => 00000020b tb.i_mem.read
+                5380 i=    5 j=    1 k=    3 acc=00045992
+                5390 MEM[0117] => 000000117 tb.i_mem.read
+                5390 i=    5 j=    1 k=    3 acc=00045992
+                5400 MEM[0210] => 000000210 tb.i_mem.read
+                5400 i=    5 j=    1 k=    3 acc=00069184
+                5410 MEM[0210] => 000000210 tb.i_mem.read
+                5410 i=    5 j=    1 k=    4 acc=00069184
+                5420 MEM[0118] => 000000118 tb.i_mem.read
+                5420 i=    5 j=    1 k=    4 acc=00069184
+                5430 i=    5 j=    1 k=    4 acc=0008d0f4
+                5440 MEM[0329] <= 0008d0f4 tb.i_mem.write
+                5440 i=    5 j=    2 k=    4 acc=0008d0f4
+                5450 i=    5 j=    2 k=    0 acc=00000000
+                5460 MEM[0114] => 000000114 tb.i_mem.read
+                5460 i=    5 j=    2 k=    0 acc=00000000
+                5470 MEM[0202] => 000000202 tb.i_mem.read
+                5470 i=    5 j=    2 k=    0 acc=00000000
+                5480 MEM[0202] => 000000202 tb.i_mem.read
+                5480 i=    5 j=    2 k=    1 acc=00000000
+                5490 MEM[0115] => 000000115 tb.i_mem.read
+                5490 i=    5 j=    2 k=    1 acc=00000000
+                5500 MEM[0207] => 000000207 tb.i_mem.read
+                5500 i=    5 j=    2 k=    1 acc=00022a28
+                5510 MEM[0207] => 000000207 tb.i_mem.read
+                5510 i=    5 j=    2 k=    2 acc=00022a28
+                5520 MEM[0116] => 000000116 tb.i_mem.read
+                5520 i=    5 j=    2 k=    2 acc=00022a28
+                5530 MEM[020c] => 00000020c tb.i_mem.read
+                5530 i=    5 j=    2 k=    2 acc=00045bbb
+                5540 MEM[020c] => 00000020c tb.i_mem.read
+                5540 i=    5 j=    2 k=    3 acc=00045bbb
+                5550 MEM[0117] => 000000117 tb.i_mem.read
+                5550 i=    5 j=    2 k=    3 acc=00045bbb
+                5560 MEM[0211] => 000000211 tb.i_mem.read
+                5560 i=    5 j=    2 k=    3 acc=000694c3
+                5570 MEM[0211] => 000000211 tb.i_mem.read
+                5570 i=    5 j=    2 k=    4 acc=000694c3
+                5580 MEM[0118] => 000000118 tb.i_mem.read
+                5580 i=    5 j=    2 k=    4 acc=000694c3
+                5590 i=    5 j=    2 k=    4 acc=0008d54a
+                5600 MEM[032a] <= 0008d54a tb.i_mem.write
+                5600 i=    5 j=    3 k=    4 acc=0008d54a
+                5610 i=    5 j=    3 k=    0 acc=00000000
+                5620 MEM[0114] => 000000114 tb.i_mem.read
+                5620 i=    5 j=    3 k=    0 acc=00000000
+                5630 MEM[0203] => 000000203 tb.i_mem.read
+                5630 i=    5 j=    3 k=    0 acc=00000000
+                5640 MEM[0203] => 000000203 tb.i_mem.read
+                5640 i=    5 j=    3 k=    1 acc=00000000
+                5650 MEM[0115] => 000000115 tb.i_mem.read
+                5650 i=    5 j=    3 k=    1 acc=00000000
+                5660 MEM[0208] => 000000208 tb.i_mem.read
+                5660 i=    5 j=    3 k=    1 acc=00022b3c
+                5670 MEM[0208] => 000000208 tb.i_mem.read
+                5670 i=    5 j=    3 k=    2 acc=00022b3c
+                5680 MEM[0116] => 000000116 tb.i_mem.read
+                5680 i=    5 j=    3 k=    2 acc=00022b3c
+                5690 MEM[020d] => 00000020d tb.i_mem.read
+                5690 i=    5 j=    3 k=    2 acc=00045de4
+                5700 MEM[020d] => 00000020d tb.i_mem.read
+                5700 i=    5 j=    3 k=    3 acc=00045de4
+                5710 MEM[0117] => 000000117 tb.i_mem.read
+                5710 i=    5 j=    3 k=    3 acc=00045de4
+                5720 MEM[0212] => 000000212 tb.i_mem.read
+                5720 i=    5 j=    3 k=    3 acc=00069802
+                5730 MEM[0212] => 000000212 tb.i_mem.read
+                5730 i=    5 j=    3 k=    4 acc=00069802
+                5740 MEM[0118] => 000000118 tb.i_mem.read
+                5740 i=    5 j=    3 k=    4 acc=00069802
+                5750 i=    5 j=    3 k=    4 acc=0008d9a0
+                5760 MEM[032b] <= 0008d9a0 tb.i_mem.write
+                5760 i=    5 j=    4 k=    4 acc=0008d9a0
+                5770 i=    5 j=    4 k=    0 acc=00000000
+                5780 MEM[0114] => 000000114 tb.i_mem.read
+                5780 i=    5 j=    4 k=    0 acc=00000000
+                5790 MEM[0204] => 000000204 tb.i_mem.read
+                5790 i=    5 j=    4 k=    0 acc=00000000
+                5800 MEM[0204] => 000000204 tb.i_mem.read
+                5800 i=    5 j=    4 k=    1 acc=00000000
+                5810 MEM[0115] => 000000115 tb.i_mem.read
+                5810 i=    5 j=    4 k=    1 acc=00000000
+                5820 MEM[0209] => 000000209 tb.i_mem.read
+                5820 i=    5 j=    4 k=    1 acc=00022c50
+                5830 MEM[0209] => 000000209 tb.i_mem.read
+                5830 i=    5 j=    4 k=    2 acc=00022c50
+                5840 MEM[0116] => 000000116 tb.i_mem.read
+                5840 i=    5 j=    4 k=    2 acc=00022c50
+                5850 MEM[020e] => 00000020e tb.i_mem.read
+                5850 i=    5 j=    4 k=    2 acc=0004600d
+                5860 MEM[020e] => 00000020e tb.i_mem.read
+                5860 i=    5 j=    4 k=    3 acc=0004600d
+                5870 MEM[0117] => 000000117 tb.i_mem.read
+                5870 i=    5 j=    4 k=    3 acc=0004600d
+                5880 MEM[0213] => 000000213 tb.i_mem.read
+                5880 i=    5 j=    4 k=    3 acc=00069b41
+                5890 MEM[0213] => 000000213 tb.i_mem.read
+                5890 i=    5 j=    4 k=    4 acc=00069b41
+                5900 MEM[0118] => 000000118 tb.i_mem.read
+                5900 i=    5 j=    4 k=    4 acc=00069b41
+                5910 i=    5 j=    4 k=    4 acc=0008ddf6
+                5920 MEM[032c] <= 0008ddf6 tb.i_mem.write
+                5920 i=    5 j=    5 k=    4 acc=0008ddf6
+                5930 i=    6 j=    5 k=    4 acc=0008ddf6
+                5940 i=    6 j=    5 k=    4 acc=0008ddf6
+                5950 got ret
+                5950 i=    6 j=    5 k=    4 acc=0008ddf6
+                5960 i=    6 j=    5 k=    4 acc=0008ddf6
+                5970 i=    6 j=    5 k=    4 acc=0008ddf6
+                5980 i=    6 j=    5 k=    4 acc=0008ddf6
+                5990 i=    6 j=    5 k=    4 acc=0008ddf6
+                6000 i=    6 j=    5 k=    4 acc=0008ddf6
+                6010 i=    6 j=    5 k=    4 acc=0008ddf6
+                6020 i=    6 j=    5 k=    4 acc=0008ddf6
+                6030 i=    6 j=    5 k=    4 acc=0008ddf6
+                6040 i=    6 j=    5 k=    4 acc=0008ddf6
+A=[
+        256         257         258         259 ;
+        260         261         262         263 ;
+        264         265         266         267 ;
+        268         269         270         271 ;
+        272         273         274         275 ;
+        276         277         278         279 ;
+]
+B=[
+        512         513         514         515         516 ;
+        517         518         519         520         521 ;
+        522         523         524         525         526 ;
+        527         528         529         530         531 ;
+]
+C=[
+     535110      536140      537170      538200      539230 ;
+     543422      544468      545514      546560      547606 ;
+     551734      552796      553858      554920      555982 ;
+     560046      561124      562202      563280      564358 ;
+     568358      569452      570546      571640      572734 ;
+     576670      577780      578890      580000      581110 ;
+]
+Cg=A*B
+all(all(Cg==C))
+                6050 PASSED
+                6050 ending
+                6050 i=    6 j=    5 k=    4 acc=0008ddf6

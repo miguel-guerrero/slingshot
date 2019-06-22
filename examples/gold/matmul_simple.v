@@ -1,4 +1,3 @@
-// x=SigAssign(Signal(typ=BitVec(width=Parameter(CInt(16), name='MEM_AW')), name='a_i0'), In(typ=BitVec(width=Parameter(CInt(16), name='MEM_AW')), name='aBASE'))
 //----------------------------------------------------------------------------
 // matmul
 //----------------------------------------------------------------------------
@@ -94,7 +93,7 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             SM_MATMUL_FSM_S2 : begin
-                if (~(aROWS == i)) begin
+                if (aROWS != i) begin
                     b_0j <= bBASE;
                     c_ij <= c_i0;
                     j <= 0;
@@ -106,7 +105,7 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             SM_MATMUL_FSM_S3 : begin
-                if (~(bCOLS == j)) begin
+                if (bCOLS != j) begin
                     a_ik <= a_i0;
                     b_kj <= b_0j;
                     acc <= 0;
@@ -178,7 +177,7 @@ always @(posedge clk or negedge rst_n) begin
             end
             SM_MATMUL_FSM_S10 : begin
                 mem_req <= 0;
-                if (~(bCOLS == j)) begin
+                if (bCOLS != j) begin
                     a_ik <= a_i0;
                     b_kj <= b_0j;
                     acc <= 0;

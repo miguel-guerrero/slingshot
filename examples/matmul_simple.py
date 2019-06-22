@@ -65,12 +65,12 @@ matmul = Module() [
         c_i0 <= cBASE,
         i <= 0,
         ...,
-        While (~(i == aROWS)) [
+        While (i != aROWS) [
             b_0j <= bBASE,
             c_ij <= c_i0,
             j <= 0,
             ...,
-            While (~(j == bCOLS)) [
+            While (j != bCOLS) [
                 a_ik <= a_i0,
                 b_kj <= b_0j,
                 acc <= 0,
