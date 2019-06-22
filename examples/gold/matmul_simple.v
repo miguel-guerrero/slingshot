@@ -21,7 +21,6 @@ module matmul
     input go,
     input [MEM_DW-1:0] mem_rdata,
     input rst_n,
-    output reg [3:0] matmul_fsm_state,
     output reg [MEM_AW-1:0] mem_addr,
     output reg mem_req,
     output reg [MEM_DW-1:0] mem_wdata,
@@ -54,6 +53,7 @@ reg [MEM_AW-1:0] c_ij;
 reg [DIM_BITS-1:0] i;
 reg [DIM_BITS-1:0] j;
 reg [DIM_BITS-1:0] k;
+reg [3:0] matmul_fsm_state;
 
 always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin

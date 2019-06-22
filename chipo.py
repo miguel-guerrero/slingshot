@@ -639,7 +639,7 @@ class Switch(AstProcStatement):
     def typesUsed(self): return self.apply('typesUsed', self.all())
 
     def all(self):
-        return self.cases + [self.default]
+        return [self.cond] + self.cases + [self.default]
 
     def __repr__(self):
         cases = "".join([f".{i!r}" for i in self.cases])

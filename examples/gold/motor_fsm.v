@@ -7,7 +7,6 @@ module motor_fsm (
     input dn_limit,
     input rst_n,
     input up_limit,
-    output reg [1:0] control_state,
     output reg motor_dn,
     output reg motor_up
 );
@@ -17,7 +16,7 @@ localparam SM_CONTROL_S0=0;
 localparam SM_CONTROL_S1=1;
 localparam SM_CONTROL_S2=2;
 
-
+reg [1:0] control_state;
 
 always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin

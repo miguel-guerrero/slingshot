@@ -13,7 +13,6 @@ module tb;
 
 parameter MEM_AW=16, MEM_DW=32, DIM_BITS=16, PREC=16;
 
-wire [3:0] matmul_fsm_state;
 wire mem_write, mem_req;
 wire [MEM_AW-1:0] mem_addr;
 wire [MEM_DW-1:0] mem_wdata;
