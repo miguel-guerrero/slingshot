@@ -13,21 +13,21 @@ from hlc import Fsm, Wait
 clk = Clock()
 rst_n = Reset()
 activate, up_limit, dn_limit = Input() ** 3
-motor_up_q, motor_dn_q = Output() ** 2
+motor_up, motor_dn = Output() ** 2
 print(
-    Module('motor_fsm', IOs=[motor_up_q, motor_dn_q]) [
+    Module('motor_fsm') [
         Fsm('control', clk, rst_n) [
             Wait(activate),
             If (up_limit) [
-                motor_dn_q <= 1,
+                motor_dn <= 1,
                 ...,  
                 Wait(dn_limit),
-                motor_dn_q <= 0,
+                motor_dn <= 0,
             ].Else [
-                motor_up_q <= 1,
+                motor_up <= 1,
                 ...,  
                 Wait(up_limit),
-                motor_up_q <= 0,
+                motor_up <= 0,
             ]
         ].expand(),
     ].autoGen().vlog()

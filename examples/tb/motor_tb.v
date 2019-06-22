@@ -33,7 +33,7 @@ end
 
 wire [1:0] control_state;
 reg activate, up_limit, dn_limit;
-wire motor_up_q, motor_dn_q;
+wire motor_up, motor_dn;
 
 motor_fsm motor_0 (.*);
 
@@ -45,7 +45,7 @@ initial begin
     `tick;
     $display($time, " ACTIVATING");
     activate <= 1;
-    `wait1(motor_dn_q == 1);
+    `wait1(motor_dn == 1);
     activate <= 0;
     up_limit <= 0;
     `tick;
@@ -54,12 +54,12 @@ initial begin
     `tick;
     $display($time, " REPORTING dn_limit");
     dn_limit <= 1;
-    `wait1(motor_dn_q == 0);
+    `wait1(motor_dn == 0);
     `tick;
 
     $display($time, " ACTIVATING");
     activate <= 1;
-    `wait1(motor_up_q == 1);
+    `wait1(motor_up == 1);
     activate <= 0;
     dn_limit <= 0;
     `tick;
@@ -70,7 +70,7 @@ initial begin
     `tick;
     $display($time, " REPORTING up_limit");
     up_limit <= 1;
-    `wait1(motor_up_q == 0);
+    `wait1(motor_up == 0);
     `tick;
 
     $display($time, " Normal termination");
@@ -80,7 +80,7 @@ end
 initial forever begin
     `tick;
     $display($time, " activate ", activate, " up_limit ", up_limit, " dn_limit ", dn_limit,
-                    " motor_dn ", motor_dn_q, " motor_up ", motor_up_q);
+                    " motor_dn ", motor_dn, " motor_up ", motor_up);
 end
 
 initial begin
