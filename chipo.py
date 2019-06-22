@@ -443,11 +443,19 @@ class AstProcStatement(AstNode):
 #-----------------------------------------------------------
 class Block(AstProcStatement):
     def __init__(self, *stmts, name=None):
-        self.stmts = list(stmts)
+        self.stmts = []
         self.name = name
+        self += stmts # invoke __iadd__
 
     def __iadd__(self, x):
-        self.stmts.append(x)
+        if isinstance(x, (tuple, list)):
+            for xi in x:
+                self.stmts.append(xi)
+        elif isinstance(x, Block) and x.name is None:
+            for xi in x.toList():
+                self.stmts.append(xi)
+        else:
+            self.stmts.append(x)
         return self
 
     def toList(self):
@@ -1159,7 +1167,7 @@ class Expr(AstNode):
 
     def __lt__(self, rhs):      return BinExpr('<', self, rhs)
     def __gt__(self, rhs):      return BinExpr('>', self, rhs)
-    def __ge__(self, rhs):      return BinExpr('>=', self, rhs)
+    #def __ge__(self, rhs):      return BinExpr('>=', self, rhs) #FIXME
     def __eq__(self, rhs):      return BinExpr('==', self, rhs)
     def __ne__(self, rhs):      return BinExpr('!=', self, rhs)
 
@@ -1545,11 +1553,11 @@ class MultiExpr(Expr):
 
 class BitExtract(MultiExpr):
     def __init__(self, val, msb, lsb=None):
-        if isinstance(msb, slice): # BitExtract(x, 3, 2) or x[3:2]
+        if isinstance(msb, slice): # e.g. x[3:2]
             assert msb.step==None, f"invalid bit selection {msb.step}"
             assert lsb==None
             msb, lsb = msb.start, msb.stop
-        super().__init__('[', val, msb, lsb)
+        super().__init__('[', val, msb, lsb) # BitExtract(x,3,2) also vld
 
     def __le__(self, rhs):
         return SigAssign(self, rhs)

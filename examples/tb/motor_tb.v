@@ -31,6 +31,7 @@ end
 `define tick @(posedge clk)
 `define wait1(cond) `tick; while(~(cond)) `tick 
 
+wire [1:0] control_state;
 reg activate, up_limit, dn_limit;
 wire motor_up_q, motor_dn_q;
 
