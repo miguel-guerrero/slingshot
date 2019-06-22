@@ -108,11 +108,11 @@ See README.md on respective test\* directories for more documentation.
 
 The modules are interdependent as follows (an arrow represents the relationship 'uses')
 
-<img src="doc/use_relationships.png" width="70%">
+<img src="doc/use_relationships.png?" width="70%">
 
 Legend:
 
-<img src="doc/legend.png" width="30%">
+<img src="doc/legend.png?" width="30%">
 
 Notes:
 - gen_csrs is a separate tool to generate control/status registers available
