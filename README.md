@@ -87,7 +87,7 @@ Other:
   High Level Constructs, built as a layer on top of chipo. Currently includes Pipeline
   for automatic flow controllable pipeline generation (see examples/pipe.py), 
   and Fsm, to generate state machines out of algorithmical sequential code (see 
-  examples/motor_ctl.py and examples/matmul_simple.py)
+  examples/motor_fsm.py and examples/matmul_simple.py)
 
 - vlog.py:
   Verilog code generator for chipo
