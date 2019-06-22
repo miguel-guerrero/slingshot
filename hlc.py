@@ -330,6 +330,7 @@ class Node:
     def remove(node):
         node.typ = NodeType.removed
 
+
 #--------------------------------------------------------------------
 # DAG related routines
 #--------------------------------------------------------------------
@@ -352,7 +353,6 @@ def showFromNode(root:Node, tab="\t") -> str:
     return subPr("", root)
 
 
-
 #------------------------------------------------------------------------------
 # Main Fsm class
 #------------------------------------------------------------------------------
@@ -367,7 +367,6 @@ class Fsm:
         self.keep = list(keep)
         self.body = Block()
         self.logic_ = None
-        self.renameState = {}
         self.oprefix = "SM_"+name.upper()+"_"
         self.Q = "_q"
         self.wfeCounter = 0
@@ -445,7 +444,7 @@ class Fsm:
         return toDagSub(self.body, nx=None)
 
     def stateName(self, node:Node) -> str:
-        return f"{self.oprefix}S{self.renameState.get(node, node.code)}"
+        return f"{self.oprefix}S{node.code}"
 
     def varAssigned(self):
         return set([v for v in self.body.assigned() if isinstance(v, Variable)])
@@ -454,18 +453,16 @@ class Fsm:
         self.root = root
  
         #create dict that links wfe nodes with its id
+        wfeLst = [n for n in Node.all if n.typ == NodeType.wfe]
+        wfeCnt = len(wfeLst)
         wfes = {}
-        for node in Node.all:
-            if node.typ == NodeType.wfe:
-                node.code = self.wfeCounter - node.code - 1
-                wfes[node.code] = node
+        for node in wfeLst:
+            wfeCnt -= 1
+            node.code = wfeCnt
+            wfes[node.code] = node
  
         #give unique names to the estates based on wfe nodes
-        stateNames = []
-        for i, code in enumerate(sorted(wfes)):
-            node = wfes[code]
-            self.renameState[node] = i
-            stateNames.append(self.stateName(node))
+        stateNames = [self.stateName(wfes[code]) for code in sorted(wfes)]
 
         #create state type
         States = Enu(*stateNames, name=self.name+f"{self.name}_state_t")
