@@ -112,7 +112,7 @@ The modules are interdependent as follows (an arrow represents the relationship 
 
 Legend:
 
-<img src="doc/legend.png?" width="30%">
+<img src="doc/legend.png?2" width="20%">
 
 Notes:
 - gen_csrs is a separate tool to generate control/status registers available
