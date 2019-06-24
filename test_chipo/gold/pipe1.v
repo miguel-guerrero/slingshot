@@ -42,8 +42,9 @@ end
 // x2:arith_x2, s2:arith_s2
 
 always @(*) begin
-    out <= arith_x2 - 1;
+    out = arith_x2 - 1;
 end
 
 endmodule
+
 

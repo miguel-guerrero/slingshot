@@ -17,7 +17,7 @@ module counter2
 
 
 always @(*) begin
-    eq <= cnt == max_val;
+    eq = cnt==max_val;
 end
 
 // clear and increment logic
@@ -39,3 +39,4 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 endmodule
+

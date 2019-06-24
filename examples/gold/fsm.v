@@ -19,25 +19,25 @@ reg [1:0] state_nxt;
 always @(*) begin
     case (state)
         IDLE : begin
-            state_nxt <= GO;
-            ctl <= 0;
+            state_nxt = GO;
+            ctl = 0;
         end
         GO : begin
-            state_nxt <= DONE;
-            ctl <= 1;
+            state_nxt = DONE;
+            ctl = 1;
         end
         DONE : begin
-            state_nxt <= IDLE;
+            state_nxt = IDLE;
         end
         default: begin
-            state_nxt <= IDLE;
-            ctl <= 0;
+            state_nxt = IDLE;
+            ctl = 0;
         end
     endcase
 end
 
 always @(*) begin
-    done <= state == DONE;
+    done = state==DONE;
 end
 
 always @(posedge clk or negedge rst_n) begin
@@ -50,4 +50,5 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 endmodule
+
 

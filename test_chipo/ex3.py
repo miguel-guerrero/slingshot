@@ -35,7 +35,7 @@ if __name__=='__main__':
         adder += p
 
     print('-------------- verilog --------------')
-    vlog.setIndent('.   ')
+    vlog.setStyle(indent='.   ')
     print(adder.vlog())
     print('-------------- repr --------------')
     print(repr(adder))

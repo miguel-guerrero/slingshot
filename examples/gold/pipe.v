@@ -33,13 +33,13 @@ reg sad_stg4_rdy;
 // hook to upstream rdy
 
 always @(*) begin
-    sad_rdy <= sad_stg1_rdy;
+    sad_rdy = sad_stg1_rdy;
 end
 
 // hook to upsstream vld
 
 always @(*) begin
-    sad_stg0_vld <= vld_up;
+    sad_stg0_vld = vld_up;
 end
 
 // --- Stage 1 ---
@@ -61,7 +61,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 always @(*) begin
-    sad_stg1_rdy <= sad_stg2_rdy | ~sad_stg1_vld;
+    sad_stg1_rdy = sad_stg2_rdy|~sad_stg1_vld;
 end
 
 // --- Stage 2 ---
@@ -83,7 +83,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 always @(*) begin
-    sad_stg2_rdy <= sad_stg3_rdy | ~sad_stg2_vld;
+    sad_stg2_rdy = sad_stg3_rdy|~sad_stg2_vld;
 end
 
 // --- Stage 3 ---
@@ -104,14 +104,15 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 always @(*) begin
-    sad_stg3_rdy <= sad_stg4_rdy | ~sad_vld;
+    sad_stg3_rdy = sad_stg4_rdy|~sad_vld;
 end
 
 // hook to downstream rdy
 
 always @(*) begin
-    sad_stg4_rdy <= rdy_dn;
+    sad_stg4_rdy = rdy_dn;
 end
 
 endmodule
+
 

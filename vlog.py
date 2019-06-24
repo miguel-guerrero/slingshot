@@ -19,10 +19,11 @@
 #
 # Please send bugs and suggestions to: miguel.a.guerrero@gmail.com
 #-------------------------------------------------------------------------------
+from enum import Enum
+from functools import singledispatch
+from collections import namedtuple
 
 import chipo
-from enum import Enum, IntEnum
-from functools import singledispatch
 
 try:
     from enforce import runtime_validation, config
@@ -35,34 +36,24 @@ class Ctx(Enum):
     io=1
     event=2
     compact=3
+    useBlocking=3
 
-# not planned:
-#  1995    - IEEE1364-1995
-#  2005    - IEEE1364-2005
-class Style(IntEnum):
-    v2001=0   # IEEE1364-2001
-    sv2005l=1 # IEEE1800-2005 + logic
-    sv2009=2  # IEEE1800-2009
-    sv2012=3  # IEEE1800-2012
+Style = namedtuple('Style', ['useLogic', 'useAlwaysFF', 'useAlwaysComb', 
+    'useAgreg', 'useEnum', 'indent'])
 
-STYLE = Style.v2001
-#STYLE = Style.sv2005l
-#STYLE = Style.sv2009
-#STYLE = Style.sv2012
-def setStyle(x:Style):
+STYLE = Style(useLogic=False, useAlwaysFF=False, useAlwaysComb=False,
+    useAgreg=False, useEnum=False, indent='    ')
+
+def setStyle(**kwargs):
     global STYLE
-    STYLE = x
-
-INDENT='    '
-
-@runtime_validation
-def setIndent(x:str):
-    global INDENT
-    INDENT = x
+    d = STYLE._asdict()
+    for k, v in kwargs.items():
+        d[k] = v
+    STYLE = Style(**d)
 
 @runtime_validation
 def ind(s:str, n:int) -> str:
-    return (INDENT*n) + s
+    return (STYLE.indent*n) + s
 
 def indList(lst:list, n:int) -> list:
     return [ind(item, n) for item in lst]
@@ -132,13 +123,13 @@ class Logic(TempLogic):
 
 
 def annotateRegs(x):
-    if STYLE >= Style.sv2005l:
+    if STYLE.useLogic:
         return [Logic(sig) for sig in chipo.sortedAsList(x)]
     return [Reg(sig) for sig in chipo.sortedAsList(x)]
     
 
 def annotateUses(x):
-    if STYLE >= Style.sv2005l:
+    if STYLE.useLogic:
         return [Logic(sig) for sig in chipo.sortedAsList(x)]
     return [Wire(sig) for sig in chipo.sortedAsList(x)]
 
@@ -171,15 +162,16 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
 @dump.register(chipo.Module)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    instancesStr = ''
+    externalStr = ''
     if recursive:
         doneSet = set()
         for i in node.getInstances():
             if i.module() is None: #legacy instance
-                instancesStr += f"// INFO: {i} is external\n"
+                externalStr += f"// INFO: {i} is external\n"
             elif i.module().getName() not in doneSet:
-                instancesStr += i.module().vlog(indLvl, recursive=recursive) + '\n'
                 doneSet.add(i.module().getName())
+                for modName, modStr in i.module().vlogIter(indLvl):
+                    yield modName, modStr
     
     #collect all assigned Signals 
     sigAsgn = node.assigned()
@@ -211,7 +203,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     #convert parameters to verilog
     paramStr = ''
     if node.params:
-        paramStr = indListAsStr((dump(p, 0, ctx=Ctx.io) for p in node.params), 
+        paramStr = indListAsStr((dump(p, ctx=Ctx.io) for p in node.params), 
                                 indLvl+1, sep=",\n")
         paramStr = ind('\n#(\n', indLvl) + paramStr + ')\n'
 
@@ -222,13 +214,14 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
         typeStr = '\n// types\n' + \
             indListAsStr(typeStrLst, indLvl, sep=",\n") + ';\n'
 
-    return instancesStr + \
+    modStr = externalStr + \
            f'//'+ (76*'-') +'\n'+ \
            f'// {node.name}\n'+ \
            f'//'+ (76*'-') +'\n'+ \
            f'module {node.name} {paramStr}(\n{ioStr}\n);\n'+ \
            f'{typeStr}{undeclUsedStr}\n{regDeclStr}\n\n'+ \
            f'{bodyStr}\n\nendmodule\n'
+    yield node.name, modStr
 
 
 #-----------------------------------------------------------------------------
@@ -243,14 +236,23 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
             events.append(resetStr)
     sensStr = " or ".join(events)
     bodyStr = dump(node.body, indLvl)
-    alwaysStr = 'always_ff' if STYLE >= Style.sv2009 else 'always'
+    alwaysStr = 'always_ff' if STYLE.useAlwaysFF else 'always'
     return ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr
+
+
+def isSafeToUseBlockingAssig(node):
+    assig = node.assigned()
+    used = node.used()
+    return assig.intersection(used) == set()
 
 
 @dump.register(chipo.Combo)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    bodyStr = dump(node.body, indLvl)
-    alwaysStr = 'always_comb' if STYLE >= Style.sv2009 else 'always @(*)'
+    if isSafeToUseBlockingAssig(node):
+        bodyStr = dump(node.body, indLvl, ctx=Ctx.useBlocking)
+    else:
+        bodyStr = dump(node.body, indLvl)
+    alwaysStr = 'always_comb' if STYLE.useAlwaysComb else 'always @(*)'
     return ind(f'{alwaysStr} ', indLvl) + bodyStr
 
 
@@ -273,10 +275,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 @dump.register(chipo.Block)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    if False: #omit begin/end if single stmt
-        if len(node.stmts) == 1 and node.name is None:
-            return "\n" + dump(node.stmts[0], indLvl+1)
-    v = [dump(stm, indLvl+1) for stm in node.stmts]
+    v = [dump(stm, indLvl+1, ctx=ctx) for stm in node.stmts]
     name = "" if node.name is None else " : " + node.name
     return f"begin{name}\n" + \
         indListAsStr(v, 0, sep='\n') + "\n" + ind("end", indLvl)
@@ -285,40 +284,41 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.If)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     assert len(node.elifBlock)==len(node.elifCond), "Forgot cond on Elif ?"
-    v = ind('if (' + dump(node.cond) + ')', indLvl) + ' ' + \
-        dump(node.trueBlock,indLvl)
+    v = ind('if (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
+        dump(node.trueBlock, indLvl, ctx=ctx)
     for i, b in enumerate(node.elifBlock):
-        v += '\n' + ind('else if (' + dump(node.elifCond[i]) + ')', 
-            indLvl) + ' ' + dump(b, indLvl)
+        v += '\n' + ind('else if (' + dump(node.elifCond[i], ctx=ctx) + ')', 
+            indLvl) + ' ' + dump(b, indLvl, ctx=ctx)
     if node.falseBlock is not None:
-        v += "\n" + ind("else ", indLvl) + dump(node.falseBlock, indLvl)
+        v += "\n" + ind("else ", indLvl) + dump(node.falseBlock, indLvl, ctx=ctx)
     return v
 
 
 @dump.register(chipo.While)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return ind('while (' + dump(node.cond) + ')', indLvl) + ' ' + \
-           dump(node.trueBlock, indLvl)
+    return ind('while (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
+           dump(node.trueBlock, indLvl, ctx=ctx)
 
 
 @dump.register(chipo.Switch)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    cases = indListAsStr([dump(i, indLvl+1) for i in node.cases], 0, sep='\n')
-    defStr = ind("default: ", indLvl+1) + dump(node.default, indLvl+1) + '\n' \
+    cases = indListAsStr([dump(i, indLvl+1, ctx=ctx) for i in node.cases], 0, sep='\n')
+    defStr = ind("default: ", indLvl+1) + dump(node.default, indLvl+1, ctx=ctx) + '\n' \
              if node.default else ""
-    return ind('case (' + dump(node.cond) + ')', indLvl) + '\n' + \
+    return ind('case (' + dump(node.cond, ctx=ctx) + ')', indLvl) + '\n' + \
            cases + '\n' + defStr + ind('endcase', indLvl)
 
 
 @dump.register(chipo.Switch.CaseClass)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    cases = ", ".join([dump(i) for i in node.conditionExpr])
-    return ind(f'{cases} : ', indLvl) + dump(node.body, indLvl)
+    cases = ", ".join([dump(i, ctx=ctx) for i in node.conditionExpr])
+    return ind(f'{cases} : ', indLvl) + dump(node.body, indLvl, ctx=ctx)
 
 
 @dump.register(chipo.AssignBase)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return ind(dump(node.lhs) + " " + node.oper + " " + \
+    oper = '=' if ctx == Ctx.useBlocking else node.oper
+    return ind(dump(node.lhs, ctx=ctx) + " " + oper + " " + \
            dump(node.expr, indLvl), indLvl) + ';'
 
 #-----------------------------------------------------------------------------
@@ -370,7 +370,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     parentTyp = parent.args[0]
     keyName = keyPath(key, parent)
 
-    if STYLE >= Style.sv2012:
+    if STYLE.useAgreg:
         return f"{node.root.name}.{keyName}"
     else:
         lsb = node.offset(key)
@@ -404,7 +404,7 @@ def dumpPort(node, indLvl=0, *, ctx:Ctx = Ctx.default):
 
     def dumpReg(node):
         if node.kind == "Out" and node.isReg:
-            if STYLE >= Style.sv2005l:
+            if STYLE.useLogic:
                 return ' logic'
             return ' reg'
         return ''
@@ -545,7 +545,7 @@ def dumpType(typ, indLvl=0):
 
 @dump.register(chipo.Enu)
 def _(typ, indLvl=0):
-    if STYLE >= Style.sv2012:
+    if STYLE.useEnum:
         enuLst = [f"{k}={v}" for k,v in typ.dict().items()]
         enuStr = ", ".join(enuLst)
         return ind(f"typedef enum {{{enuStr}}} {typ.name}", indLvl)
@@ -572,7 +572,7 @@ def dumpFieldDecl(fld:chipo.Field, indLvl):
 
 @dump.register(chipo.Rec)
 def _(typ, indLvl=0):
-    if STYLE >= Style.sv2012:
+    if STYLE.useAgreg:
         recStr = ind("typedef packed struct {\n", indLvl)
         for fld in typ.body:
             recStr += dumpFieldDecl(fld, indLvl) + ";\n"
@@ -584,7 +584,7 @@ def _(typ, indLvl=0):
 
 @dump.register(chipo.Union)
 def _(typ, indLvl=0):
-    if STYLE >= Style.sv2012:
+    if STYLE.useAgreg:
         recStr = ind("typedef packed union {\n", indLvl)
         for fld in typ.body:
             recStr += dumpFieldDecl(fld, indLvl) + ";\n"

@@ -115,6 +115,9 @@ class ModuleBase:
     def vlog(self, indLvl=0, recursive=False):
         return ""
 
+    def vlogIter(self, indLvl=0, recursive=False):
+        yield self.getName(), None
+
 #-------------------------------------------------------------------------------
 # Makes sure str/repr is consistent with g2p and chipo derived types
 #-------------------------------------------------------------------------------

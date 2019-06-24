@@ -35,8 +35,6 @@ try:
     from enforce import runtime_validation, config
     config({'mode':'covariant'})
 except:
-    import sys
-    print('please run: pip3 install enforce', file=sys.stderr)
     runtime_validation = lambda x : x
 
 serialNumber = makeCounter()
@@ -78,8 +76,9 @@ class ApiGenerator(gencore.GeneratorBase):
     def runGeneration(self, name, passedParamDict):
         import vlog
         assert self.module.name == name
-        s = vlog.dump(self.module.getAst())
-        return s, self.module
+        for modName, modStr in vlog.dump(self.module.getAst()):
+            pass
+        return modStr, self.module
 
 
 def vlogToFile(exportMod, targetDir='build', targetExt='.v'):
@@ -696,9 +695,29 @@ class Module(AstNode, gencore.ModuleBase, Named):
         self.body = list(bd)
         self.types = list(types)
 
-    def vlog(self, *args, **kwargs):
+    def vlog(self, indLvl=0, recursive=False):
         import vlog
-        return vlog.dump(self, *args, **kwargs)
+        res =''
+        for modName, modStr in vlog.dump(self, indLvl=indLvl, recursive=recursive):
+           res += modStr + '\n'
+        return res
+
+    def vlogIter(self, indLvl=0):
+        import vlog
+        for modName, modStr in vlog.dump(self, indLvl=indLvl, recursive=True):
+           yield modName, modStr
+
+    def vlogToFiles(self, pattern="{}.v", filelist='file_list.f'):
+        fileLst = [] 
+        with open(filelist, "wt") as f:
+            for modName, modStr in self.vlogIter():
+                fname = pattern.format(modName)
+                if modStr: # None is returned for external modules
+                    with open(fname, "wt") as fv:
+                        fv.write(modStr)
+                f.write(fname+'\n')
+                fileLst.append(fname)
+            return fileLst
 
     def getName(self):
         return self.name
@@ -1120,11 +1139,7 @@ getPri = opPri()
 # Generate a expresion wrapper out of some constants
 #------------------------------------------------------------------------------
 def WrapExpr(x):
-    if x is None:
-        return x
-    if isinstance(x, Expr):
-        return x
-    if isinstance(x, Type):
+    if x is None or isinstance(x, (Expr, Type)):
         return x
     if isinstance(x, int):
         return CInt(x)
@@ -1181,7 +1196,6 @@ class Expr(AstNode):
 
     def Eval(self):
         raise TypeError(f"{self!r} cannot be Eval'ed")
-
 
     def applyFunc(self, f):
         f(self)
@@ -1569,7 +1583,6 @@ class BitExtract(MultiExpr):
 
     def __repr__(self):
         return f"BitExtract({self.argsStr()})"
-
 
 
 class Concat(MultiExpr):

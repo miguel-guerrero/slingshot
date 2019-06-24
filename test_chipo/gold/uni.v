@@ -16,7 +16,7 @@ module adder
 
 
 always @(*) begin : combo_logic
-    sm <= ins/*.s1.x*/[W-1:0] + ins/*.s1.y*/[2*W-1:0] + ins/*.cin*/[2*W];
+    sm = ins/*.s1.x*/[W-1:0] + ins/*.s1.y*/[2*W-1:0] + ins/*.cin*/[2*W];
 end
 
 always @(posedge clk or negedge rst_n) begin
@@ -31,4 +31,5 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 endmodule
+
 

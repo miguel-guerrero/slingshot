@@ -50,7 +50,7 @@ if __name__=='__main__':
              ]
         adder += p
 
-    vlog.setIndent('    ')
+    vlog.setStyle(indent='    ')
     if True:
         q = Clocked(clk, rst_n).Name('my_process_q')
         q += (c <= c + 3)
@@ -97,7 +97,7 @@ if __name__=='__main__':
 
 
     print('-------------- verilog --------------')
-    print(vlog.dump(adder))
+    print(adder.vlog())
     print('-------------- repr --------------')
     print(repr(adder))
     print('-------------- m.getInstances() --------------')
