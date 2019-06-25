@@ -24,6 +24,7 @@ from functools import singledispatch
 from collections import namedtuple
 
 import chipo
+from helper import error
 
 try:
     from enforce import runtime_validation, config
@@ -142,14 +143,14 @@ def annotateUses(x):
 @singledispatch
 def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if isinstance(node, chipo.AstStatement):
-        assert False, f"undefined dump(AstStatement) for {node}"
+        assert False, error("undefined dump(AstStatement)", node) 
     elif isinstance(node, chipo.AstProcStatement):
-        assert False, f"undefined dump(AstProcStatement) for {node}"
+        assert False, error("undefined dump(AstProcStatement)", node)
     elif isinstance(node, chipo.AstNode):
-        assert False, f"undefined dump(AstNode) for {node}"
+        assert False, error("undefined dump(AstNode)", node)
     elif isinstance(node, chipo.Type):
-        assert False, f"undefined dump(Type) for {node}"
-    assert False, f"unhandled dump case. node={node}"
+        assert False, error("undefined dump(Type)", node)
+    assert False, error("unhandled dump case", node)
 
 #-----------------------------------------------------------------------------
 # AstNode derived
@@ -283,7 +284,8 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
 @dump.register(chipo.If)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    assert len(node.elifBlock)==len(node.elifCond), "Forgot cond on Elif ?"
+    if len(node.elifBlock)!=len(node.elifCond):
+        raise TypeError(error("In If/Elif/Else structure, at least one Elif has no condition", node))
     v = ind('if (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
         dump(node.trueBlock, indLvl, ctx=ctx)
     for i, b in enumerate(node.elifBlock):

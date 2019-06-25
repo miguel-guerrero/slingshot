@@ -48,12 +48,17 @@ counter = makeCounter()
 
 def outerName(var):
     try:
-        return retrieveNames(var)[-1][-1]
+        nm = retrieveNames(var)[-1][-1]
+        if nm == 'self':
+            nm=''
+        return nm
     except:
         return 'auto_'+str(counter())
 
 class Named():
     def __init__(self, name=None):
+        if name == 'self':
+            raise ValueError('The name "self" is reserved and cannot be used')
         self.__name = name
 
     @property

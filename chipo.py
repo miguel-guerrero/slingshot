@@ -25,10 +25,13 @@ import re
 import copy
 from collections import defaultdict
 from itertools import takewhile
+from inspect import stack
 
 import gencore
 from varname import makeCounter, Named
-from helper import reprStr, listRepr, modkey, tupleize, Struct
+import helper as h
+
+trackDebugInfo=True
 
 try:
     #https://github.com/RussBaz/enforce
@@ -48,7 +51,7 @@ def simplify(e):
     return e
 
 def sortedAsList(s):
-    return sorted(s, key=lambda x : modkey(x.name))
+    return sorted(s, key=lambda x : h.modkey(x.name))
 
 
 #if passed a tuple of statements creates a block with them,
@@ -96,15 +99,40 @@ def generateG2p(modBaseName, passedParamDict, defaultParamDict, genFun):
 
 
 #------------------------------------------------------------------------------
+# Track debug info in all objects created
+#------------------------------------------------------------------------------
+class Meta(type):
+    def __new__(cls, name, bases, dct):
+        x = super().__new__(cls, name, bases, dct)
+        cls._dbgi = None
+        return x
+
+    def __call__(self, *args, **kwargs):
+        if trackDebugInfo:
+            excludeList=['__init__', '__call__', 'Input', 'Output']
+            for i in stack():
+                if i.function not in excludeList:
+                    self._dbgi = h.DebugInfo(i.filename, i.lineno, i.function)
+                    break
+        else:
+            self._dbgi = None
+        return type.__call__(self, *args, **kwargs)
+
+
+#------------------------------------------------------------------------------
 # AstNode : Parent of all AST nodes
 #------------------------------------------------------------------------------
-class AstNode:
+class AstNode(metaclass=Meta):
+
     def assigned(self):  return set()
     def used(self):      return set()
     def paramUsed(self): return set()
     def typesUsed(self): return set()
     def driven(self):    return set()
     def declared(self):  return set()
+
+    def __init__(self):
+        self._dbg = self._dbgi
 
     #apply a set-returning method 'm' to non-None items in list and return
     #the union of all returned sets
@@ -114,7 +142,6 @@ class AstNode:
             return set.union(*lst)
         return set()
 
-
     def __repr__(self): raise NotImplementedError
 
 
@@ -123,6 +150,7 @@ class AstNode:
 #-----------------------------------------------------------
 class Comment(AstNode):
     def __init__(self, *lines):
+        super().__init__()
         self.lines = lines
 
     def __repr__(self):
@@ -133,7 +161,8 @@ class Comment(AstNode):
 # AstNode -> AstStatement : things that can show up under a module
 #------------------------------------------------------------------------------
 class AstStatement(AstNode):
-    pass
+    def __init__(self):
+        super().__init__()
 
 
 #-----------------------------------------------------------
@@ -141,6 +170,7 @@ class AstStatement(AstNode):
 #-----------------------------------------------------------
 class Clocked(AstStatement):
     def __init__(self, clock, reset=None, autoReset=True):
+        super().__init__()
         self.clock = clock
         self.reset = reset
         self.autoReset = autoReset
@@ -151,7 +181,7 @@ class Clocked(AstStatement):
         return self
 
     def __getitem__(self, stmts):
-        return self.Body(*tupleize(stmts))
+        return self.Body(*h.tupleize(stmts))
 
     def Body(self, *stmts):
         appendStms(self.body, stmts)
@@ -190,6 +220,7 @@ class Clocked(AstStatement):
 #-----------------------------------------------------------
 class Combo(AstStatement):
     def __init__(self, body=None):
+        super().__init__()
         self.body = Block() if body is None else body
 
     def __iadd__(self, x):
@@ -197,7 +228,7 @@ class Combo(AstStatement):
         return self
 
     def __getitem__(self, stmts):
-        return self.Body(*tupleize(stmts))
+        return self.Body(*h.tupleize(stmts))
 
     def Body(self, *stmts):
         appendStms(self.body, stmts)
@@ -221,7 +252,9 @@ class Combo(AstStatement):
 #-----------------------------------------------------------
 class Declare(AstStatement):
     def __init__(self, x):
-        assert isinstance(x, (Signal, Variable))
+        super().__init__()
+        if not isinstance(x, (Signal, Variable)):
+            raise TypeError(h.error("Only Signa/Variable can be Declare'd", x))
         self.x = x
 
     @property
@@ -271,16 +304,17 @@ def _paramToTextDict(paramMapDict):
 #-----------------------------------------------------------
 class InstanceBase(AstStatement):
     def __init__(self, insName):
+        super().__init__()
         self.insName = insName
 
     def module(self):
         return None
 
     #must be overriden
-    def used(self):              raise NotImplementedError(f"{self}")
-    def modName(self):           raise NotImplementedError(f"{self}")
-    def _textParamMapDict(self): raise NotImplementedError(f"{self}")
-    def _textIoMapDict(self):    raise NotImplementedError(f"{self}")
+    def used(self):              raise NotImplementedError(h.error("", self))
+    def modName(self):           raise NotImplementedError(h.error("", self))
+    def _textParamMapDict(self): raise NotImplementedError(h.error("", self))
+    def _textIoMapDict(self):    raise NotImplementedError(h.error("", self))
 
     def _insName(self):
         if self.insName is not None:
@@ -365,6 +399,7 @@ class InstanceG2p(InstanceBase):
 
 class PortMap:
     def __init__(self, policy=None, **kwargs):
+        super().__init__()
         self.policy = policy
         self.dict = kwargs
 
@@ -373,6 +408,7 @@ class ParamMapPolicy:
 
 class ParamMap:
     def __init__(self, policy=None, **kwargs):
+        super().__init__()
         self.policy = policy
         self.dict = kwargs
 
@@ -431,6 +467,9 @@ class Instance(InstanceBase):
 # AstNode -> AstProcStatement : things that can go under a procedural contruct
 #------------------------------------------------------------------------------
 class AstProcStatement(AstNode):
+    def __init__(self):
+        super().__init__()
+
     def applyFunc(self, f):
         f(self)
         for s in self.all():
@@ -442,6 +481,7 @@ class AstProcStatement(AstNode):
 #-----------------------------------------------------------
 class Block(AstProcStatement):
     def __init__(self, *stmts, name=None):
+        super().__init__()
         self.stmts = []
         self.name = name
         self += stmts # invoke __iadd__
@@ -491,6 +531,7 @@ class If(AstProcStatement):
 
     class ElseClass:
         def __init__(self, parent):
+            super().__init__()
             self.parent = parent
 
         def doElse(self, stmts):
@@ -498,13 +539,14 @@ class If(AstProcStatement):
             return self.parent
 
         def __getitem__(self, stmts):
-            return self.doElse(tupleize(stmts))
+            return self.doElse(h.tupleize(stmts))
 
         def __call__(self, *stmts):
             return self.doElse(stmts)
 
     class ElifClass:
         def __init__(self, parent):
+            super().__init__()
             self.parent = parent
 
         def doElif(self, stmts):
@@ -512,13 +554,14 @@ class If(AstProcStatement):
             return self.parent
 
         def __getitem__(self, stmts):
-            return self.doElif(tupleize(stmts))
+            return self.doElif(h.tupleize(stmts))
 
         def __call__(self, cond):
             self.parent.elifCond.append(WrapExpr(cond))
             return self
 
     def __init__(self, cond=1):
+        super().__init__()
         self.cond = WrapExpr(cond)
         self.trueBlock = Block()
         self.falseBlock = None
@@ -532,7 +575,7 @@ class If(AstProcStatement):
         return self
 
     def __getitem__(self, stmts):
-        return self.doThen(tupleize(stmts))
+        return self.doThen(h.tupleize(stmts))
 
     def Then(self, *trueBlock):
         return self.doThen(trueBlock)
@@ -560,6 +603,7 @@ class If(AstProcStatement):
 #-----------------------------------------------------------
 class While(AstProcStatement):
     def __init__(self, cond=1):
+        super().__init__()
         self.cond = WrapExpr(cond)
         self.trueBlock = None
 
@@ -569,7 +613,7 @@ class While(AstProcStatement):
         return self
 
     def __getitem__(self, stmts):
-        return self.doDo(tupleize(stmts))
+        return self.doDo(h.tupleize(stmts))
 
     def Do(self, *trueBlock):
         return self.doDo(trueBlock)
@@ -593,8 +637,9 @@ class Switch(AstProcStatement):
 
     class CaseClass(AstProcStatement):
         def __init__(self, parent, *args):
+            super().__init__()
             self.parent = parent
-            self.conditionExpr = list(WrapExpr(i) for i in tupleize(*args))
+            self.conditionExpr = list(WrapExpr(i) for i in h.tupleize(*args))
             self.body = None
 
         @runtime_validation
@@ -603,7 +648,7 @@ class Switch(AstProcStatement):
             return self.parent
 
         def __getitem__(self, stmts):
-            return self.doCase(tupleize(stmts))
+            return self.doCase(h.tupleize(stmts))
 
         def Do(self, *stmts):
             return self.doCase(stmts)
@@ -620,6 +665,7 @@ class Switch(AstProcStatement):
             return f"Case({self.conditionExpr!r}).Do({self.body!r})"
 
     def __init__(self, cond=1):
+        super().__init__()
         self.cond = WrapExpr(cond)
         self.cases = list()
         self.default = Block()
@@ -651,6 +697,7 @@ class Switch(AstProcStatement):
 # Handle signal and variable assignements
 class AssignBase(AstProcStatement):
     def __init__(self, lhs, expr, kind='', oper='='):
+        super().__init__()
         self.lhs = lhs
         self.expr = WrapExpr(expr)
         self.oper = oper
@@ -691,6 +738,7 @@ class Module(AstNode, gencore.ModuleBase, Named):
     def __init__(self, name=None, *, types=[], IOs=[], params=[], bd=[]):
         Named.__init__(self, name)
         gencore.ModuleBase.__init__(self, IOs)
+        super().__init__()
         self.params = list(params)
         self.body = list(bd)
         self.types = list(types)
@@ -749,7 +797,7 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self
 
     def __getitem__(self, stmts):
-        return self.Body(*tupleize(stmts))
+        return self.Body(*h.tupleize(stmts))
 
     def Body(self, *stmts):
         for x in stmts:
@@ -872,6 +920,7 @@ class EnuCoding(Enum):
 #------------------------------------------------------------------------
 class Type(AstNode, Named):
     def __init__(self, name):
+        AstNode.__init__(self)
         Named.__init__(self, name)
         self.signed = False
 
@@ -903,8 +952,8 @@ class BitVec(Type):
         return set()
 
     def __repr__(self):
-        suffix = reprStr(["name", self.name, "self"],
-                         ["signed", self.signed, False])
+        suffix = h.reprStr(["name", self.name, ""],
+                           ["signed", self.signed, False])
         return f"BitVec(width={self.width}{suffix})"
 
 #------------------------------------------------------------------------
@@ -912,11 +961,12 @@ class BitVec(Type):
 #------------------------------------------------------------------------
 class Field:
     def __init__(self, typ:Type, *names):
+        super().__init__()
         self.typ = typ
         self.names = names
 
     def __repr__(self):
-        inner = listRepr(*self.names)
+        inner = h.listRepr(*self.names)
         return f"Field({self.typ}, {inner})"
 
 
@@ -928,16 +978,17 @@ class Agreg(Type):
         self.fieldList = []
 
     def __getitem__(self, stmts):
-        return self.Body(*tupleize(stmts))
+        return self.Body(*h.tupleize(stmts))
 
     def Body(self, *stmts):
         for stm in stmts:
-            assert isinstance(stm, Field)
+            if not isinstance(stm, Field):
+                raise TypeError(h.error(f"Agreg members must be Field's", stm))
             for nm in stm.names:
                 if nm in self.fieldDict:
-                    raise KeyError(f"Repeated field name {name}.{nm}")
+                    raise KeyError(h.error(f"Repeated field name .{nm}", self))
                 if nm in self.__dir__():
-                    raise KeyError(f"Field name is reserved {name}.{nm}")
+                    raise KeyError(h.error(f"Field name .{nm} is reserved", self))
                 self.body.append(Field(stm.typ, nm))
                 self.fieldDict[nm] = stm.typ
                 self.fieldList.append(nm)
@@ -961,7 +1012,7 @@ class Agreg(Type):
         return self.fieldDict[fieldName].width
 
     def __repr__(self):
-        inner = listRepr(*self.body)
+        inner = h.listRepr(*self.body)
         return f"{self.kind}(name={self.name!r}) [{inner}]"
 
 
@@ -1030,7 +1081,7 @@ class Arr(Type):
     def __init__(self, typ:Type, dims, *, name=None):
         super().__init__(name)
         self.typ = typ
-        self._dims = tupleize(dims)
+        self._dims = h.tupleize(dims)
 
     def size(self, i):
         return self._dims[i]
@@ -1054,22 +1105,26 @@ class Enu(Type):
         self.valNames = []
         assert vals
         for x in vals:
+            if type(x) is not str and type(x) is not tuple:
+                raise TypeError(h.error(f"Enu values must be strings or (name,value) tuples, found {x}", self))
             itemName = type(x) is tuple and x[0] or x
-            assert type(itemName) is str
+            if type(itemName) is not str:
+                raise TypeError(h.error(f"Enu names must be strings, found {itemName}", self))
             self.valNames.append(itemName)
-        if style==EnuCoding.autoIncr:
+        if style == EnuCoding.autoIncr:
             curr = 0
             for v in vals:
                 if isinstance(v, tuple):
                     nm, val = v
                     if val < curr:
-                        raise ValueError(f"Enu values must be increasing {val}")
+                        self.valDict[nm]=val
+                        raise ValueError(h.error(f"Enu values must be increasing but {nm} got {val}", self))
                 else:
                     nm, val = v, curr
                 curr = val+1
                 self.valDict[nm]=val
         else:
-            raise NotImplementedError(f"{self}")
+            raise NotImplementedError(h.error(f"EnuCoding style {style} not implemented yet", self))
 
     def dict(self):
         return self.valDict
@@ -1092,7 +1147,7 @@ class Enu(Type):
     def __getattr__(self, key):
         if key in self.valDict:
             return key
-        raise KeyError(f"invalid enum constant {self.name}.{key}")
+        raise KeyError(h.error(f"Attempted invalid enum value {self.name}.{key}. See definition", self))
 
     @property
     def width(self):
@@ -1147,7 +1202,7 @@ def WrapExpr(x):
         return CEnu(x)
     if isinstance(x, list):
         return Concat(*x)
-    raise TypeError(f"Don't know how to covert {x!r} to an expression")
+    raise TypeError(h.error(f"Don't know how to covert to an expression", x))
 
 
 #------------------------------------------------------------------------------
@@ -1155,12 +1210,13 @@ def WrapExpr(x):
 #------------------------------------------------------------------------------
 class Expr(AstNode):
     def __init__(self, op, *args, numOps=0):
+        super().__init__()
         self.op = op
         self.pri = getPri(op, len(args) if numOps==0 else numOps)
         self.const = False
         self.args = [WrapExpr(arg) for arg in args]
 
-    def __ilshift__(self, n):   raise NotImplementedError(f"{self}")
+    def __ilshift__(self, n):   raise NotImplementedError(h.error("", self))
 
     def __add__(self, rhs):     return BinExpr('+', self, rhs)
     def __sub__(self, rhs):     return BinExpr('-', self, rhs)
@@ -1195,7 +1251,7 @@ class Expr(AstNode):
         return self
 
     def Eval(self):
-        raise TypeError(f"{self!r} cannot be Eval'ed")
+        raise TypeError(h.error(f"Cannot be Eval", self))
 
     def applyFunc(self, f):
         f(self)
@@ -1206,14 +1262,14 @@ class Expr(AstNode):
         return self.args
 
     def lvalue(self):
-        raise TypeError(f"{self!r} is not an lvalue")
+        raise TypeError(h.error(f"Not an lvalue", self))
 
     def used(self):      return self.apply('used', self.all())
     def paramUsed(self): return self.apply('paramUsed', self.all())
     def typesUsed(self): return self.apply('typesUsed', self.all())
 
     def argsStr(self):
-        return listRepr(*self.args)
+        return h.listRepr(*self.args)
 
     def __repr__(self):
         return f"{self.op}({self.argsStr()})"
@@ -1243,6 +1299,7 @@ class UnaryExpr(Expr):
 
 class CInt(UnaryExpr):
     def __init__(self, val, width=None, signed=False):
+        #super().__init__('.', val)
         self.op = '.'
         self.pri = getPri(self.op, numOps=1)
         self.const = False
@@ -1287,6 +1344,7 @@ class CInt(UnaryExpr):
 
 class CEnu(UnaryExpr):
     def __init__(self, val, width=None, signed=False):
+        #super().__init__()
         self.op = '.'
         self.pri = getPri(self.op, numOps=1)
         self.const = False
@@ -1349,7 +1407,10 @@ class Assignable(UnaryExpr, Named):
         elif typ is None:
             typ = BitVec(1)
         else:
-            assert isinstance(typ, Type)
+            if not isinstance(typ, Type):
+                raise TypeError(h.error('Expecting first argument to be a Signal/Variable, an'
+                    + ' expression (width), None for width=1 or a user defined type'
+                    +f' however found {typ}', self))
         UnaryExpr.__init__(self, '.', typ)
         self.default = default
 
@@ -1360,21 +1421,23 @@ class Assignable(UnaryExpr, Named):
         if isinstance(self._type(), BitVec):
             self._type().Signed()
             return self
-        raise TypeError(f"Cannot set signed on non-BitVec {self}")
+        raise TypeError(h.error("Cannot set signed on non-BitVec type", self))
 
     def width(self):
         if isinstance(self._type(), BitVec):
             return self._type().width
-        raise NotImplementedError(f"no width for {self}")
+        raise NotImplementedError(h.error("no width defined for type", self))
 
     def __getattr__(self, key):
         if key.startswith("_"):
             return self.__getattribute__(key)
         typ = self._type()
-        assert isinstance(typ, Agreg), f"{self.name} is not aggregate type"
+        if not isinstance(typ, Agreg): 
+            raise TypeError(h.error(f"{self.name} of type {typ} is not aggregate type and . expression "
+                           +f"was attempted on it", self))
         if key in typ.fieldDict:
             return DotExpr(self, key)
-        raise KeyError(f"invalid Rec/Union/Iface field {self.name}.{key} for {self}")
+        raise KeyError(h.error(f"invalid Rec/Union/Iface field {self.name}.{key}", self))
 
     #def __getitem__(self, lst):
     #    typ = self._type()
@@ -1391,7 +1454,7 @@ class Assignable(UnaryExpr, Named):
         return Times(n, self)
 
     def __repr__(self):
-        suffix = reprStr(["default", self.default, 0])
+        suffix = h.reprStr(["default", self.default, 0])
         return f"{self.kind}(typ={self._type()!r}, name={self.name!r}{suffix})"
 
 
@@ -1430,7 +1493,7 @@ class Clock(In):
         self.posedge = posedge
 
     def __repr__(self):
-        suffix = reprStr(["posedge", self.posedge, True])
+        suffix = h.reprStr(["posedge", self.posedge, True])
         return f"Clock(name={self.name!r}{suffix})"
 
 
@@ -1447,8 +1510,8 @@ class Reset(In):
         return self if self.lowTrue else ~self
 
     def __repr__(self):
-        suffix = reprStr(["asyn", self.asyn, True],
-                         ["lowTrue", self.lowTrue, True])
+        suffix = h.reprStr(["asyn", self.asyn, True],
+                           ["lowTrue", self.lowTrue, True])
         return f"Reset(name={self.name!r}{suffix})"
 
 
@@ -1506,6 +1569,7 @@ class BinExpr(Expr):
 
 class DotExpr(BinExpr):
     def __init__(self, parent, key, root=None):
+        super().__init__('.', None, None)
         self.op = '.'
         self.pri = getPri(self.op, numOps=2)
         self.const = False
@@ -1533,14 +1597,16 @@ class DotExpr(BinExpr):
     def __getattr__(self, key):
         parent = self.args[0]
         typ = self.typ
-        assert isinstance(typ, Agreg), f"{typ.name}={typ!r} is not aggregate type"
+        if not isinstance(typ, Agreg):
+            raise TypeError(h.error(f"{typ.name}={typ!r} is not aggregate type and . expression attempted", node))
         if key in typ.fieldDict:
             return DotExpr(self, key, self.root)
-        raise KeyError(f"invalid Rec/Union/Iface field {self.name}.{key} for {self}")
+        raise KeyError(h.error(f"invalid Rec/Union/Iface field {self.name}.{key}", self))
 
     def __getitem__(self, slc): 
         typ = self.args[0]
-        assert isinstance(typ, BitVec), f"{self.name} is not indexable type"
+        if not isinstance(typ, BitVec):
+            raise TypeError(h.error(f"{self.name} is not indexable type", self))
         return BitExtract(self, slc)
 
     def lvalue(self):
@@ -1553,7 +1619,7 @@ class DotExpr(BinExpr):
         return self.name.__hash__()
 
     def __repr__(self):
-        suffix = reprStr(["root", self.root, None])
+        suffix = h.reprStr(["root", self.root, None])
         return f'DotExpr(parent={self.args[1]!r}, key={self.args[2]!r}{suffix})'
 
 
@@ -1568,7 +1634,8 @@ class MultiExpr(Expr):
 class BitExtract(MultiExpr):
     def __init__(self, val, msb, lsb=None):
         if isinstance(msb, slice): # e.g. x[3:2]
-            assert msb.step==None, f"invalid bit selection {msb.step}"
+            if msb.step is not None: 
+                raise ValueError(h.error(f"invalid bit selection {msb.step}", self))
             assert lsb==None
             msb, lsb = msb.start, msb.stop
         super().__init__('[', val, msb, lsb) # BitExtract(x,3,2) also vld

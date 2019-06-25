@@ -1,4 +1,9 @@
 import re
+from collections import namedtuple
+
+verboseErrors=True
+
+DebugInfo = namedtuple('Debuginfo', ['filename', 'lineno', 'function'])
 
 #------------------------------------------------------------------------------
 # Helper function to print arguments to a constructor omiting defaults
@@ -59,3 +64,45 @@ class Struct:
     def __repr__(self):
         return "Struct(" + ", ".join(f"{k}={v!r}" 
                 for k, v in self.argDict.items()) + ")"
+
+#------------------------------------------------------------------------------
+# for error reporting
+#------------------------------------------------------------------------------
+def red(s):   return f"\033[91m{s}\033[00m"
+def green(s): return f"\033[92m{s}\033[00m"
+def blue(s):  return f"\033[96m{s}\033[00m"
+
+def error(msg, n):
+    dbgStr = ''
+    if hasattr(n, '_dbg'):
+        dbg = n.__getattribute__('_dbg')
+        if dbg is not None:
+            dbgStr = f"{dbg.filename}:{dbg.lineno} "
+            if dbg.function != '<module>':
+                dbgStr += f"{dbg.function} "
+            if verboseErrors:
+                import sys
+                if sys.stderr.isatty():
+                    r, g, b = red, green, blue
+                else:
+                    r = g = b = lambda x : x
+                with open(dbg.filename) as f:
+                    lines = f.readlines()
+                from_ = max(1, dbg.lineno-5)
+                to_   = min(len(lines), dbg.lineno+5)
+                print(f'{dbg.filename}:{dbg.lineno}:1 error: {r(msg)}', file=sys.stderr)
+                if from_ > 1:
+                    print(f'...', file=sys.stderr)
+                for i in range(from_, to_+1):
+                    marker = ' '
+                    text = lines[i-1]
+                    if i == dbg.lineno:
+                        marker = '*' 
+                        text = b(text)
+                    else:
+                        text = g(text)
+                    print("%s %5d %s" %(marker, i, text), file=sys.stderr, end='')
+                if to_ < len(lines):
+                    print(f'...', file=sys.stderr)
+    msg += f" INTERNAL: {n}" 
+    return f"{dbgStr}{msg}"

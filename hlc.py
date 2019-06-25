@@ -85,7 +85,7 @@ class Pipeline:
         return self
 
     def __getitem__(self, stmts):
-        for stm in tupleize(stmts):
+        for stm in h.tupleize(stmts):
             assert isinstance(stm, AstProcStatement) or stm is ...
             self.body.append(stm)
         return self
@@ -226,7 +226,7 @@ class Pipeline:
             else:
                 curr.append(stm)
         self.logic_, sigs = self.processStages(stages)
-        self.outs_ = Struct()
+        self.outs_ = h.Struct()
         for s in sigs:
             self.outs_[s.origName] = s
         return self.logic_
@@ -381,7 +381,7 @@ class Fsm:
         return self
 
     def __getitem__(self, stmts):
-        for stm in tupleize(stmts):
+        for stm in h.tupleize(stmts):
             if not isinstance(stm, AstProcStatement) and stm is not ...:
                 raise ValueError(f"Expecting AstProcStatement or ... but got {stm}")
             self.body += stm
