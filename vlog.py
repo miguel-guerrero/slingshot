@@ -142,6 +142,8 @@ def annotateUses(x):
 
 @singledispatch
 def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    if node == ...:
+        return ind('`WFE', indLvl)
     if isinstance(node, chipo.AstStatement):
         assert False, error("undefined dump(AstStatement)", node) 
     elif isinstance(node, chipo.AstProcStatement):
@@ -151,6 +153,11 @@ def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     elif isinstance(node, chipo.Type):
         assert False, error("undefined dump(Type)", node)
     assert False, error("unhandled dump case", node)
+
+
+#@dump.register(Ellipsis)
+#def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+#    return "WFE"    
 
 #-----------------------------------------------------------------------------
 # AstNode derived
@@ -238,7 +245,11 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     sensStr = " or ".join(events)
     bodyStr = dump(node.body, indLvl)
     alwaysStr = 'always_ff' if STYLE.useAlwaysFF else 'always'
-    return ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr
+    prefix = ''
+    if node.hasWfe:
+        resetAct = dump(node.reset.onExpr())
+        prefix = f"`define WFE begin @({sensStr}); if ({resetAct}) disable _loop; end;\n"
+    return prefix+ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr
 
 
 def isSafeToUseBlockingAssig(node):
@@ -249,6 +260,11 @@ def isSafeToUseBlockingAssig(node):
 
 @dump.register(chipo.Combo)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    if STYLE.useLogic and len(node.body) == 1:
+        stm = node.asList()[0]
+        if isinstance(stm, chipo.SigAssign):
+            assign = dump(stm, indLvl, ctx=Ctx.useBlocking)
+            return ind(f"assign {assign}", indLvl)
     if isSafeToUseBlockingAssig(node):
         bodyStr = dump(node.body, indLvl, ctx=Ctx.useBlocking)
     else:
@@ -291,7 +307,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     for i, b in enumerate(node.elifBlock):
         v += '\n' + ind('else if (' + dump(node.elifCond[i], ctx=ctx) + ')', 
             indLvl) + ' ' + dump(b, indLvl, ctx=ctx)
-    if node.falseBlock is not None:
+    if node.falseBlock.asList():
         v += "\n" + ind("else ", indLvl) + dump(node.falseBlock, indLvl, ctx=ctx)
     return v
 
@@ -594,4 +610,5 @@ def _(typ, indLvl=0):
         return recStr
     else:
         return ""
+
 

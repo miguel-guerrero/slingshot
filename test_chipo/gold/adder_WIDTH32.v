@@ -23,12 +23,12 @@ always @(*) begin : combo_logic
     sm <= res;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin : registering
     if (~rst_n) begin
         sm_r <= 0;
         sm_zero_r <= 0;
     end
-    else begin : registering
+    else begin
         sm_r <= sm;
         sm_zero_r <= sm == 0;
     end

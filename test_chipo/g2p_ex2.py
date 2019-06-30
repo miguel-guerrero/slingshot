@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
@@ -9,7 +9,7 @@ import vlog
 
 #integrating chipo into a g2p flow
 
-def genAdder(name, params):
+def Adder(name, params):
     WIDTH = Parameter(params.WIDTH)
     SWIDTH = Parameter(WIDTH+1)
     clk = Clock()
@@ -18,10 +18,10 @@ def genAdder(name, params):
     x, y = Input(WIDTH) ** 2
     sm, sm_r = Output(SWIDTH) ** 2
     sm_zero_r = Output()
-    res = Variable(SWIDTH)
+    res = Var(SWIDTH)
 
     mod = (
-        Module(name)
+        Module(name=name)
             .Params(WIDTH, SWIDTH)
             .Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n) [
                 Combo() [
@@ -38,7 +38,7 @@ def genAdder(name, params):
     mod.userResult.area = 0 #generate g2p compatible results
     return mod
 
-adder = generateG2p('adder', {'WIDTH':32}, {'WIDTH':8}, genAdder)
+adder = generateG2p('adder', {'WIDTH':32}, {'WIDTH':8}, Adder)
 print(adder)
 
 x0, y0 = Signal() ** 2

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
@@ -35,7 +35,7 @@ if __name__=='__main__':
     adder = Module()
 
     com = Combo(Block(name='my_com')).Name('combo_logic')
-    x = Variable(W)
+    x = Var(W)
     com += sm <= ins.s1.x + ins.s1.y[3:2] + ins.s1.z + ins.s1.w + ins.cin
     adder += com
 

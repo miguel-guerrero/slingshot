@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related

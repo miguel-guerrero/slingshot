@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
@@ -10,7 +10,7 @@ import vlog
 
 #integrating chipo into a g2p flow
 
-def genAdder(modBaseName='adder', passedParamDict={}):
+def Adder(modBaseName='adder', passedParamDict={}):
     name, paramDict, params = g.processParams(
                                 modBaseName, passedParamDict, {'WIDTH':8})
 
@@ -25,10 +25,10 @@ def genAdder(modBaseName='adder', passedParamDict={}):
     sm = Output(SWIDTH)
     sm_r = Output(SWIDTH)
     sm_zero_r = Output()
-    res = Variable(SWIDTH)
+    res = Var(SWIDTH)
 
     mod = (
-        Module(name)
+        Module(name=name)
             .Params(WIDTH, SWIDTH)
             .Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n)
             .Body(
@@ -51,7 +51,7 @@ def genAdder(modBaseName='adder', passedParamDict={}):
     return mod
 
 
-adder = genAdder('adder', {'WIDTH':32})
+adder = Adder('adder', {'WIDTH':32})
 print(adder)
 
 x0 = Signal()

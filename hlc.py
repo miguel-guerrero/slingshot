@@ -27,6 +27,13 @@ from collections import Counter
 from chipo import *
 from simplify import isIntVal
 
+
+#------------------------------------------------------------------------------
+# Logic under a block contains a clock edge?
+#------------------------------------------------------------------------------
+def hasWfe(node):
+    return node.any(lambda x : x is ...)
+
 #------------------------------------------------------------------------------
 # Pipeline
 #------------------------------------------------------------------------------
@@ -57,7 +64,7 @@ class StagedSignal(Signal):
     @property
     def name(self):
         if self.stageNum != self.lastStageNum:
-            return f"{self.pipeName}_stg{self.stageNum}_{self._origName}"
+            return f"{self.pipeName}_s{self.stageNum}_{self._origName}"
             #return f"{self.pipeName}{self.stageNum}_{self._origName}"
         return f"{self.pipeName}_{self._origName}"
 
@@ -71,23 +78,29 @@ class Pipeline:
         self.name = name
         self.clk, self.rst = clk, rst
         self.keep = list(keep)
-        self.body = []
+        self.body = Block()
         self.vld_up = vld
         self.rdy_dn = rdy
         self.vld = Signal(1, name='vld') if vld else None
         self.rdy = Signal(1, name='rdy') if rdy else None
-        assert not rdy or vld, "If rdy provided, vld must be provided too"
+        if rdy and not vld: 
+            raise ValueError(h.error("If rdy provided, vld must be provided too", self))
         self.logic_ = None
         self.outs_ =  None
 
-    def __iadd__(self, x):
-        self.body.append(x)
+    def check(self, stm):
+        if isinstance(stm, While) and hasWfe(stm):
+            raise TypeError(h.error('Loops with ... not allowed within a Pileline. Found While', stm))
+
+    def __iadd__(self, stm):
+        self.check(stm)
+        self.body += stm
         return self
 
     def __getitem__(self, stmts):
         for stm in h.tupleize(stmts):
-            assert isinstance(stm, AstProcStatement) or stm is ...
-            self.body.append(stm)
+            self.check(stm)
+            self.body += stm
         return self
 
     @staticmethod
@@ -147,11 +160,11 @@ class Pipeline:
             load_data = None
             if self.vld and self.rdy:
                 m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
-                #E.g. for stg3:  if (sad_stg2_vld & sad_stg3_rdy) .. load on stg3
+                #E.g. for s3:  if (sad_s2_vld & sad_s3_rdy) .. load on s3
                 load_data = vld_im1 & rdy_i
-                #E.g. for stg3:  sad_stg3_vld <= sad_stg3_rdy ? sad_stg2_vld : sad_stg3_vld
+                #E.g. for s3:  sad_s3_vld <= sad_s3_rdy ? sad_s2_vld : sad_s3_vld
                 m2 += SigAssign(vld_i, IfCond(rdy_i, vld_im1, vld_i))
-                #E.g. for stg3:  assign sad_stg3_rdy = sad_stg4_rdy | ~sad_stg3_vld;
+                #E.g. for s3:  assign sad_s3_rdy = sad_s4_rdy | ~sad_s3_vld;
                 c = Assign(rdy_i, rdy_ip1 | ~vld_i)
                 pipeList.insert(0, c)
                 pipeList.insert(0, m2)
@@ -198,17 +211,17 @@ class Pipeline:
             currStageNum -= 1
 
         if self.vld:
-            #E.g. assign sad_stg0_vld = up_vld;
+            #E.g. assign sad_s0_vld = up_vld;
             vld_0 = StagedSignal(self.vld, 0, lastStageNum, self.name)
             pipeList.insert(0, Assign(vld_0, self.vld_up))
             pipeList.insert(0, Comment('hook to upsstream vld'))
 
         if self.rdy:
-            #E.g. assign sad_rdy = sad_stg1_rdy;
+            #E.g. assign sad_rdy = sad_s1_rdy;
             rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
             pipeList.insert(0, Assign(rdy_first, rdy_i))
             pipeList.insert(0, Comment('hook to upstream rdy'))
-            #E.g. assign sad_stg4_rdy = dn_rdy;
+            #E.g. assign sad_s4_rdy = dn_rdy;
             pipeList.append(Comment('hook to downstream rdy'))
             rdy_last = StagedSignal(self.rdy, lastStageNum+1, lastStageNum, self.name)
             pipeList.append(Assign(rdy_last, self.rdy_dn))
@@ -218,7 +231,7 @@ class Pipeline:
     def expand(self):
         stages = []
         curr = []
-        body = self.body + [...]
+        body = self.body.asList() + [...]
         for stm in body:
             if stm == ...:
                 stages.append(Stage(curr))
@@ -229,13 +242,13 @@ class Pipeline:
         self.outs_ = h.Struct()
         for s in sigs:
             self.outs_[s.origName] = s
-        return self.logic_
+        return tuple(self.logic_)
 
     @property
     def logic(self):
         if self.logic_ is None:
             self.expand()
-        return self.logic_
+        return tuple(self.logic_)
 
     @property
     def outs(self):
@@ -245,7 +258,7 @@ class Pipeline:
 
     def __repr__(self):
         s = f"Pipeline({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
-        s+= "\n   ,".join(repr(stm) for stm in self.body)
+        s+= "\n   ,".join(repr(stm) for stm in self.body.asList())
         s += ']'
         return s
 
@@ -357,7 +370,7 @@ def showFromNode(root:Node, tab="\t") -> str:
 # Main Fsm class
 #------------------------------------------------------------------------------
 def Wait(expr): #conveniece macro within Fsm body's
-    return While(~(expr)) [...]
+    return While(~expr) [...]
 
 
 class Fsm:
@@ -374,7 +387,7 @@ class Fsm:
         if sigFsm: # dummy state name for mergeStates
             self.state = Signal(1, name='__theState__')
         else:
-            self.state = Variable(1, name='__theState__') 
+            self.state = Var(1, name='__theState__') 
 
     def __iadd__(self, x):
         self.body += x
@@ -447,7 +460,7 @@ class Fsm:
         return f"{self.oprefix}S{node.code}"
 
     def varAssigned(self):
-        return set([v for v in self.body.assigned() if isinstance(v, Variable)])
+        return set([v for v in self.body.assigned() if isinstance(v, Var)])
 
     def dumpTree(self, root:Node):
         self.root = root
@@ -473,7 +486,7 @@ class Fsm:
         if self.sigFsm:
             self.state = Signal(States, name=f'{self.name}_state', default=initStateName)
         else:
-            self.state = Variable(States, name=f'{self.name}_state', default=initStateName)
+            self.state = Var(States, name=f'{self.name}_state', default=initStateName)
 
         #start building the logic
         clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
@@ -523,12 +536,12 @@ class Fsm:
                 cond = node.code
                 if isIntVal(cond, 1):
                     blk = self.dumpSubtreeFsm(bt, mode, stateNode, visited)
-                    appendStms(out, blk.toList())
+                    appendStms(out, blk.asList())
                 elif isIntVal(cond, 0):
                     n = bf or nx
                     if n:
                         blk = self.dumpSubtreeFsm(n, mode, stateNode, visited)
-                        appendStms(out, blk.toList())
+                        appendStms(out, blk.asList())
                 else:
                     ife = If(cond) [
                               self.dumpSubtreeFsm(bt, mode, stateNode, visited)
@@ -587,12 +600,34 @@ class Fsm:
                 nodeFrom.nx = nodeA
         Node.remove(nodeB) #... removed
 
-    def expand(self):
+    def expand(self, behav=False):
         if self.logic_ is None:
-            self.body = Block( While(1).Do(..., *self.body.stmts) ) 
-            root = self.toDAG()
-            self.mergeStates(root)
-            self.logic_ = self.dumpTree(root)
+            if behav:
+                rstLst = (x <= x.default for x in self.body.assigned())
+                rstLst = sorted(rstLst, key=lambda x : x.lhs.name)
+                loopName = f"_loop"
+                clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
+                clocked += \
+                    Block(
+                        If(self.rst.offExpr()) [
+                            Block(
+                                While(1) [
+                                    tuple(self.body.stmts),
+                                    ...
+                                ]
+                            ).Name(loopName)
+                        ],
+                        *rstLst,
+                        ...,
+                    )
+                clocked.hasWfe = True
+                clocked.autoReset = False
+                self.logic_ = clocked
+            else:
+                self.body = Block( While(1).Do(..., *self.body.stmts) ) 
+                root = self.toDAG()
+                self.mergeStates(root)
+                self.logic_ = self.dumpTree(root)
         return self.logic_
 
     @property

@@ -15,15 +15,15 @@ reg [10:0] sm_r;
 reg sm_zero_r;
 
 always @(*) begin : combo_logic
-.   sm = x+y+cin;
+.   sm = x + y + cin;
 end
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin : registering
 .   if (~rst_n) begin
 .   .   sm_r <= 0;
 .   .   sm_zero_r <= 0;
 .   end
-.   else begin : registering
+.   else begin
 .   .   sm_r <= sm;
 .   .   sm_zero_r <= sm == 0;
 .   end
@@ -33,4 +33,4 @@ endmodule
 
 
 -------------- repr --------------
-Module('adder', IOs=[In(typ=BitVec(width=1), name='cin'), In(typ=BitVec(width=10), name='x'), In(typ=BitVec(width=10), name='y'), Out(typ=BitVec(width=11), name='sm'), Clock(name='clk'), Reset(name='rst_n')], params=[], body=[Combo(body=Block(SigAssign(Out(typ=BitVec(width=11), name='sm'), ((In(typ=BitVec(width=10), name='x') + In(typ=BitVec(width=10), name='y')) + In(typ=BitVec(width=1), name='cin'))), name='combo_logic')), Clocked(Clock(name='clk'), reset=Reset(name='rst_n'), autoReset=True).Body(Block(If(~(Reset(name='rst_n'))).Then(Block(SigAssign(Out(typ=BitVec(width=11), name='sm_r'), CInt(0)), SigAssign(Out(typ=BitVec(width=1), name='sm_zero_r'), CInt(0)))).Else(Block(SigAssign(Out(typ=BitVec(width=11), name='sm_r'), Out(typ=BitVec(width=11), name='sm')), SigAssign(Out(typ=BitVec(width=1), name='sm_zero_r'), (Out(typ=BitVec(width=11), name='sm') == CInt(0))), name='registering'))))])
+Module('adder', IOs=[In(typ=BitVec(width=1), name='cin'), In(typ=BitVec(width=10), name='x'), In(typ=BitVec(width=10), name='y'), Out(typ=BitVec(width=11), name='sm'), Clock(name='clk'), Reset(name='rst_n')], params=[], body=[Combo(body=Block(SigAssign(Out(typ=BitVec(width=11), name='sm'), ((In(typ=BitVec(width=10), name='x') + In(typ=BitVec(width=10), name='y')) + In(typ=BitVec(width=1), name='cin'))), name='combo_logic')), Clocked(Clock(name='clk'), reset=Reset(name='rst_n'), autoReset=True).Body(Block(If(~(Reset(name='rst_n'))).Then(Block(SigAssign(Out(typ=BitVec(width=11), name='sm_r'), CInt(0)), SigAssign(Out(typ=BitVec(width=1), name='sm_zero_r'), CInt(0)))).Else(Block(SigAssign(Out(typ=BitVec(width=11), name='sm_r'), Out(typ=BitVec(width=11), name='sm')), SigAssign(Out(typ=BitVec(width=1), name='sm_zero_r'), (Out(typ=BitVec(width=11), name='sm') == CInt(0))))), name='registering'))])

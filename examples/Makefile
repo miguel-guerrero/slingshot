@@ -29,7 +29,7 @@ fsm:
 
 pipe:
 	./$@.py > $@.v
-	$(VCOMP) -g2005-sv -DNITERS=2 -DSEED=1 $@.v tb/pipe_tb.v
+	$(VCOMP) -g2005-sv -DNITERS=10 -DSEED=1 -DDUMP $@.v tb/pipe_tb.v
 	$(VRUN) a.out > $@.log
 	@grep -q "RESULT: PASS" $@.log || (echo "RESULT: FAIL" && exit 1)
 	$(DIFF) gold/$@.v .
@@ -41,7 +41,22 @@ motor_fsm:
 	$(DIFF) gold/$@.v $@.v
 	$(DIFF) gold/$@.log .
 
+motor_fsm_behav:
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb/motor_tb.v
+	$(VRUN) a.out > $@.log
+	$(DIFF) gold/$@.v $@.v
+	$(DIFF) gold/motor_fsm.log motor_fsm_behav.log
+
 matmul_simple:
+	./$@.py > $@.v
+	$(VCOMP) $@.v tb/matmul_tb.v tb/mem.v
+	$(VRUN) a.out > $@.log
+	$(DIFF) gold/$@.v $@.v
+	$(DIFF) gold/$@.log .
+	grep -q PASSED $@.log
+
+matmul_simple2:
 	./$@.py > $@.v
 	$(VCOMP) $@.v tb/matmul_tb.v tb/mem.v
 	$(VRUN) a.out > $@.log

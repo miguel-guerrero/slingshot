@@ -8,12 +8,13 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 import vlog
 
-States = Enu('IDLE', 'GO', 'DONE')
+States = Enu('IDLE', 'GO', ('DONE',2))
 clk = Clock()
 rst_n = Reset()
-ctl, done = Out() ** 2
+ctl, done = Output() ** 2
 state = Signal(States, default='IDLE')
 state_nxt = Signal(States)
+#state_nxt = Signal(States).Signed()
 
 fsm = Module()
 
@@ -24,7 +25,8 @@ fsm += Combo() [
             ctl <= 0
         ].
         Case(States.GO) [
-            state_nxt <= States.DONE,
+            #state_nxt <= States.DONE,
+            state_nxt <= States.DON,
             ctl <= 1
         ].
         Case(States.DONE) [

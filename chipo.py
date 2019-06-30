@@ -130,6 +130,7 @@ class AstNode(metaclass=Meta):
     def typesUsed(self): return set()
     def driven(self):    return set()
     def declared(self):  return set()
+    def asList(self):    return []
 
     def __init__(self):
         self._dbg = self._dbgi
@@ -137,10 +138,7 @@ class AstNode(metaclass=Meta):
     #apply a set-returning method 'm' to non-None items in list and return
     #the union of all returned sets
     def apply(self, m, lst):
-        lst = [getattr(x,m)() for x in lst if x is not None and x is not ...]
-        if lst:
-            return set.union(*lst)
-        return set()
+        return h.setUnion(*[getattr(x,m)() for x in lst if x is not None and x is not ...])
 
     def __repr__(self): raise NotImplementedError
 
@@ -175,6 +173,7 @@ class Clocked(AstStatement):
         self.reset = reset
         self.autoReset = autoReset
         self.body = Block()
+        self.hasWfe = False
 
     def __iadd__(self, x):
         self.body += x
@@ -187,6 +186,7 @@ class Clocked(AstStatement):
         appendStms(self.body, stmts)
         return self
 
+    def asList(self):    return self.body.asList()
     def assigned(self):  return self.body.assigned()
     def paramUsed(self): return self.body.paramUsed()
     def typesUsed(self): return self.body.typesUsed()
@@ -203,7 +203,8 @@ class Clocked(AstStatement):
         if not lst:
             return self.body
         lst = sorted(lst, key=lambda x : x.lhs.name)
-        return Block(If(self.reset.onExpr()).Then(*lst).Else(self.body))
+        name, self.body.name = self.body.name, None
+        return Block(If(self.reset.onExpr()).Then(*lst).Else(self.body)).Name(name)
 
     def addResetLogic(self):
         if self.autoReset and self.reset is not None:
@@ -219,9 +220,12 @@ class Clocked(AstStatement):
 # AstNode -> AstStatement -> Combo
 #-----------------------------------------------------------
 class Combo(AstStatement):
-    def __init__(self, body=None):
+    def __init__(self, *body):
         super().__init__()
-        self.body = Block() if body is None else body
+        if body:
+            self.body = flattenBlock(body)
+        else:
+            self.body = Block() 
 
     def __iadd__(self, x):
         self.body += x
@@ -231,9 +235,10 @@ class Combo(AstStatement):
         return self.Body(*h.tupleize(stmts))
 
     def Body(self, *stmts):
-        appendStms(self.body, stmts)
+        self.body += stmts
         return self
 
+    def asList(self):    return self.body.asList()
     def assigned(self):  return self.body.assigned()
     def used(self):      return self.body.used()
     def paramUsed(self): return self.body.paramUsed()
@@ -253,8 +258,8 @@ class Combo(AstStatement):
 class Declare(AstStatement):
     def __init__(self, x):
         super().__init__()
-        if not isinstance(x, (Signal, Variable)):
-            raise TypeError(h.error("Only Signa/Variable can be Declare'd", x))
+        if not isinstance(x, (Signal, Var)):
+            raise TypeError(h.error("Only Signa/Var can be Declare'd", x))
         self.x = x
 
     @property
@@ -374,12 +379,12 @@ class InstanceG2p(InstanceBase):
     def used(self):
         inConn = {self.ioMapDict.get(i.name, i) for i in self.modExp.IOs
                   if isinstance(i, gencore.InputBase)}
-        return set.union(*[x.used() for x in inConn])
+        return h.setUnion(*[x.used() for x in inConn])
 
     def driven(self):
         outConn = {self.ioMapDict.get(o.name, o) for o in self.modExp.IOs
                    if isinstance(o, gencore.OutputBase)}
-        return set.union(*[x.lvalue() for x in outConn if x is not None])
+        return h.setUnion(*[x.lvalue() for x in outConn if x is not None])
 
 
     def modName(self):
@@ -433,17 +438,17 @@ class Instance(InstanceBase):
     def used(self):
         inConn = {self.ioMapDict.get(i.name, i) for i in self.mod.IOs
                   if isinstance(i, gencore.InputBase)}
-        return set.union(*[x.used() for x in inConn])
+        return h.setUnion(*[x.used() for x in inConn])
 
     def driven(self):
         outConn = {self.ioMapDict.get(o.name, o) for o in self.mod.IOs
                    if isinstance(o, gencore.OutputBase)}
-        return set.union(*[x.lvalue() for x in outConn if x is not None])
+        return h.setUnion(*[x.lvalue() for x in outConn if x is not None])
 
     def paramUsed(self):
         conn = [self.ioMapDict.get(io.name, io) for io in self.mod.IOs]
-        return set.union(*[io.paramUsed() for io in conn
-                if isinstance(io, gencore.IoBase)])
+        return h.setUnion(*[io.paramUsed() for io in conn
+                            if isinstance(io, gencore.IoBase)])
 
     def typesUsed(self):
         return set() #TODO
@@ -470,10 +475,18 @@ class AstProcStatement(AstNode):
     def __init__(self):
         super().__init__()
 
-    def applyFunc(self, f):
+    def applyFunc(self, f) -> None:
         f(self)
         for s in self.all():
             s.applyFunc(f)
+
+    def any(self, f) -> bool:
+        if f(self) or any(f(s) for s in self.asList()):
+            return True
+        return any(s.any(f) for s in self.asList() if hasattr(s,'any'))
+
+    def all(self, f) -> bool:
+        return not self.any(lambda x: not f(x))
 
 
 #-----------------------------------------------------------
@@ -484,20 +497,39 @@ class Block(AstProcStatement):
         super().__init__()
         self.stmts = []
         self.name = name
+        if len(stmts)==1 and isinstance(stmts[0], tuple):
+            stmts = stmts[0] # peel off outer tuple
         self += stmts # invoke __iadd__
 
+    @staticmethod
+    def check(x):
+        if not isinstance(x, AstProcStatement) and \
+           not isinstance(x, Comment) and \
+           not isinstance(x, tuple) and \
+           not isinstance(x, Declare) and not x is ...:
+            raise TypeError(h.error(f'Expecting a procedural statement in a Block, got a {type(x)}', x))
+        return x
+
     def __iadd__(self, x):
-        if isinstance(x, (tuple, list)):
+        if isinstance(x, tuple):
             for xi in x:
-                self.stmts.append(xi)
+                self += Block.check(xi)
         elif isinstance(x, Block) and x.name is None:
-            for xi in x.toList():
-                self.stmts.append(xi)
-        else:
-            self.stmts.append(x)
+            for xi in x.asList(): # flatten a nameless block
+                self += Block.check(xi)
+        elif x is not None:
+            self.stmts.append(Block.check(x))
         return self
 
-    def toList(self):
+    @runtime_validation
+    def doDo(self, stmts:tuple):
+        self.stmts += stmts
+        return self
+
+    def __getitem__(self, stmts):
+        return self.doDo(h.tupleize(stmts))
+
+    def asList(self):
         return self.stmts
 
     def Name(self, name):
@@ -523,6 +555,7 @@ class Block(AstProcStatement):
         if self.name is not None:
             return f'Block({s}, name={self.name!r})'
         return f'Block({s})'
+
 
 #-----------------------------------------------------------
 # AstNode -> AstProcStatement -> If
@@ -564,7 +597,7 @@ class If(AstProcStatement):
         super().__init__()
         self.cond = WrapExpr(cond)
         self.trueBlock = Block()
-        self.falseBlock = None
+        self.falseBlock = Block()
         self.elifBlock = []
         self.elifCond = []
         self.Else = self.ElseClass(parent=self)
@@ -589,11 +622,15 @@ class If(AstProcStatement):
         return self.elifCond + self.elifBlock + \
                [self.cond, self.trueBlock, self.falseBlock]
 
+    def asList(self):    
+        return  [x for x in self.elifBlock] + \
+            self.trueBlock.asList() + self.falseBlock.asList()
+
     def __repr__(self):
         elifv = elsev = ''
         for i, b in enumerate(self.elifBlock):
             elifv = f'.Elif({self.elifCond[i]!r})[{b!r}]'
-        if self.falseBlock is not None:
+        if self.falseBlock.asList():
             elsev = f'.Else({self.falseBlock!r})'
         return f'If({self.cond!r}).Then({self.trueBlock!r})' + elifv + elsev
 
@@ -605,7 +642,7 @@ class While(AstProcStatement):
     def __init__(self, cond=1):
         super().__init__()
         self.cond = WrapExpr(cond)
-        self.trueBlock = None
+        self.trueBlock = Block()
 
     @runtime_validation
     def doDo(self, stmts:tuple):
@@ -618,6 +655,7 @@ class While(AstProcStatement):
     def Do(self, *trueBlock):
         return self.doDo(trueBlock)
 
+    def asList(self):    return self.trueBlock.asList()
     def assigned(self):  return self.apply('assigned', self.all())
     def used(self):      return self.apply('used', self.all())
     def paramUsed(self): return self.apply('paramUsed', self.all())
@@ -640,7 +678,7 @@ class Switch(AstProcStatement):
             super().__init__()
             self.parent = parent
             self.conditionExpr = list(WrapExpr(i) for i in h.tupleize(*args))
-            self.body = None
+            self.body = Block()
 
         @runtime_validation
         def doCase(self, stmts:tuple):
@@ -686,6 +724,12 @@ class Switch(AstProcStatement):
     def all(self):
         return [self.cond] + self.cases + [self.default]
 
+    def asList(self):
+        lst = [self.default]
+        for b in self.cases:
+            lst += b.asList()
+        return lst
+
     def __repr__(self):
         cases = "".join([f".{i!r}" for i in self.cases])
         return f"Switch({self.cond!r}){cases}.Default({self.default!r})"
@@ -694,7 +738,7 @@ class Switch(AstProcStatement):
 #-----------------------------------------------------------
 # AstNode -> AstProcStatement -> AssignBase
 #-----------------------------------------------------------
-# Handle signal and variable assignements
+# Handle signal and Var assignements
 class AssignBase(AstProcStatement):
     def __init__(self, lhs, expr, kind='', oper='='):
         super().__init__()
@@ -735,13 +779,16 @@ class SigAssign(AssignBase):
 # AstNode -> Module
 #-----------------------------------------------------------
 class Module(AstNode, gencore.ModuleBase, Named):
-    def __init__(self, name=None, *, types=[], IOs=[], params=[], bd=[]):
+    def __init__(self, *, name=None, types=[], IOs=[], params=[]):
         Named.__init__(self, name)
         gencore.ModuleBase.__init__(self, IOs)
         super().__init__()
         self.params = list(params)
-        self.body = list(bd)
+        self.body = []
         self.types = list(types)
+
+    def __call__(self, **kwargs):
+        return Instance(self, ParamMap(), PortMap(**kwargs), insName=self.name+str(serialNumber()))
 
     def vlog(self, indLvl=0, recursive=False):
         import vlog
@@ -773,15 +820,22 @@ class Module(AstNode, gencore.ModuleBase, Named):
     def getAst(self):
         return self
 
+    @staticmethod
+    def check(x):
+        if not isinstance(x, AstStatement) and \
+           not isinstance(x, Comment):
+            raise TypeError(h.error('Expecting an statement in a Module', x))
+        return x
+
     def __iadd__(self, x):
-        if isinstance(x, (tuple, list)):
+        if isinstance(x, tuple):
             for xi in x:
-                self.body.append(xi)
+                self.body.append(Module.check(xi))
         elif isinstance(x, Block) and x.name is None:
-            for xi in x.toList():
-                self.body.append(xi)
+            for xi in x.asList():
+                self.body.append(Module.check(xi))
         else:
-            self.body.append(x)
+            self.body.append(Module.check(x))
         return self
 
     def Ios(self, *ios):
@@ -805,12 +859,12 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self
 
     def assigned(self, typ=None):
-        typ = typ or (Signal, Variable)
+        typ = typ or (Signal, Var)
         return {x for stm in self.body for x in stm.assigned()
                 if isinstance(x, typ)}
 
     def used(self, typ=None):
-        typ = typ or (Signal, Variable)
+        typ = typ or (Signal, Var)
         return {x for stm in self.body for x in stm.used()
                 if isinstance(x, typ)}
 
@@ -818,17 +872,17 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return {x for stm in self.body for x in stm.driven()}
 
     def declared(self, typ=None):
-        typ = typ or (Signal, Variable)
+        typ = typ or (Signal, Var)
         return {x for stm in self.body for x in stm.declared()
                 if isinstance(x, typ)}
 
     def paramUsed(self):
-        return set.union({x for stm in self.body for x in stm.paramUsed()},
-                         {x for io  in self.IOs  for x in io.paramUsed()})
+        return h.setUnion({x for stm in self.body for x in stm.paramUsed()},
+                          {x for io  in self.IOs  for x in io.paramUsed()})
 
     def typesUsed(self):
-        return set.union({x for stm in self.body for x in stm.typesUsed()},
-                         {x for io  in self.IOs  for x in io.typesUsed()})
+        return h.setUnion({x for stm in self.body for x in stm.typesUsed()},
+                          {x for io  in self.IOs  for x in io.typesUsed()})
 
     def getInstances(self):
         return [stm for stm in self.body if isinstance(stm, InstanceBase)]
@@ -1403,12 +1457,12 @@ class Assignable(UnaryExpr, Named):
         if isinstance(typ, Assignable): #from other signal/var
             typ = typ._type()
         elif isinstance(typ, (Expr, int)):
-            typ = BitVec(typ)
+            typ = BitVec(typ) #typ is a width here
         elif typ is None:
             typ = BitVec(1)
         else:
             if not isinstance(typ, Type):
-                raise TypeError(h.error('Expecting first argument to be a Signal/Variable, an'
+                raise TypeError(h.error('Expecting first argument to be a Signal/Var, an'
                     + ' expression (width), None for width=1 or a user defined type'
                     +f' however found {typ}', self))
         UnaryExpr.__init__(self, '.', typ)
@@ -1516,16 +1570,16 @@ class Reset(In):
 
 
 #------------------------------------------------------------------------
-# AstNode -> Expr -> UnaryExpr -> Assignable -> Variable
+# AstNode -> Expr -> UnaryExpr -> Assignable -> Var
 #------------------------------------------------------------------------
-class Variable(Assignable):
-    kind = 'Variable'
+class Var(Assignable):
+    kind = 'Var'
 
     def eq(self, rhs):
         return VarAssign(self, rhs)
 
     def __ne__(self, rhs): # x != x + 1
-        if isinstance(self, Variable):
+        if isinstance(self, Var):
             return VarAssign(self, rhs)
         return Expr('!=', self, rhs)
 
@@ -1598,7 +1652,8 @@ class DotExpr(BinExpr):
         parent = self.args[0]
         typ = self.typ
         if not isinstance(typ, Agreg):
-            raise TypeError(h.error(f"{typ.name}={typ!r} is not aggregate type and . expression attempted", node))
+            raise TypeError(h.error(
+                f"{typ.name} is not aggregate type and . expression attempted", self))
         if key in typ.fieldDict:
             return DotExpr(self, key, self.root)
         raise KeyError(h.error(f"invalid Rec/Union/Iface field {self.name}.{key}", self))
@@ -1661,7 +1716,7 @@ class Concat(MultiExpr):
         return SigAssign(self, rhs)
 
     def lvalue(self):
-        return set.union(*[x.lvalue() for x in self.all()])
+        return h.setUnion(*[x.lvalue() for x in self.all()])
 
     def __repr__(self):
         return f"Concat({self.argsStr()})"
@@ -1712,14 +1767,10 @@ def Assign(sig, val):
 
 
 def Input(n=1, **kwargs):
-    if isinstance(n, (Expr, int)):
-        return In(BitVec(n), **kwargs)
     return In(n, **kwargs)
 
 
 def Output(n=1, **kwargs):
-    if isinstance(n, (Expr, int)):
-        return Out(BitVec(n), **kwargs)
     return Out(n, **kwargs)
 
 

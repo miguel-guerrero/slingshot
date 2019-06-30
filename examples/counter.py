@@ -7,13 +7,13 @@ sys.path.append("..") # add path to chipo and related
 
 from chipo import *
 
-def genCounter(name='counter', *, cntW=8):
+def Counter(cntW=8):
     WIDTH = Parameter(cntW)
     clk, rst_n = Clock(), Reset()
-    inc, clr = Input() ** 2
-    max_val = Input(WIDTH)
-    eq, cnt = Output(), Output(WIDTH)
-    return Module(name) [
+    inc, clr = In() ** 2
+    max_val = In(WIDTH)
+    eq, cnt = Out(), Out(WIDTH)
+    return Module() [
             Combo() [
                 eq <= (cnt == max_val),
             ],
@@ -29,10 +29,9 @@ def genCounter(name='counter', *, cntW=8):
         ].autoGen()
 
 
-
 if __name__=='__main__':
     #start generation
-    cntr = genCounter()
+    counter = Counter()
 
     #print verilog code for it
-    print(cntr.vlog(recursive=True))
+    print(counter.vlog(recursive=True))

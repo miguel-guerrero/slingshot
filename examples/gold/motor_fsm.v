@@ -18,13 +18,13 @@ localparam SM_CONTROL_S2=2;
 
 reg [1:0] control_state;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin : control_clocked
     if (~rst_n) begin
         control_state <= SM_CONTROL_S0;
         motor_dn <= 0;
         motor_up <= 0;
     end
-    else begin : control_clocked
+    else begin
         case (control_state)
             SM_CONTROL_S0 : begin
                 if (~activate) begin

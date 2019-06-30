@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
@@ -16,7 +16,7 @@ if __name__=='__main__':
     x, y = Input(WIDTH) ** 2
     sm, sm_r  = Output(SWIDTH) ** 2
     sm_zero_r = Output()
-    res = Variable(SWIDTH)
+    res = Var(SWIDTH)
 
     adder = Module(IOs=[sm]).Params(WIDTH,SWIDTH) [
         Combo() [

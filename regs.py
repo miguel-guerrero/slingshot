@@ -280,7 +280,7 @@ def genCsrs(rb, clk, rst_n):
 
     #create a wrapper of the actually generated csr module with propper 
     #signal renaming and broken field concatenation
-    m = Module(f"{modName}_wrap")
+    m = Module(name=f"{modName}_wrap")
 
     for orgReg, orgF, brkLst in brokenLst:
         fldSig = Signal(orgF.w, name=f'{orgReg.name}_{orgF.name}')

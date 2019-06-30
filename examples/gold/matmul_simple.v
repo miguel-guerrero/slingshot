@@ -55,7 +55,7 @@ reg [DIM_BITS-1:0] j;
 reg [DIM_BITS-1:0] k;
 reg [3:0] matmul_fsm_state;
 
-always @(posedge clk or negedge rst_n) begin
+always @(posedge clk or negedge rst_n) begin : matmul_fsm_clocked
     if (~rst_n) begin
         a <= 0;
         a_i0 <= 0;
@@ -75,7 +75,7 @@ always @(posedge clk or negedge rst_n) begin
         mem_write <= 0;
         ret <= 0;
     end
-    else begin : matmul_fsm_clocked
+    else begin
         case (matmul_fsm_state)
             SM_MATMUL_FSM_S0 : begin
                 ret <= 0;

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 
-def genAdder(name='adder', W=8):
+def Adder(name='adder', W=8):
     WIDTH = Parameter(W)
     SWIDTH = Parameter(WIDTH+1)
     clk = Clock()
@@ -15,8 +15,8 @@ def genAdder(name='adder', W=8):
     x, y = Input(WIDTH) ** 2
     sm, sm_r = Output(SWIDTH) ** 2
     sm_zero_r = Output()
-    res = Variable(SWIDTH)
-    return Module(name) [
+    res = Var(SWIDTH)
+    return Module(name=name) [
             Combo() [
                 Declare(res),
                 res @ (x + y + cin),
@@ -28,15 +28,15 @@ def genAdder(name='adder', W=8):
             ]
         ].autoGen()
 
-def genMultiAdder(name='multi_adder', numAdders=1):
-    adder = genAdder()
+def MultiAdder(name='multi_adder', numAdders=1):
+    adder = Adder()
     SW = Parameter(9)
     cin_ = Signal()
     x_, y_ = Signal(8) ** 2
     clk_ = Clock()
     rst_n_ = Reset()
 
-    m = Module(f"{name}_numAdders{numAdders}") 
+    m = Module(name=f"{name}_numAdders{numAdders}") 
     for i in range(numAdders):
         sumi_ = Signal(SW, name=f"sum{i}")
         m += Instance(adder, 
@@ -46,6 +46,6 @@ def genMultiAdder(name='multi_adder', numAdders=1):
              )
     return m.autoGen()
 
-multiAdder = genMultiAdder(numAdders=2)
+multiAdder = MultiAdder(numAdders=2)
 print(multiAdder.vlog(recursive=True))
 

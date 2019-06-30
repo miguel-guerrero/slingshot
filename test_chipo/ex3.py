@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
@@ -17,9 +17,9 @@ if __name__=='__main__':
     sm_r = Output(11)
     sm_zero_r = Output()
 
-    a = Variable()
-    b = Variable(3)
-    c = Variable(3)
+    a = Var()
+    b = Var(3)
+    c = Var(3)
 
     adder =  Module().Ios(cin, x, y, sm, clk, rst_n)
 

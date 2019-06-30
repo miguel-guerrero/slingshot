@@ -23,9 +23,17 @@ end
 
 reg rst_n;
 initial begin
+    $display("asserting reset");
     rst_n <= 1'b0;
     #100;
     rst_n <= 1'b1;
+    $display("deasserting reset");
+    #200;
+    rst_n <= 1'b0;
+    $display("asserting reset");
+    #50;
+    rst_n <= 1'b1;
+    $display("deasserting reset");
 end
 
 `define tick @(posedge clk)

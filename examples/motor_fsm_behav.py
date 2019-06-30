@@ -28,7 +28,7 @@ motor_fsm = \
                 Wait(up_limit),
                 motor_up <= 0,
             ]
-        ].expand(),
+        ].expand(behav=True),
     ].autoGen()
 
 print(motor_fsm.vlog())

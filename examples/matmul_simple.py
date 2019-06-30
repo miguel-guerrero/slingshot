@@ -17,20 +17,20 @@ PREC = Parameter(16)
 
 clk = Clock()
 rst_n = Reset()
-ret = Output()
-go = Input()
+ret = Out()
+go = In()
 
 # memory interface
-mem_write, mem_req = Output() ** 2
-mem_addr = Output(MEM_AW)
-mem_wdata = Output(MEM_DW)
-mem_rdata_vld = Input()
-mem_rdata = Input(MEM_DW)
+mem_write, mem_req = Out() ** 2
+mem_addr = Out(MEM_AW)
+mem_wdata = Out(MEM_DW)
+mem_rdata_vld = In()
+mem_rdata = In(MEM_DW)
 
 #mattrix parameters
-aBASE, bBASE, cBASE = Input(MEM_AW) ** 3
-aSTRIDE, bSTRIDE, cSTRIDE = Input(DIM_BITS) ** 3
-aROWS, aCOLS, bCOLS = Input(DIM_BITS) ** 3
+aBASE, bBASE, cBASE = In(MEM_AW) ** 3
+aSTRIDE, bSTRIDE, cSTRIDE = In(DIM_BITS) ** 3
+aROWS, aCOLS, bCOLS = In(DIM_BITS) ** 3
 
 def MEM_write(addr, wdata):
     return Block(
@@ -56,7 +56,7 @@ a_i0, a_ik, b_0j, b_kj, c_i0, c_ij = Signal(MEM_AW) ** 6
 acc = Signal(MEM_DW)
 a = Signal(PREC)
 
-matmul = Module() [
+matmul = Module() [ 
     Fsm('matmul_fsm', clk, rst_n) [
         ret <= 0,
         ...,
@@ -97,4 +97,3 @@ matmul = Module() [
 ].autoGen()
 
 print(matmul.vlog())
-

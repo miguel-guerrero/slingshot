@@ -6,7 +6,6 @@ import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 from hlc import Pipeline
-import vlog
 
 # example of auto-pipelining
 
@@ -33,21 +32,22 @@ sad_vld, sad_rdy = Out() ** 2
 
 
 # Module definition
-pipe = Module(IOs=(sad_res, sad_vld, sad_rdy))
+m = Module('pipe', IOs=(sad_res, sad_vld, sad_rdy))
 
 # pipe stage boundaries set by ..., vld/rdy flow control (optional)
 sad = Pipeline('sad', clk, rst_n, keep=[res], vld=vld_up, rdy=rdy_dn) [
     dx <= x1 - x0,
     dy <= y1 - y0,
     ...,
-    adx <= Abs(dx),
-    ady <= Abs(dy),
+    While(dx < 0) [
+        adx <= Abs(dx),
+        ...,
+        ady <= Abs(dy),
+    ],
     ...,
     res <= adx + ady
 ]
 
-pipe += sad.expand()
-pipe.autoGen()
+m += sad.expand()
 
-vlog.setStyle(useLogic=True)
-print(pipe.vlog())
+print(m.autoGen().vlog())

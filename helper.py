@@ -1,5 +1,7 @@
 import re
-from collections import namedtuple
+import os
+from collections import namedtuple, OrderedDict
+from inspect import stack
 
 verboseErrors=True
 
@@ -34,9 +36,56 @@ def tupleize(x):
         x = (x,)
     return x
 
+def setUnion(*lst):
+    if lst:
+        return set.union(*lst)
+    return set()
 
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+class IoList:
+    def __init__(self, *lst):
+        self._dic = OrderedDict()
+        for x in lst:
+            self._dic[x.name] = x
+
+    def asDict(self):
+        return self._dic
+
+    def asList(self):
+        return self._dic.keys()
+
+    def __iadd__(self, x):
+        assert hasattr(x, 'name')
+        self._dic[x.name] = x
+
+
+    def __getattr__(self, key):
+        if key in self._dic:
+            return self._dic[key]
+        raise KeyError(f'key {key} not found in {self}')
+
+    def __setattr__(self, key, val):
+        if key != "_dic":
+            self._dic[key] = val
+        else:
+            object.__setattr__(self, key, val)
+
+    def __len__(self):
+        return len(self._dic.keys())
+
+    def __getitem__(self, idx):
+        lst = list(self._dic.values())
+        return lst[idx]
+
+    def __repr__(self):
+        return "IoList(" + ", ".join(f"{k}={v!r}" 
+                for k, v in self.asDict.items()) + ")"
+
+#------------------------------------------------------------------------------
 #a structure that returns None for not-defined fields
 #and can be used as a dict too
+#------------------------------------------------------------------------------
 class Struct:
     def __init__(self, **kwargs):
         self.argDict = kwargs
@@ -72,37 +121,51 @@ def red(s):   return f"\033[91m{s}\033[00m"
 def green(s): return f"\033[92m{s}\033[00m"
 def blue(s):  return f"\033[96m{s}\033[00m"
 
+def showErrorLocation(msg, filename, lineno):
+    import sys
+    if sys.stderr.isatty():
+        r, g, b = red, green, blue
+    else:
+        r = g = b = lambda x : x
+    with open(filename) as f:
+        lines = f.readlines()
+    from_ = max(1, lineno-5)
+    to_   = min(len(lines), lineno+5)
+    print(f'{filename}:{lineno}:1 error: {r(msg)}', file=sys.stderr)
+    if from_ > 1:
+        print(f'...', file=sys.stderr)
+    for i in range(from_, to_+1):
+        marker = ' '
+        text = lines[i-1]
+        if i == lineno:
+            marker = '*' 
+            text = b(text)
+        else:
+            text = g(text)
+        print("%s %5d %s" %(marker, i, text), file=sys.stderr, end='')
+    if to_ < len(lines):
+        print(f'...', file=sys.stderr)
+
+
 def error(msg, n):
     dbgStr = ''
+    dbg = None
     if hasattr(n, '_dbg'):
-        dbg = n.__getattribute__('_dbg')
-        if dbg is not None:
-            dbgStr = f"{dbg.filename}:{dbg.lineno} "
-            if dbg.function != '<module>':
-                dbgStr += f"{dbg.function} "
-            if verboseErrors:
-                import sys
-                if sys.stderr.isatty():
-                    r, g, b = red, green, blue
-                else:
-                    r = g = b = lambda x : x
-                with open(dbg.filename) as f:
-                    lines = f.readlines()
-                from_ = max(1, dbg.lineno-5)
-                to_   = min(len(lines), dbg.lineno+5)
-                print(f'{dbg.filename}:{dbg.lineno}:1 error: {r(msg)}', file=sys.stderr)
-                if from_ > 1:
-                    print(f'...', file=sys.stderr)
-                for i in range(from_, to_+1):
-                    marker = ' '
-                    text = lines[i-1]
-                    if i == dbg.lineno:
-                        marker = '*' 
-                        text = b(text)
-                    else:
-                        text = g(text)
-                    print("%s %5d %s" %(marker, i, text), file=sys.stderr, end='')
-                if to_ < len(lines):
-                    print(f'...', file=sys.stderr)
+        dbg = n.__getattribute__('_dbg') #some nodes have . overriden
+    else:
+        exclFuncList = ['__init__', '__call__', 'Input', 'Output']
+        exclModList = ['chipo.py', 'helper.py', 'hlc.py', 'decorators.py']
+        for i in stack():
+            filebase = os.path.basename(i.filename)
+            if i.function not in exclFuncList and filebase not in exclModList:
+                dbg = DebugInfo(i.filename, i.lineno, i.function)
+                break
+    if dbg is not None:
+        dbgStr = f"{dbg.filename}:{dbg.lineno} "
+        if dbg.function != '<module>':
+            dbgStr += f"{dbg.function} "
+        if verboseErrors:
+            showErrorLocation(msg, dbg.filename, dbg.lineno)
     msg += f" INTERNAL: {n}" 
     return f"{dbgStr}{msg}"
+

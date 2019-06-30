@@ -17,7 +17,9 @@ if __name__=='__main__':
         Field(
             Rec() [
                 Field(BitVec(W), "x"),
-                Field(BitVec(W), "y"),
+                #Field(BitVec(W), "x"),
+                #Field(BitVec(W), "Body"),
+                BitVec(W),
                 Field(BitVec(W), "z"),
                 Field(BitVec(W), "w")
             ], "s1"
@@ -36,8 +38,7 @@ if __name__=='__main__':
 
     com = Combo(Block(name='my_com')).Name('combo_logic')
     x = Var(W)
-    com += x != ins.s1.x
-    com += sm <= x[3:2] + ins.s1.y + ins.s1.z + ins.s1.w + ins.cin
+    com += sm <= ins.s1.x + ins.s1.y[3:2] + ins.s1.z + ins.s1.w + ins.cin
     adder += com
 
     p = Clocked(clk, rst_n).Name('registering') [

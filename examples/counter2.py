@@ -9,14 +9,13 @@ from chipo import *
 
 #another style, see counter.py
 class Counter2(Module):
-
     def __init__(self, name='counter2', *, cntW=8):
-        super().__init__(name)
+        super().__init__(name=name)
         WIDTH = Parameter(cntW)
         clk, rst_n = Clock(), Reset()
-        inc, clr = Input() ** 2
-        max_val = Input(WIDTH)
-        eq, cnt = Output(), Output(WIDTH)
+        inc, clr = In() ** 2
+        max_val = In(WIDTH)
+        eq, cnt = Out(), Out(WIDTH)
 
         self.body = [
             Combo() [
@@ -33,7 +32,6 @@ class Counter2(Module):
             ]
         ]
         self.autoGen()
-
 
 
 if __name__=='__main__':

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# (c) 2018 Miguel A. Guerrero all rights reserved
+# See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
 #-------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
@@ -17,10 +17,10 @@ if __name__=='__main__':
     sm = Output(SWIDTH).Signed()
     sm_r = Output(SWIDTH).Signed()
     sm_zero_r = Output()
-    res = Variable(SWIDTH).Signed()
+    res = Var(SWIDTH).Signed()
 
-    m=(
-        Module('adder')
+    adder=(
+        Module()
             .Params(WIDTH, SWIDTH)
             .Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n)
             .Body(
@@ -35,4 +35,4 @@ if __name__=='__main__':
             )
     )
 
-    print(m.vlog())
+    print(adder.vlog())
