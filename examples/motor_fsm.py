@@ -14,8 +14,8 @@ activate, up_limit, dn_limit = In() ** 3
 motor_up, motor_dn = Out() ** 2
 
 motor_fsm = \
-    Module() [
-        Fsm('control', clk, rst_n) [
+    Module(clk, rst_n) [
+        Fsm(name='control') [
             Wait(activate),
             If (up_limit) [
                 motor_dn <= 1,
@@ -28,7 +28,7 @@ motor_fsm = \
                 Wait(up_limit),
                 motor_up <= 0,
             ]
-        ].expand(),
+        ]
     ].autoGen()
 
 print(motor_fsm.vlog())

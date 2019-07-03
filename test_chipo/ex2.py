@@ -20,7 +20,7 @@ if __name__=='__main__':
     c = Signal(3)
     d = Signal(3)
 
-    adder =  Module(IOs=(cin, x, y, sm, clk, rst_n))
+    adder =  Module(cin, x, y, sm, clk, rst_n)
 
     if True:
         p = Clocked(clk, rst_n).Name('my_process_p') [

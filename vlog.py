@@ -38,6 +38,7 @@ class Ctx(Enum):
     event=2
     compact=3
     useBlocking=3
+    module=4
 
 Style = namedtuple('Style', ['useLogic', 'useAlwaysFF', 'useAlwaysComb', 
     'useAgreg', 'useEnum', 'indent'])
@@ -96,7 +97,7 @@ def dumpIoPass(node, indLvl):
 
 def dumpMsb(node):
     width = node.width
-    if isinstance(width, chipo.Parameter):
+    if isinstance(width, chipo.Param):
         return f"{width.name}-1"
     if isinstance(width, chipo.Expr):
         return dump(chipo.simplify(width-1), ctx=Ctx.compact)
@@ -162,7 +163,7 @@ def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 # AstNode derived
 #-----------------------------------------------------------------------------
-@dump.register(chipo.Comment)
+@dump.register(chipo.Comm)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     vlst = [f"// {cmnt}" for cmnt in node.lines]
     return indListAsStr(vlst, indLvl, sep='\n')
@@ -205,8 +206,8 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
                                  0, sep="\n")
 
     #convert all statements in the body to verilog
-    bodyLst = [dump(stm, indLvl) for stm in node.body]
-    bodyStr = indListAsStr([stm for stm in bodyLst if stm != ''], 0, sep="\n\n")
+    bodyLst = [dump(stm, indLvl, ctx=Ctx.module) for stm in node.body]
+    bodyStr = indListAsStr([stm for stm in bodyLst if stm != ''], 0, sep="\n")
 
     #convert parameters to verilog
     paramStr = ''
@@ -249,7 +250,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if node.hasWfe:
         resetAct = dump(node.reset.onExpr())
         prefix = f"`define WFE begin @({sensStr}); if ({resetAct}) disable _loop; end;\n"
-    return prefix+ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr
+    return prefix+'\n'+ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr + '\n'
 
 
 def isSafeToUseBlockingAssig(node):
@@ -270,7 +271,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     else:
         bodyStr = dump(node.body, indLvl)
     alwaysStr = 'always_comb' if STYLE.useAlwaysComb else 'always @(*)'
-    return ind(f'{alwaysStr} ', indLvl) + bodyStr
+    return '\n'+ind(f'{alwaysStr} ', indLvl) + bodyStr + '\n'
 
 
 @dump.register(chipo.Declare)
@@ -281,7 +282,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
 @dump.register(chipo.InstanceBase)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    out  = ind(f"{node.modName()} ", indLvl)
+    out  = '\n' + ind(f"{node.modName()} ", indLvl)
     out += dumpParamPass(node, indLvl)
     out += f" {node._insName()} " + dumpIoPass(node, indLvl)
     return out
@@ -335,9 +336,16 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
 @dump.register(chipo.AssignBase)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    oper = '=' if ctx == Ctx.useBlocking else node.oper
-    return ind(dump(node.lhs, ctx=ctx) + " " + oper + " " + \
-           dump(node.expr, indLvl), indLvl) + ';'
+    if node.oper == '<=' and ctx==Ctx.module:
+        assign = dump(node, indLvl, ctx=Ctx.useBlocking)
+        if STYLE.useLogic:
+            return ind(f"assign {assign}", indLvl)
+        else:
+            return ind(f"always @(*) {assign}", indLvl)
+    else:
+        oper = '=' if ctx == Ctx.useBlocking else node.oper
+        return ind(dump(node.lhs, ctx=ctx) + " " + oper + " " + \
+               dump(node.expr, indLvl), indLvl) + ';'
 
 #-----------------------------------------------------------------------------
 # Expr
@@ -401,7 +409,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
         return f"{node.root.name}/*.{keyName}*/[{msbStr}{suffix}]"
 
 
-@dump.register(chipo.Parameter)
+@dump.register(chipo.Param)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     v = f'{node.name}'
     if ctx == Ctx.io:

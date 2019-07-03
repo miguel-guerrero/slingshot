@@ -14,19 +14,18 @@ if __name__=='__main__':
     y = Input(8)
     sm = Output(9)
     sm_r = Output(9)
-    sm_zero_r = Output()
-    res = Var(9)
+    sm_zero_r = Output(default=None)
 
-    adder=\
-    Module(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n).Body(
-        Combo(Block(name='combo_logic'), name='combo_logic').Body(
-            res.eq(x + y + cin),
-            sm <= res
-        ),
-        Clocked(clk, rst_n, name='registering').Body(
-            sm_r <= sm,
-            sm_zero_r <= (sm == 0)
-        ).addResetLogic()
-    )
+    adder = Module().Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n)
+
+    com = Combo(Block(name='my_com')).Name('combo_logic')
+    com += sm <= x + y + cin
+    adder += com
+
+    p = Clocked(clk, rst_n).Name('registering')
+    p += sm_r <= sm
+    p += sm_zero_r <= (sm == 0)
+    p.body = p.genResetLogic()
+    adder += p
 
     print(adder.vlog())

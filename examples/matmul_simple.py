@@ -10,10 +10,10 @@ from hlc import Fsm, Wait
 
 # Example of algorithmically defined state machine through Fsm construct
 
-MEM_AW = Parameter(16)
-MEM_DW = Parameter(32)
-DIM_BITS = Parameter(16)
-PREC = Parameter(16)
+MEM_AW = Param(16)
+MEM_DW = Param(32)
+DIM_BITS = Param(16)
+PREC = Param(16)
 
 clk = Clock()
 rst_n = Reset()
@@ -57,7 +57,7 @@ acc = Signal(MEM_DW)
 a = Signal(PREC)
 
 matmul = Module() [ 
-    Fsm('matmul_fsm', clk, rst_n) [
+    Fsm(clk, rst_n, name='matmul_fsm') [
         ret <= 0,
         ...,
         Wait(go),
@@ -93,7 +93,7 @@ matmul = Module() [
         ],
         ret <= 1,
         ...,
-    ].expand()
+    ]
 ].autoGen()
 
 print(matmul.vlog())

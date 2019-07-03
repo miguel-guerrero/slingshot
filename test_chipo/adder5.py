@@ -18,7 +18,7 @@ if __name__=='__main__':
     sm_zero_r = Output()
     res = Var(SWIDTH)
 
-    adder = Module(IOs=[sm]).Params(WIDTH,SWIDTH) [
+    adder = Module(sm).Params(WIDTH,SWIDTH) [
         Combo() [
             res @ (x + y + cin),
             If (res == 2) [

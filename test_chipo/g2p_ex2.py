@@ -38,7 +38,7 @@ def Adder(name, params):
     mod.userResult.area = 0 #generate g2p compatible results
     return mod
 
-adder = generateG2p('adder', {'WIDTH':32}, {'WIDTH':8}, Adder)
+adder = generateG2p('adder2', {'WIDTH':32}, {'WIDTH':8}, Adder)
 print(adder)
 
 x0, y0 = Signal() ** 2

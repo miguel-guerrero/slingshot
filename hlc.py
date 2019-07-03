@@ -73,10 +73,10 @@ class StagedSignal(Signal):
         return self._origName
     
 
-class Pipeline:
-    def __init__(self, name, clk, rst, *, keep, vld=None, rdy=None):
-        self.name = name
-        self.clk, self.rst = clk, rst
+class Pipeline(Named):
+    def __init__(self, clock, reset, *, keep, name=None, vld=None, rdy=None):
+        Named.__init__(self, name)
+        self.clock, self.reset = clock, reset
         self.keep = list(keep)
         self.body = Block()
         self.vld_up = vld
@@ -90,7 +90,7 @@ class Pipeline:
 
     def check(self, stm):
         if isinstance(stm, While) and hasWfe(stm):
-            raise TypeError(h.error('Loops with ... not allowed within a Pileline. Found While', stm))
+            raise TypeError(h.error('While loops with ... enclosed not allowed within a Pileline.', stm))
 
     def __iadd__(self, stm):
         self.check(stm)
@@ -147,7 +147,7 @@ class Pipeline:
             ins_i = set.union(outs_i, stg.used()) - assigned_i
             passed_i = outs_i - assigned_i
 
-            m = Clocked(self.clk).Name(f"{self.name}_stage{currStageNum}")
+            m = Clocked(self.clock, autoReset=False, name=f"{self.name}_stage{currStageNum}")
 
             if self.vld:
                 vld_i   = StagedSignal(self.vld, currStageNum,   lastStageNum, self.name)
@@ -159,7 +159,7 @@ class Pipeline:
 
             load_data = None
             if self.vld and self.rdy:
-                m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
+                m2 = Clocked(self.clock, self.reset, name=f"{self.name}_stage{currStageNum}_vld")
                 #E.g. for s3:  if (sad_s2_vld & sad_s3_rdy) .. load on s3
                 load_data = vld_im1 & rdy_i
                 #E.g. for s3:  sad_s3_vld <= sad_s3_rdy ? sad_s2_vld : sad_s3_vld
@@ -173,7 +173,7 @@ class Pipeline:
                 m += enaStm
                 body = enaStm.trueBlock
             elif self.vld:
-                m2 = Clocked(self.clk, self.rst).Name(f"{self.name}_stage{currStageNum}_vld")
+                m2 = Clocked(self.clock, self.reset, name=f"{self.name}_stage{currStageNum}_vld")
                 load_data = vld_im1
                 m2 += SigAssign(vld_i, vld_im1)
                 pipeList.insert(0, m2)
@@ -229,19 +229,22 @@ class Pipeline:
         return pipeList, lastStageSigs
 
     def expand(self):
-        stages = []
-        curr = []
-        body = self.body.asList() + [...]
-        for stm in body:
-            if stm == ...:
-                stages.append(Stage(curr))
-                curr = []
-            else:
-                curr.append(stm)
-        self.logic_, sigs = self.processStages(stages)
-        self.outs_ = h.Struct()
-        for s in sigs:
-            self.outs_[s.origName] = s
+        if self.logic_ is None:
+            if self.name is None:
+                raise ValueError(h.error('A Pipeline must be named', self))
+            stages = []
+            curr = []
+            body = self.body.asList() + [...]
+            for stm in body:
+                if stm == ...:
+                    stages.append(Stage(curr))
+                    curr = []
+                else:
+                    curr.append(stm)
+            self.logic_, sigs = self.processStages(stages)
+            self.outs_ = h.Struct()
+            for s in sigs:
+                self.outs_[s.origName] = s
         return tuple(self.logic_)
 
     @property
@@ -257,7 +260,7 @@ class Pipeline:
         return self.outs_
 
     def __repr__(self):
-        s = f"Pipeline({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
+        s = f"Pipeline({self.name}, {self.clock}, {self.reset}, keep={self.keep}) [\n    "
         s+= "\n   ,".join(repr(stm) for stm in self.body.asList())
         s += ']'
         return s
@@ -373,16 +376,16 @@ def Wait(expr): #conveniece macro within Fsm body's
     return While(~expr) [...]
 
 
-class Fsm:
-    def __init__(self, name, clk, rst, *, sigFsm=True, keep=[]):
-        self.name = name
-        self.clk, self.rst = clk, rst
+class Fsm(Named):
+    def __init__(self, clock=None, reset=None, *, name=None, behav=False, sigFsm=True, keep=[]):
+        Named.__init__(self, name)
+        self.clock, self.reset = clock, reset
         self.keep = list(keep)
         self.body = Block()
         self.logic_ = None
-        self.oprefix = "SM_"+name.upper()+"_"
         self.Q = "_q"
         self.wfeCounter = 0
+        self.behav = behav
         self.sigFsm = sigFsm
         if sigFsm: # dummy state name for mergeStates
             self.state = Signal(1, name='__theState__')
@@ -489,7 +492,7 @@ class Fsm:
             self.state = Var(States, name=f'{self.name}_state', default=initStateName)
 
         #start building the logic
-        clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
+        clocked = Clocked(self.clock, self.reset, name=f"{self.name}_clocked")
 
         #create transition switch statement
         switch = Switch(self.state)
@@ -506,7 +509,7 @@ class Fsm:
         else:
             #create state signal
             stateQ = Signal(States, name=f'{self.name}_state'+self.Q, default=initStateName)
-            combo = Combo().Name(f"{self.name}_combo")
+            combo = Combo(name=f"{self.name}_combo")
             #set next state variables to right default (flop output)
             sigs = {Signal(v, name=v.name+self.Q):v for v in sortedAsList(self.varAssigned())}
             sigs[stateQ] = state
@@ -600,22 +603,25 @@ class Fsm:
                 nodeFrom.nx = nodeA
         Node.remove(nodeB) #... removed
 
-    def expand(self, behav=False):
+    def expand(self):
         if self.logic_ is None:
-            if behav:
+            if self.name is None:
+                raise ValueError(h.error('An Fsm must be named', self))
+            self.oprefix = "SM_"+self.name.upper()+"_"
+            if self.behav:
                 rstLst = (x <= x.default for x in self.body.assigned())
                 rstLst = sorted(rstLst, key=lambda x : x.lhs.name)
                 loopName = f"_loop"
-                clocked = Clocked(self.clk, self.rst).Name(f"{self.name}_clocked")
+                clocked = Clocked(self.clock, self.reset, name=f"{self.name}_clocked")
                 clocked += \
                     Block(
-                        If(self.rst.offExpr()) [
+                        If(self.reset.offExpr()) [
                             Block(
                                 While(1) [
                                     tuple(self.body.stmts),
                                     ...
-                                ]
-                            ).Name(loopName)
+                                ],
+                            name=loopName)
                         ],
                         *rstLst,
                         ...,
@@ -637,7 +643,7 @@ class Fsm:
         return self.logic_
 
     def __repr__(self):
-        s  = f"Fsm({self.name}, {self.clk}, {self.rst}, keep={self.keep}) [\n    "
+        s  = f"Fsm({self.name}, {self.clock}, {self.reset}, keep={self.keep}) [\n    "
         s += "\n   ,".join(repr(stm) for stm in self.body)
         s += ']'
         return s

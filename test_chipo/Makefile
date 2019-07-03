@@ -21,7 +21,7 @@ reg_test2:
 
 ex1:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 ex2:
@@ -38,130 +38,130 @@ ex4:
 
 adder:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb/tb.v
-	$(VRUN) a.out > $@.log
-	diff gold/$@.log .
+	$(VCOMP) -o $@.out $@.v tb/tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
 
 adder2:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb/tb.v
-	$(VRUN) a.out > $@.log
-	diff gold/$@.log .
+	$(VCOMP) -o $@.out $@.v tb/tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
 
 adder3:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb/tb.v
-	$(VRUN) a.out > $@.log
-	diff gold/$@.log .
+	$(VCOMP) -o $@.out $@.v tb/tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
 
 adder4:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb/tb.v
-	$(VRUN) a.out > $@.log
-	diff gold/$@.log .
+	$(VCOMP) -o $@.out $@.v tb/tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
 
 adder5:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb/tb.v
-	$(VRUN) a.out > $@.log
-	diff gold/$@.log .
+	$(VCOMP) -o $@.out $@.v tb/tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
 
 sadder4:
 	./$@.py > $@.v
-	$(VCOMP) $@.v tb/stb.v
-	$(VRUN) a.out > $@.log
-	diff gold/$@.log .
+	$(VCOMP) -o $@.out $@.v tb/stb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
 
 rec:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 rec2:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 rec3:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 rec4:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 rec5:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 rec6:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 uni:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 uni2:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 ins:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 ins2:
 	./$@.py 
-	$(VCOMP) -f file_list.f
+	$(VCOMP) -o $@.out -f file_list.f
 	#$(DIFF) gold/$@.v .
 
 ins3:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 ins4:
 	./$@.py > $@.v
-	$(VCOMP) $@.v
+	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
 pipe1:
 	./$@.py > $@.v
-	$(VCOMP) -g2005-sv $@.v
+	$(VCOMP) -o $@.out -g2005-sv $@.v
 	$(DIFF) gold/$@.v .
 
 multi_adder:
 	./$@.py > $@.v
-	$(VCOMP) ./$@.v
+	$(VCOMP) -o $@.out ./$@.v
 	$(DIFF) gold/$@.v .
 
 multi_adder2:
 	./$@.py > $@.v
-	$(VCOMP) ./$@.v
+	$(VCOMP) -o $@.out ./$@.v
 	$(DIFF) gold/$@.v .
 
 multi_adder3:
 	./$@.py > $@.v
-	$(VCOMP) ./$@.v
+	$(VCOMP) -o $@.out ./$@.v
 	$(DIFF) gold/$@.v .
 
 g2p_ex1:
 	./$@.py > $@.log
 	$(DIFF) gold/adder_WIDTH32.v build
-	diff gold/$@.log .
+	$(DIFF) gold/$@.log .
 
 g2p_ex2:
 	./$@.py > $@.log
-	$(DIFF) gold/adder_WIDTH32_2.v build/adder_WIDTH32.v
-	diff gold/$@.log .
+	$(DIFF) gold/adder2_WIDTH32.v build/adder2_WIDTH32.v
+	$(DIFF) gold/$@.log .
 
 clean:
-	$(RM) -r __pycache__ a.out *.v build *.ralf *.xml *.vcd
+	$(RM) -r __pycache__ *.out *.v build *.ralf *.xml *.vcd
 	$(RM) *.log file_list.f

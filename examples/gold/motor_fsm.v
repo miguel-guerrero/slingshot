@@ -2,10 +2,10 @@
 // motor_fsm
 //----------------------------------------------------------------------------
 module motor_fsm (
-    input activate,
     input clk,
-    input dn_limit,
     input rst_n,
+    input activate,
+    input dn_limit,
     input up_limit,
     output reg motor_dn,
     output reg motor_up

@@ -15,7 +15,7 @@ def Abs(x):
 # IO object definition
 clk = Clock()
 rst_n = Reset()
-W = Parameter(8)
+W = Param(8)
 x0, y0, x1, y1 = In(W) ** 4
 dx, dy = Signal(W+1).Signed() ** 2
 adx, ady = Signal(W+1) ** 2
@@ -32,10 +32,10 @@ sad_vld, sad_rdy = Out() ** 2
 
 
 # Module definition
-m = Module('pipe', IOs=(sad_res, sad_vld, sad_rdy))
+pipe = Module(sad_res, sad_vld, sad_rdy)
 
 # pipe stage boundaries set by ..., vld/rdy flow control (optional)
-sad = Pipeline('sad', clk, rst_n, keep=[res], vld=vld_up, rdy=rdy_dn) [
+sad = Pipeline(clk, rst_n, keep=[res], vld=vld_up, rdy=rdy_dn) [
     dx <= x1 - x0,
     dy <= y1 - y0,
     ...,
@@ -48,6 +48,6 @@ sad = Pipeline('sad', clk, rst_n, keep=[res], vld=vld_up, rdy=rdy_dn) [
     res <= adx + ady
 ]
 
-m += sad.expand()
+pipe += sad.expand()
 
-print(m.autoGen().vlog())
+print(pipe.autoGen().vlog())

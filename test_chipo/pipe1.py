@@ -18,7 +18,7 @@ x_sqr = Signal(2*W)
 out = Output(2*W)
 
 pipe = Module()
-arith = Pipeline('arith', clk, rst_n, keep=[add_sqr, x_sqr]) [
+arith = Pipeline(clk, rst_n, keep=[add_sqr, x_sqr]) [
     add <= x+y,
     ...,
     add_sqr <= add*add,
@@ -26,9 +26,10 @@ arith = Pipeline('arith', clk, rst_n, keep=[add_sqr, x_sqr]) [
     x_sqr <= x*x   # note that x is transfered through 2nd pipe stage
 ]
 
-pipe += arith.expand()
+pipe += arith
 pipe += Comment(', '.join([f"{x}:{v.name}" for x,v in arith.outs.getDict().items()]))
-pipe += Assign(out, arith.outs.x_sqr - 1)
+pipe += out <= arith.outs.x_sqr - 1
+
 
 pipe.autoGen()
 

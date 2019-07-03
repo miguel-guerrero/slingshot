@@ -146,20 +146,19 @@ def showErrorLocation(msg, filename, lineno):
     if to_ < len(lines):
         print(f'...', file=sys.stderr)
 
+def getDbgInfo():
+    excludeList = ['__init__', '__call__', 'Input', 'Output']
+    exclModList = ['chipo.py', 'helper.py', 'hlc.py', 'decorators.py', 'vlog.py', 'functools.py']
+    for i in stack():
+        filebase = os.path.basename(i.filename)
+        if i.function not in excludeList and filebase not in exclModList:
+            return DebugInfo(i.filename, i.lineno, i.function)
+
 
 def error(msg, n):
     dbgStr = ''
-    dbg = None
-    if hasattr(n, '_dbg'):
-        dbg = n.__getattribute__('_dbg') #some nodes have . overriden
-    else:
-        exclFuncList = ['__init__', '__call__', 'Input', 'Output']
-        exclModList = ['chipo.py', 'helper.py', 'hlc.py', 'decorators.py']
-        for i in stack():
-            filebase = os.path.basename(i.filename)
-            if i.function not in exclFuncList and filebase not in exclModList:
-                dbg = DebugInfo(i.filename, i.lineno, i.function)
-                break
+    #some nodes have . overriden= 
+    dbg = n.__getattribute__('_dbg') if hasattr(n, '_dbg') else getDbgInfo()
     if dbg is not None:
         dbgStr = f"{dbg.filename}:{dbg.lineno} "
         if dbg.function != '<module>':

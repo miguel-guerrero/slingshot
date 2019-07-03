@@ -6,10 +6,10 @@ module counter
     parameter WIDTH = 8)
 (
     input clk,
+    input rst_n,
     input clr,
     input inc,
     input [WIDTH-1:0] max_val,
-    input rst_n,
     output reg [WIDTH-1:0] cnt,
     output reg eq
 );
@@ -17,7 +17,7 @@ module counter
 
 
 always @(*) begin
-    eq = cnt==max_val;
+    eq = cnt == max_val;
 end
 
 // clear and increment logic

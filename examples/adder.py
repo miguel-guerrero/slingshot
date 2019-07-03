@@ -7,8 +7,8 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 
 def Adder(W=8):
-    WIDTH = Parameter(W)
-    SWIDTH = Parameter(WIDTH)
+    WIDTH = Param(W)
+    SWIDTH = Param(WIDTH)
     clk = Clock()
     rst_n = Reset()
     cin = In()
@@ -17,12 +17,12 @@ def Adder(W=8):
     sm_zero_r = Out()
     res = Var(SWIDTH).Signed()
 
-    return  Module().Params(WIDTH, SWIDTH) [
+    return  Module(clk, rst_n).Params(WIDTH, SWIDTH) [
                 Combo() [
                     res != x + y + cin,
                     sm <= res
                 ],
-                Clocked(clk, rst_n) [
+                Clocked() [
                     sm_r <= sm,
                     sm_zero_r <= (sm == 0)
                 ]

@@ -11,7 +11,7 @@ from chipo import *
 class Counter2(Module):
     def __init__(self, name='counter2', *, cntW=8):
         super().__init__(name=name)
-        WIDTH = Parameter(cntW)
+        WIDTH = Param(cntW)
         clk, rst_n = Clock(), Reset()
         inc, clr = In() ** 2
         max_val = In(WIDTH)

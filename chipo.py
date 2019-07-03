@@ -22,16 +22,16 @@
 
 from enum import Enum
 import re
+import os
 import copy
 from collections import defaultdict
 from itertools import takewhile
-from inspect import stack
 
 import gencore
 from varname import makeCounter, Named
 import helper as h
 
-trackDebugInfo=True
+trackDebugInfo = True
 
 try:
     #https://github.com/RussBaz/enforce
@@ -108,14 +108,7 @@ class Meta(type):
         return x
 
     def __call__(self, *args, **kwargs):
-        if trackDebugInfo:
-            excludeList=['__init__', '__call__', 'Input', 'Output']
-            for i in stack():
-                if i.function not in excludeList:
-                    self._dbgi = h.DebugInfo(i.filename, i.lineno, i.function)
-                    break
-        else:
-            self._dbgi = None
+        self._dbgi = h.getDbgInfo() if trackDebugInfo else None
         return type.__call__(self, *args, **kwargs)
 
 
@@ -144,15 +137,15 @@ class AstNode(metaclass=Meta):
 
 
 #-----------------------------------------------------------
-# AstNode -> Comment
+# AstNode -> Comm
 #-----------------------------------------------------------
-class Comment(AstNode):
+class Comm(AstNode):
     def __init__(self, *lines):
         super().__init__()
         self.lines = lines
 
     def __repr__(self):
-        return f'Comment{self.lines!r}'
+        return f'Comm{self.lines!r}'
 
 
 #------------------------------------------------------------------------------
@@ -167,12 +160,12 @@ class AstStatement(AstNode):
 # AstNode -> AstStatement -> Clocked
 #-----------------------------------------------------------
 class Clocked(AstStatement):
-    def __init__(self, clock, reset=None, autoReset=True):
+    def __init__(self, clock=None, reset=None, autoReset=True, name=None):
         super().__init__()
         self.clock = clock
         self.reset = reset
         self.autoReset = autoReset
-        self.body = Block()
+        self.body = Block(name=name)
         self.hasWfe = False
 
     def __iadd__(self, x):
@@ -198,16 +191,25 @@ class Clocked(AstStatement):
         self.body.name = name
         return self
 
+    def needsReset(self):
+        assigned = self.body.assigned()
+        withDefault = set(x for x in assigned if x.default is not None)
+        return withDefault
+
     def genResetLogic(self):
-        lst = [SigAssign(var, var.default) for var in self.body.assigned()]
-        if not lst:
+        assigned = self.body.assigned()
+        withDefault = set(x for x in assigned if x.default is not None)
+        if not withDefault:
             return self.body
-        lst = sorted(lst, key=lambda x : x.lhs.name)
+        if len(withDefault) < len(assigned):
+            missing = sorted(x.name for x in assigned - withDefault)
+            raise ValueError(h.error(f'The following items need a default (in Clocked block with reset): {missing}', self))
+        withDefault = sorted([SigAssign(x, x.default) for x in withDefault], key=lambda x : x.lhs.name)
         name, self.body.name = self.body.name, None
-        return Block(If(self.reset.onExpr()).Then(*lst).Else(self.body)).Name(name)
+        return Block(If(self.reset.onExpr()).Then(*withDefault).Else(self.body), name=name)
 
     def addResetLogic(self):
-        if self.autoReset and self.reset is not None:
+        if self.autoReset and self.reset:
             self.body = self.genResetLogic()
         return self
 
@@ -220,12 +222,14 @@ class Clocked(AstStatement):
 # AstNode -> AstStatement -> Combo
 #-----------------------------------------------------------
 class Combo(AstStatement):
-    def __init__(self, *body):
+    def __init__(self, *body, name=None):
         super().__init__()
         if body:
             self.body = flattenBlock(body)
         else:
             self.body = Block() 
+        if name:
+            self.body.name = name
 
     def __iadd__(self, x):
         self.body += x
@@ -300,7 +304,7 @@ def _ioToVlogDict(ioMapDict, IOs):
     return d
 
 def _paramToTextDict(paramMapDict):
-    name = lambda p : p.name if isinstance(p, Parameter) else p
+    name = lambda p : p.name if isinstance(p, Param) else p
     return {name(p) : name(v) for p, v in paramMapDict.items()}
 
 
@@ -504,7 +508,7 @@ class Block(AstProcStatement):
     @staticmethod
     def check(x):
         if not isinstance(x, AstProcStatement) and \
-           not isinstance(x, Comment) and \
+           not isinstance(x, Comm) and \
            not isinstance(x, tuple) and \
            not isinstance(x, Declare) and not x is ...:
             raise TypeError(h.error(f'Expecting a procedural statement in a Block, got a {type(x)}', x))
@@ -770,16 +774,16 @@ class VarAssign(AssignBase):
 
 
 # AstNode -> AstProcStatement -> AssignBase -> SigAssign
-class SigAssign(AssignBase):
+class SigAssign(AssignBase, AstStatement):
     def __init__(self, lhs, expr):
-        super().__init__(lhs, expr, 'Sig', '<=')
+        AssignBase.__init__(self, lhs, expr, 'Sig', '<=')
 
 
 #-----------------------------------------------------------
 # AstNode -> Module
 #-----------------------------------------------------------
 class Module(AstNode, gencore.ModuleBase, Named):
-    def __init__(self, *, name=None, types=[], IOs=[], params=[]):
+    def __init__(self, *IOs, name=None, types=[], params=[]):
         Named.__init__(self, name)
         gencore.ModuleBase.__init__(self, IOs)
         super().__init__()
@@ -823,7 +827,8 @@ class Module(AstNode, gencore.ModuleBase, Named):
     @staticmethod
     def check(x):
         if not isinstance(x, AstStatement) and \
-           not isinstance(x, Comment):
+           not hasattr(x, 'expand') and \
+           not isinstance(x, Comm):
             raise TypeError(h.error('Expecting an statement in a Module', x))
         return x
 
@@ -939,6 +944,46 @@ class Module(AstNode, gencore.ModuleBase, Named):
             nextIdx[ins.modName()] = i+1
         return self
 
+    def findIO(self, typ):
+        return [io for io in self.IOs if isinstance(io, typ)]
+
+    def autoConnClockReset(self):
+        countClockedNoClk = countClockedNoRst = 0
+        for stm in self.body:
+            if hasattr(stm, 'clock'):
+                if stm.clock is None:
+                    if countClockedNoClk == 0:
+                        modClock = self.findIO(Clock)
+                        modClock = None if len(modClock) != 1 else modClock[0]
+                    countClockedNoClk += 1
+                    if modClock is None:
+                        raise ValueError(h.error('Could not derived a clock from top for', stm))
+                    stm.clock = modClock
+            if hasattr(stm, 'reset'):
+                if stm.reset is None and (not hasattr(stm, 'autoReset') or stm.autoReset):
+                    if countClockedNoRst == 0:
+                        modReset = self.findIO(Reset)
+                        modReset = None if len(modReset) != 1 else modReset[0]
+                    countClockedNoRst += 1
+                    if modReset is None:
+                        raise ValueError(h.error('Could not derived a reset from top for', stm))
+                    stm.reset = modReset
+        return self
+
+    def autoExpand(self): #TODO make sure body can accept tuples
+        newBody = []
+        for stm in self.body:
+            if hasattr(stm, 'expand') and (not hasattr(stm, 'autoExpand') or stm.autoExpand):
+                exp = stm.expand()
+                if isinstance(exp, tuple):
+                    newBody += list(exp) 
+                else:
+                    newBody.append(exp)
+            else:
+                newBody.append(stm)
+        self.body = newBody
+        return self
+
     def autoReset(self):
         for stm in self.body:
             if isinstance(stm, Clocked):
@@ -946,7 +991,9 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self
 
     def autoGen(self):
-        return self.autoReset().autoIOs() \
+        return self.autoConnClockReset() \
+                   .autoExpand() \
+                   .autoReset().autoIOs() \
                    .autoSignals().autoParams() \
                    .autoTypes().autoInstanceName()
 
@@ -1075,15 +1122,15 @@ class Rec(Agreg):
 
 
 def isMultParam(a):
-    return isinstance(a, BinExpr) and a.op=='*' and type(a.args[0])==CInt and type(a.args[1])==Parameter
+    return isinstance(a, BinExpr) and a.op=='*' and type(a.args[0])==CInt and type(a.args[1])==Param
 
 
 def isParamMult(a):
-    return isinstance(a, BinExpr) and a.op=='*' and type(a.args[1])==CInt and type(a.args[0])==Parameter
+    return isinstance(a, BinExpr) and a.op=='*' and type(a.args[1])==CInt and type(a.args[0])==Param
 
 
 def normalizeTerm(a):
-    if type(a)==Parameter:
+    if type(a)==Param:
         a = BinExpr('*', CInt(1), a)
     if isParamMult(a):
         e = BinExpr('*', a.args[1], a.args[0])
@@ -1423,7 +1470,7 @@ class CEnu(UnaryExpr):
         return f'CEnu({self.args[0]!r})'
 
 
-class Parameter(UnaryExpr, Named):
+class Param(UnaryExpr, Named):
     def __init__(self, val, name=None):
         super().__init__('.', val)
         Named.__init__(self, name)
@@ -1442,7 +1489,7 @@ class Parameter(UnaryExpr, Named):
         return self.name.__hash__()
 
     def __repr__(self):
-        return f"Parameter({self.argsStr()}, name={self.name!r})"
+        return f"Param({self.argsStr()}, name={self.name!r})"
 
 
 #------------------------------------------------------------------------
@@ -1766,15 +1813,12 @@ def Assign(sig, val):
     return Combo() [ sig <= val ]
 
 
-def Input(n=1, **kwargs):
-    return In(n, **kwargs)
-
-
-def Output(n=1, **kwargs):
-    return Out(n, **kwargs)
-
-
 def appendStms(body, stmts):
     for stm in stmts:
         body += stm
 
+# For backwards compatibility
+Input = In
+Output = Out
+Parameter = Param
+Comment = Comm
