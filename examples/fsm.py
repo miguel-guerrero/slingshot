@@ -36,7 +36,7 @@ fsm += Combo() [
         )
 ]
 
-fsm += Assign(done, state==States.DONE)
+fsm += done <= (state==States.DONE)
 
 fsm += Clocked(clk, rst_n) [
     state <= state_nxt

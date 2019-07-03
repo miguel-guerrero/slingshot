@@ -286,9 +286,9 @@ def genCsrs(rb, clk, rst_n):
         fldSig = Signal(orgF.w, name=f'{orgReg.name}_{orgF.name}')
         partFields = [Signal(f.w, name=f'{r.name}_{f.name}') for r, f in brkLst]
         if isinstance(orgF, RW): #output
-            m += Assign(fldSig, Concat(*partFields))
+            m += SigAssign(fldSig, Concat(*partFields))
         else: #input
-            m += Assign(Concat(*partFields), fldSig)
+            m += SigAssign(Concat(*partFields), fldSig)
 
     m += InstanceG2p(csrMod, ParamMap(), pm)
 

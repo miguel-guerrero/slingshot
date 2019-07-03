@@ -16,6 +16,7 @@ localparam DONE=2;
 reg [1:0] state;
 reg [1:0] state_nxt;
 
+
 always @(*) begin
     case (state)
         IDLE : begin
@@ -36,9 +37,7 @@ always @(*) begin
     endcase
 end
 
-always @(*) begin
-    done = state==DONE;
-end
+always @(*) done = state == DONE;
 
 always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
@@ -48,6 +47,7 @@ always @(posedge clk or negedge rst_n) begin
         state <= state_nxt;
     end
 end
+
 
 endmodule
 

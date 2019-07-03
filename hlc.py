@@ -165,7 +165,7 @@ class Pipeline(Named):
                 #E.g. for s3:  sad_s3_vld <= sad_s3_rdy ? sad_s2_vld : sad_s3_vld
                 m2 += SigAssign(vld_i, IfCond(rdy_i, vld_im1, vld_i))
                 #E.g. for s3:  assign sad_s3_rdy = sad_s4_rdy | ~sad_s3_vld;
-                c = Assign(rdy_i, rdy_ip1 | ~vld_i)
+                c = SigAssign(rdy_i, rdy_ip1 | ~vld_i)
                 pipeList.insert(0, c)
                 pipeList.insert(0, m2)
 
@@ -213,18 +213,18 @@ class Pipeline(Named):
         if self.vld:
             #E.g. assign sad_s0_vld = up_vld;
             vld_0 = StagedSignal(self.vld, 0, lastStageNum, self.name)
-            pipeList.insert(0, Assign(vld_0, self.vld_up))
+            pipeList.insert(0, SigAssign(vld_0, self.vld_up))
             pipeList.insert(0, Comment('hook to upsstream vld'))
 
         if self.rdy:
             #E.g. assign sad_rdy = sad_s1_rdy;
             rdy_first = StagedSignal(self.rdy, lastStageNum, lastStageNum, self.name)
-            pipeList.insert(0, Assign(rdy_first, rdy_i))
+            pipeList.insert(0, SigAssign(rdy_first, rdy_i))
             pipeList.insert(0, Comment('hook to upstream rdy'))
             #E.g. assign sad_s4_rdy = dn_rdy;
             pipeList.append(Comment('hook to downstream rdy'))
             rdy_last = StagedSignal(self.rdy, lastStageNum+1, lastStageNum, self.name)
-            pipeList.append(Assign(rdy_last, self.rdy_dn))
+            pipeList.append(SigAssign(rdy_last, self.rdy_dn))
 
         return pipeList, lastStageSigs
 

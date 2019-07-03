@@ -1809,10 +1809,6 @@ def InCopy(x):
     return In(typ=x.args[0], name=x.name, default=x.default)
 
 
-def Assign(sig, val):
-    return Combo() [ sig <= val ]
-
-
 def appendStms(body, stmts):
     for stm in stmts:
         body += stm
