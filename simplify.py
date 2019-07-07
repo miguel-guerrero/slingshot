@@ -20,7 +20,17 @@
 # Please send bugs and suggestions to: miguel.a.guerrero@gmail.com
 #-------------------------------------------------------------------------------
 
-from chipo import BinExpr, CInt, isInt, intVal, simplify
+from chipo import BinExpr, CInt, isInt, intVal, simplify, Assignable, Expr
+
+
+def isConst(obj) -> bool:
+    if isInt(obj):
+        return True
+    if isinstance(obj, Assignable):
+        return False
+    if isinstance(obj, Expr):
+        return all(isConst(a) for a in obj.args)
+    assert False, f"isConst applied over unexpected {obj}"
 
 
 def isIntVal(obj, x:int) -> bool:

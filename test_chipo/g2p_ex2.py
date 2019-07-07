@@ -10,8 +10,8 @@ import vlog
 #integrating chipo into a g2p flow
 
 def Adder(name, params):
-    WIDTH = Parameter(params.WIDTH)
-    SWIDTH = Parameter(WIDTH+1)
+    WIDTH = Param(params.WIDTH)
+    SWIDTH = Param(WIDTH+1)
     clk = Clock()
     rst_n = Reset()
     cin = Input()

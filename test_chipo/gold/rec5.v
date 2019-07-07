@@ -12,10 +12,12 @@ module adder (
 
 reg [7:0] x;
 
+
 always @(*) begin : combo_logic
     x = ins/*.s1.x*/[7:0];
     sm <= x[3:2] + ins/*.s1.y*/[15:8] + ins/*.s1.z*/[23:16] + ins/*.s1.w*/[31:24] + ins/*.cin*/[32];
 end
+
 
 always @(posedge clk or negedge rst_n) begin : registering
     if (~rst_n) begin
@@ -27,6 +29,7 @@ always @(posedge clk or negedge rst_n) begin : registering
         sm_zero_r <= sm == 0;
     end
 end
+
 
 endmodule
 

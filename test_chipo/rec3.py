@@ -9,7 +9,7 @@ from chipo import *
 #testing nested structures
 
 if __name__=='__main__':
-    #W = Parameter(8)
+    #W = Param(8)
     W = 8
 
     Sums = Rec() [
@@ -28,18 +28,18 @@ if __name__=='__main__':
     clk = Clock()
     rst_n = Reset()
     ins = In(Args)
-    sm = Output(W+2)
-    sm_r = Output(W+2)
-    sm_zero_r = Output()
+    sm = Out(W+2)
+    sm_r = Out(W+2)
+    sm_zero_r = Out()
 
     adder = Module()
 
-    com = Combo(Block(name='my_com')).Name('combo_logic')
+    com = Combo(name='combo_logic')
     com += sm <= ins.s1.x + ins.s1.y + ins.s1.z + ins.s1.w + \
                  ins.s2.x + ins.s2.y + ins.s2.z + ins.s2.w + ins.cin
     adder += com
 
-    p = Clocked(clk, rst_n).Name('registering') [
+    p = Clocked(clk, rst_n, name='registering') [
         sm_r <= sm,
         sm_zero_r <= (sm == 0),
     ]

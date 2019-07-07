@@ -6,6 +6,9 @@ import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 
+#in this example IOs is defined as an IoList, but is passed to FA
+#one by one using . notation
+
 class FullAdder(Module):
     def __init__(self, name='FA'):
         super().__init__(name=name)

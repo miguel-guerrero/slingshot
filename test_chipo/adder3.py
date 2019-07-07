@@ -7,30 +7,28 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 
 if __name__=='__main__':
-    WIDTH = Parameter(8)
-    SWIDTH = Parameter(9)
+    WIDTH = Param(8)
+    SWIDTH = Param(9)
     clk = Clock()
     rst_n = Reset()
-    cin = Input()
-    x = Input(WIDTH)
-    y = Input(WIDTH)
-    sm = Output(SWIDTH)
-    sm_r = Output(SWIDTH)
-    sm_zero_r = Output()
+    cin = In()
+    x = In(WIDTH)
+    y = In(WIDTH)
+    sm = Out(SWIDTH)
+    sm_r = Out(SWIDTH)
+    sm_zero_r = Out()
     res = Var(SWIDTH)
 
-
-    adder=\
-    Module().Params(WIDTH,SWIDTH).Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n).Body(
-        Combo(Block(name='my_com')).Name('combo_logic').Body(
-            #res == (x + y + cin),
+    adder = \
+    Module(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n, params=[WIDTH,SWIDTH]) [
+        Combo(name='combo_logic') [
             res @ (x + y + cin),
             sm <= res
-        ),
-        Clocked(clk, rst_n).Name('registering').Body(
+        ],
+        Clocked(clk, rst_n, name='registering') [
             sm_r <= sm,
             sm_zero_r <= (sm == 0)
-        ).addResetLogic()
-    )
+        ].addResetLogic()
+    ]
 
     print(adder.vlog())

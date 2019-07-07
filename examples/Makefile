@@ -1,6 +1,6 @@
 include ../common/include.mk
 
-VCOMP=iverilog -g2001
+VCOMP=iverilog -g2005-sv
 VRUN=vvp
 DIFF=diff -wbB
 

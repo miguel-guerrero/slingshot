@@ -8,6 +8,9 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 import vlog
 
+def NameMapDict(lst, typ):
+    return {x.name:x for x in lst if isinstance(x, typ)}
+
 
 class FullAdder(Module):
 
@@ -24,8 +27,8 @@ class FullAdder(Module):
         return cout, s
 
     def logic(self):
-        #cout, s = FullAdder.FA(**{x.name:x for x in self.IOs if isinstance(x, In)})
-        cout, s = FullAdder.FA(self.cin, self.a, self.b)
+        cout, s = FullAdder.FA(**NameMapDict(self.IOs, In))
+        #cout, s = FullAdder.FA(self.cin, self.a, self.b)
         return Combo() [ self.cout <= cout, self.s <= s ]
 
 

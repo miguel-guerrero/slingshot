@@ -7,8 +7,8 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 
 def Adder(name='adder'):
-    WIDTH = Parameter(8)
-    SWIDTH = Parameter(WIDTH+1)
+    WIDTH = Param(8)
+    SWIDTH = Param(WIDTH+1)
     clk = Clock()
     rst_n = Reset()
     cin = In()
@@ -35,8 +35,8 @@ def MultiAdder(name='multi_adder', numAdders=1):
 
     adder = Adder()
 
-    WIDTH = Parameter(8)
-    SWIDTH = Parameter(WIDTH+1)
+    WIDTH = Param(8)
+    SWIDTH = Param(WIDTH+1)
 
     cin_ = Signal()
     x_, y_ = Signal(8) ** 2

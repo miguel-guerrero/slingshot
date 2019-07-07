@@ -26,6 +26,7 @@ import os
 import copy
 from collections import defaultdict
 from itertools import takewhile
+from functools import reduce
 
 import gencore
 from varname import makeCounter, Named
@@ -203,7 +204,8 @@ class Clocked(AstStatement):
             return self.body
         if len(withDefault) < len(assigned):
             missing = sorted(x.name for x in assigned - withDefault)
-            raise ValueError(h.error(f'The following items need a default (in Clocked block with reset): {missing}', self))
+            raise ValueError(h.error(f'The following items need a default "+\
+                             "(in Clocked block with reset): {missing}', self))
         withDefault = sorted([SigAssign(x, x.default) for x in withDefault], key=lambda x : x.lhs.name)
         name, self.body.name = self.body.name, None
         return Block(If(self.reset.onExpr()).Then(*withDefault).Else(self.body), name=name)
@@ -214,8 +216,10 @@ class Clocked(AstStatement):
         return self
 
     def __repr__(self):
-        return f'Clocked({self.clock}, reset={self.reset!r}, ' + \
-               f'autoReset={self.autoReset}).Body({self.body!r})'
+        suffix = h.reprStr(["autoReset", self.autoReset, True],
+                           ["name", self.body.name, ""])
+        return f'Clocked({self.clock}, reset={self.reset!r}' + \
+               f'{suffix}).Body({self.body!r})'
 
 
 #-----------------------------------------------------------
@@ -280,29 +284,6 @@ class Declare(AstStatement):
 #-----------------------------------------------------------
 # Instance related
 #-----------------------------------------------------------
-def _ioToTextDict(ioMapDict, IOs):
-    name = lambda io : io.name if isinstance(io, Signal) else io
-    d = {name(io): name(io) for io in IOs} # default name mapping
-    for io, v in ioMapDict.items(): # override based on input
-        if isinstance(io, Signal):
-            assert io.name in d, 'signal in port map is not a port: ' + io.name
-        if isinstance(io, str):
-            assert io in d, 'signal in port map is not a port: ' + io
-        d[name(io)] = name(v) if v is not None else ''
-    return d
-
-def _ioToVlogDict(ioMapDict, IOs):
-    import vlog
-    name = lambda io : io.name if isinstance(io, Signal) else io
-    d = {name(io): name(io) for io in IOs} # default name mapping
-    for io, v in ioMapDict.items(): # override based on input
-        if isinstance(io, Signal):
-            assert io.name in d, 'signal in port map is not a port: ' + io.name
-        if isinstance(io, str):
-            assert io in d, 'signal in port map is not a port: ' + io
-        d[name(io)] = vlog.dump(v) if v is not None else ''
-    return d
-
 def _paramToTextDict(paramMapDict):
     name = lambda p : p.name if isinstance(p, Param) else p
     return {name(p) : name(v) for p, v in paramMapDict.items()}
@@ -323,7 +304,6 @@ class InstanceBase(AstStatement):
     def used(self):              raise NotImplementedError(h.error("", self))
     def modName(self):           raise NotImplementedError(h.error("", self))
     def _textParamMapDict(self): raise NotImplementedError(h.error("", self))
-    def _textIoMapDict(self):    raise NotImplementedError(h.error("", self))
 
     def _insName(self):
         if self.insName is not None:
@@ -351,9 +331,6 @@ class InstanceLegacy(InstanceBase):
 
     def _textParamMapDict(self):
         return self.textParamMapDict
-
-    def _textIoMapDict(self):
-        return self.textIoMapDict
 
     def __repr__(self):
         args = f", insName={self.insName!r}" if self.insName is not None else ""
@@ -396,9 +373,6 @@ class InstanceG2p(InstanceBase):
 
     def _textParamMapDict(self):
         return self.textParamMapDict
-
-    def _textIoMapDict(self):
-        return _ioToVlogDict(self.ioMapDict, self.modExp.IOs)
 
     def __repr__(self):
         args = f", insName={self.insName!r}" if self.insName is not None else ""
@@ -462,9 +436,6 @@ class Instance(InstanceBase):
 
     def _textParamMapDict(self):
         return _paramToTextDict(self.paramMapDict)
-
-    def _textIoMapDict(self):
-        return _ioToVlogDict(self.ioMapDict, self.mod.IOs)
 
     def __repr__(self):
         args = f", insName={self.insName!r}" if self.insName is not None else ""
@@ -791,8 +762,10 @@ class Module(AstNode, gencore.ModuleBase, Named):
         self.body = []
         self.types = list(types)
 
-    def __call__(self, **kwargs):
-        return Instance(self, ParamMap(), PortMap(**kwargs), insName=self.name+str(serialNumber()))
+    def __call__(self, paramMap=None, **kwargs):
+        if paramMap is None:
+            paramMap = ParamMap()
+        return Instance(self, paramMap, PortMap(**kwargs), insName=self.name+str(serialNumber()))
 
     def vlog(self, indLvl=0, recursive=False):
         import vlog
@@ -998,7 +971,7 @@ class Module(AstNode, gencore.ModuleBase, Named):
                    .autoTypes().autoInstanceName()
 
     def elab(self):
-        s = self.vlog() #for now resolves all names FIXME
+        s = repr(self) #resolves all names TODO
         return self.autoReset()
 
     def __repr__(self):
@@ -1030,6 +1003,47 @@ class Type(AstNode, Named):
             return set()
         return set([self])
 
+    def paramUsed(self):
+        return h.setUnion(*[x.paramUsed() for x in self.all()])
+
+    def all(self):
+        return []
+
+#------------------------------------------------------------------------
+# AstNode -> Type -> Array
+#------------------------------------------------------------------------
+class Array(Type):
+    def __init__(self, itemType, *dims, name=None):
+        super().__init__(name)
+        self.itemType = itemType
+        self.dims = dims
+        self.width = reduce(lambda x,y: x*y, dims)*itemType.width
+
+    def _itemtype(self): return self.itemType
+
+    def _offset(self, idx):
+        assert len(idx) == len(self.dims)
+        dims = list(reversed(self.dims)) # store lower ranking on index 0
+        offs = 0
+        sizeLowerDims = 1
+        for pos, i in enumerate(reversed(idx)):
+            offs += i * sizeLowerDims
+            sizeLowerDims *= dims[pos]
+        return offs*self.itemType.width
+
+    def all(self):
+        return [self.itemType] + list(i for i in self.dims if not isInt(i))
+
+    def size(self, i):
+        return self.dims[i]
+
+    def ndims(self):
+        return len(self.dims)
+
+    def __repr__(self):
+        suffix = h.reprStr(["name", self.name, ""])
+        return f"Array({self.itemType}, {self.dims}{suffix})"
+
 
 #------------------------------------------------------------------------
 # AstNode -> Type -> BitVec
@@ -1055,7 +1069,7 @@ class BitVec(Type):
     def __repr__(self):
         suffix = h.reprStr(["name", self.name, ""],
                            ["signed", self.signed, False])
-        return f"BitVec(width={self.width}{suffix})"
+        return f"BitVec({self.width}{suffix})"
 
 #------------------------------------------------------------------------
 # AstNode -> Type -> Agreg
@@ -1103,7 +1117,7 @@ class Agreg(Type):
     def width(self):
         return Agreg.sumList(f.typ.width for f in self.body)
 
-    def offset(self, fieldName:str):
+    def _offset(self, fieldName:str):
         assert fieldName in self.fieldDict
         priorFields = takewhile(lambda f : f.names[0] != fieldName, self.body)
         return Agreg.sumList(f.typ.width for f in priorFields)
@@ -1159,7 +1173,7 @@ def maxExpr(lst):
 class Union(Agreg):
     kind='Union'
 
-    def offset(self, fieldName:str):
+    def _offset(self, fieldName:str):
         return 0
 
     @property
@@ -1173,25 +1187,6 @@ class Union(Agreg):
 
 class Iface(Agreg):
     kind='Iface'
-
-
-#------------------------------------------------------------------------
-# AstNode -> Type -> Arr
-#------------------------------------------------------------------------
-class Arr(Type):
-    def __init__(self, typ:Type, dims, *, name=None):
-        super().__init__(name)
-        self.typ = typ
-        self._dims = h.tupleize(dims)
-
-    def size(self, i):
-        return self._dims[i]
-
-    def dimensions(self):
-        return len(self._dims)
-
-    def __repr__(self):
-        return f"Arr(typ={self.typ}, dims={self._dims}, name={self.name!r})"
 
 
 #------------------------------------------------------------------------
@@ -1275,7 +1270,7 @@ def opPri():
         ('+', '-'):80 })
 
     priBin = fillUpPri({
-        ('.'):99, ('*', '/'):20, ('+', '-'):19, ('<<', '>>'):18,
+        ('.'):99, ('[',):95, ('*', '/'):20, ('+', '-'):19, ('<<', '>>'):18,
         ('>', '<', '>='): 17, ('==', '!='): 16,
         ('&',): 15, ('^',): 14, ('|',): 13, #not intuitive
         ('&&',): 12, ('||',): 11 })
@@ -1303,6 +1298,8 @@ def WrapExpr(x):
         return CEnu(x)
     if isinstance(x, list):
         return Concat(*x)
+    if isinstance(x, tuple):
+        return x #for Array
     raise TypeError(h.error(f"Don't know how to covert to an expression", x))
 
 
@@ -1346,7 +1343,14 @@ class Expr(AstNode):
     def __neg__(self):          return UnaryExpr('-', self)
     def __invert__(self):       return UnaryExpr('~', self)
 
-    def __getitem__(self, slc): return BitExtract(self, slc)
+    def __getitem__(self, slc): 
+        typ = self._type()
+        if isinstance(typ, BitVec):
+            return BitExtract(self, slc)
+        elif isinstance(typ, Array):
+            return ItemExtract(self, slc)
+        else:
+            raise TypeError(h.error(f"{self.name} is not indexable type", self))
 
     def simplify(self):
         return self
@@ -1515,19 +1519,16 @@ class Assignable(UnaryExpr, Named):
         UnaryExpr.__init__(self, '.', typ)
         self.default = default
 
-    def _type(self):
-        return self.args[0]
+    def _type(self): return self.args[0]
+
+    @property
+    def width(self): return self._type().width
 
     def Signed(self):
         if isinstance(self._type(), BitVec):
             self._type().Signed()
             return self
         raise TypeError(h.error("Cannot set signed on non-BitVec type", self))
-
-    def width(self):
-        if isinstance(self._type(), BitVec):
-            return self._type().width
-        raise NotImplementedError(h.error("no width defined for type", self))
 
     def __getattr__(self, key):
         if key.startswith("_"):
@@ -1539,11 +1540,6 @@ class Assignable(UnaryExpr, Named):
         if key in typ.fieldDict:
             return DotExpr(self, key)
         raise KeyError(h.error(f"invalid Rec/Union/Iface field {self.name}.{key}", self))
-
-    #def __getitem__(self, lst):
-    #    typ = self._type()
-    #    assert isinstance(typ, Arr), f"{self.name} is not indexable type"
-    #    raise NotImplementedError
 
     def used(self):
         return set([self])
@@ -1645,10 +1641,13 @@ def isInt(obj) -> bool:
 
 
 def intVal(obj):
+    if isinstance(obj, (tuple, list)):
+        return tuple(intVal(k) for k in obj)
     if isinstance(obj, CInt):
         return obj.args[0]
     if isinstance(obj, int):
         return obj
+    assert False, f"Not clear how to get intVal of {obj}"
 
 
 class BinExpr(Expr):
@@ -1675,41 +1674,31 @@ class DotExpr(BinExpr):
         self.pri = getPri(self.op, numOps=2)
         self.const = False
         root = root or parent
-        self.typ = parent.args[0].fieldDict[key]
-        self.args = [self.typ, parent, key]
+        assert isinstance(parent._type(), Agreg)
+        fldtyp = parent._type().fieldDict[key]
+        self.args = [fldtyp, parent, key]
         self.root = root
 
     def used(self):      return set([self.root])
     def paramUsed(self): return set()
     def typesUsed(self): return set()
 
-    def offset(self, key):
-        lsb = 0
-        curr = self
-        while isinstance(curr, DotExpr):
-            parent = curr.args[1]
-            parentTyp = parent.args[0]
-            lsb += parentTyp.offset(key)
-            curr = parent
-            if isinstance(curr, DotExpr):
-                key = curr.args[2]
-        return lsb
+    def _type(self):   return self.args[0] # type of the selected key
+    def _parent(self): return self.args[1] # whole parent expression
+    def _key(self):    return self.args[2] # selected key
+
+    @property
+    def width(self):   return self._type().width
 
     def __getattr__(self, key):
         parent = self.args[0]
-        typ = self.typ
+        typ = self._type()
         if not isinstance(typ, Agreg):
             raise TypeError(h.error(
                 f"{typ.name} is not aggregate type and . expression attempted", self))
         if key in typ.fieldDict:
             return DotExpr(self, key, self.root)
         raise KeyError(h.error(f"invalid Rec/Union/Iface field {self.name}.{key}", self))
-
-    def __getitem__(self, slc): 
-        typ = self.args[0]
-        if not isinstance(typ, BitVec):
-            raise TypeError(h.error(f"{self.name} is not indexable type", self))
-        return BitExtract(self, slc)
 
     def lvalue(self):
         return set([self.args[0]])
@@ -1734,13 +1723,20 @@ class MultiExpr(Expr):
 
 
 class BitExtract(MultiExpr):
-    def __init__(self, val, msb, lsb=None):
+    def __init__(self, parent, msb, lsb=None):
         if isinstance(msb, slice): # e.g. x[3:2]
             if msb.step is not None: 
                 raise ValueError(h.error(f"invalid bit selection {msb.step}", self))
-            assert lsb==None
+            assert lsb == None
             msb, lsb = msb.start, msb.stop
-        super().__init__('[', val, msb, lsb) # BitExtract(x,3,2) also vld
+        super().__init__('[', parent, msb, lsb) # BitExtract(x,3,2) also vld
+
+    def _parent(self) : return self.args[0]
+    def _msb(self)    : return self.args[1]
+    def _lsb(self)    : return self.args[2] or self._msb()
+
+    @property
+    def width(self)   : return self._msb() + 1 - self._lsb()
 
     def __le__(self, rhs):
         return SigAssign(self, rhs)
@@ -1752,6 +1748,35 @@ class BitExtract(MultiExpr):
 
     def __repr__(self):
         return f"BitExtract({self.argsStr()})"
+
+
+class ItemExtract(MultiExpr):
+    def __init__(self, parent, idx):
+        assert isinstance(parent._type(), Array)
+        idx = h.tupleize(idx)
+        super().__init__('[', parent, *idx) # E.g. BitExtract(x,(1,2,3))
+
+    def _parent(self)   : return self.args[0]
+    def _idx(self)      : return self.args[1:]
+    def _type(self)     : return self._parent()._type()._itemtype()
+    def _itemtype(self) : return self._parent()._type()._itemtype()
+
+    @property
+    def width(self)     : return self._itemtype().width
+
+    def __le__(self, rhs):
+        return SigAssign(self, rhs)
+
+    def lvalue(self):
+        return set([self.args[0]])
+
+    __hash__ = Expr.__hash__
+
+    #def all(self):
+    #    return self.args + [self._parent()]
+
+    def __repr__(self):
+        return f"ItemExtract({self.argsStr()})"
 
 
 class Concat(MultiExpr):
@@ -1818,3 +1843,4 @@ Input = In
 Output = Out
 Parameter = Param
 Comment = Comm
+Variable = Var

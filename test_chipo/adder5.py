@@ -8,14 +8,14 @@ from chipo import *
 
 if __name__=='__main__':
 
-    WIDTH = Parameter(8)
-    SWIDTH = Parameter(9)
+    WIDTH = Param(8)
+    SWIDTH = Param(9)
     clk = Clock()
     rst_n = Reset()
-    cin = Input()
-    x, y = Input(WIDTH) ** 2
-    sm, sm_r  = Output(SWIDTH) ** 2
-    sm_zero_r = Output()
+    cin = In()
+    x, y = In(WIDTH) ** 2
+    sm, sm_r  = Out(SWIDTH) ** 2
+    sm_zero_r = Out()
     res = Var(SWIDTH)
 
     adder = Module(sm).Params(WIDTH,SWIDTH) [

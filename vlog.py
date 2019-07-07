@@ -21,10 +21,11 @@
 #-------------------------------------------------------------------------------
 from enum import Enum
 from functools import singledispatch
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 import chipo
-from helper import error
+import helper as h
+import simplify
 
 try:
     from enforce import runtime_validation, config
@@ -41,10 +42,10 @@ class Ctx(Enum):
     module=4
 
 Style = namedtuple('Style', ['useLogic', 'useAlwaysFF', 'useAlwaysComb', 
-    'useAgreg', 'useEnum', 'indent'])
+    'useAgreg', 'useEnum', 'indent', 'debugLevel'])
 
 STYLE = Style(useLogic=False, useAlwaysFF=False, useAlwaysComb=False,
-    useAgreg=False, useEnum=False, indent='    ')
+    useAgreg=False, useEnum=False, indent='    ', debugLevel=0)
 
 def setStyle(**kwargs):
     global STYLE
@@ -52,6 +53,34 @@ def setStyle(**kwargs):
     for k, v in kwargs.items():
         d[k] = v
     STYLE = Style(**d)
+
+
+class Defines:
+    def __init__(self):
+        self.clr()
+
+    def add(self, name, args, val):
+        if self.defs.get(name, None):
+            return
+        self.defs[name] = f"`define {name}({args}) ({val})"
+
+    def clr(self):
+        self.defs = OrderedDict()
+
+    def getDefAll(self):
+        defsStr = "\n".join(define for name, define in self.defs.items())
+        if defsStr != "":
+            defsStr = "// local defines\n" + defsStr + "\n\n"
+        return defsStr
+
+    def getUndefAll(self):
+        undefsStr = "\n".join(f"`undef {name}" for name in self.defs)
+        if undefsStr != "":
+            undefsStr = "\n" + "// local undefines\n" + undefsStr
+        return undefsStr
+
+        
+DEFS = Defines()
 
 @runtime_validation
 def ind(s:str, n:int) -> str:
@@ -63,6 +92,17 @@ def indList(lst:list, n:int) -> list:
 def indListAsStr(lst:list, n:int, sep=',\n') -> str:
     return sep.join(indList(lst, n))
 
+def dbgStr(node):
+    if STYLE.debugLevel > 0 and hasattr(node, '_dbg'):
+        dbg = node.__getattribute__('_dbg') 
+        if dbg:
+            if STYLE.debugLevel == 1:
+                return f'`line {dbg.lineno} "{dbg.filename}" 0\n'
+            elif STYLE.debugLevel == 2:
+                return f'/*\n{dbg.filename}:{dbg.lineno}:1\n*/\n'
+            else: 
+                return f'/*\n{dbg.filename}:{dbg.lineno}:1\n{h.getFileLines(dbg.filename, dbg.lineno)}*/\n'
+    return ""
 
 # convert expr to vlog and parenthesize if expr operator is lower pri than 
 # node.op/pri
@@ -88,9 +128,22 @@ def dumpParamPass(node, indLvl):
     return '#(\n' + indListAsStr(lst, indLvl+1) + '\n' + ind(')', indLvl)
 
 
+def _ioToVlogDict(ioMapDict, IOs):
+    name = lambda io : io.name if isinstance(io, chipo.Signal) else io
+    d = {name(io): name(io) for io in IOs} # default name mapping 1:1
+    for io, v in ioMapDict.items(): # override based on input
+        assert name(io) in d, 'signal in port map is not a port: ' + name(io)
+        d[name(io)] = '' if v is None else dump(v)
+    return d
+
+
 def dumpIoPass(node, indLvl): 
-    lst = [f".{k}({v})"for k, v in node._textIoMapDict().items()]
-    if len(lst) == 0:
+    if isinstance(node, chipo.InstanceLegacy):
+        iomap = node.textIoMapDict
+    else:
+        iomap = _ioToVlogDict(node.ioMapDict, node.module().IOs)
+    lst = [f".{k}({v})"for k, v in iomap.items()]
+    if not lst:
         return ""
     return '(\n' + indListAsStr(lst, indLvl+1) + '\n' + ind(');', indLvl)
 
@@ -146,14 +199,14 @@ def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if node == ...:
         return ind('`WFE', indLvl)
     if isinstance(node, chipo.AstStatement):
-        assert False, error("undefined dump(AstStatement)", node) 
+        assert False, h.error("undefined dump(AstStatement)", node) 
     elif isinstance(node, chipo.AstProcStatement):
-        assert False, error("undefined dump(AstProcStatement)", node)
+        assert False, h.error("undefined dump(AstProcStatement)", node)
     elif isinstance(node, chipo.AstNode):
-        assert False, error("undefined dump(AstNode)", node)
+        assert False, h.error("undefined dump(AstNode)", node)
     elif isinstance(node, chipo.Type):
-        assert False, error("undefined dump(Type)", node)
-    assert False, error("unhandled dump case", node)
+        assert False, h.error("undefined dump(Type)", node)
+    assert False, h.error("unhandled dump case", node)
 
 
 #@dump.register(Ellipsis)
@@ -166,11 +219,13 @@ def dump(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.Comm)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     vlst = [f"// {cmnt}" for cmnt in node.lines]
-    return indListAsStr(vlst, indLvl, sep='\n')
+    return dbgStr(node)+indListAsStr(vlst, indLvl, sep='\n')
 
 
 @dump.register(chipo.Module)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+
+    DEFS.clr()
     externalStr = ''
     if recursive:
         doneSet = set()
@@ -223,15 +278,14 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
         typeStr = '\n// types\n' + \
             indListAsStr(typeStrLst, indLvl, sep=",\n") + ';\n'
 
-    modStr = externalStr + \
+    modStr = dbgStr(node)+externalStr+DEFS.getDefAll() + \
            f'//'+ (76*'-') +'\n'+ \
            f'// {node.name}\n'+ \
            f'//'+ (76*'-') +'\n'+ \
            f'module {node.name} {paramStr}(\n{ioStr}\n);\n'+ \
            f'{typeStr}{undeclUsedStr}\n{regDeclStr}\n\n'+ \
-           f'{bodyStr}\n\nendmodule\n'
+           f'{bodyStr}\n\nendmodule\n'+DEFS.getUndefAll()
     yield node.name, modStr
-
 
 #-----------------------------------------------------------------------------
 # AstStatement derived
@@ -250,7 +304,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if node.hasWfe:
         resetAct = dump(node.reset.onExpr())
         prefix = f"`define WFE begin @({sensStr}); if ({resetAct}) disable _loop; end;\n"
-    return prefix+'\n'+ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr + '\n'
+    return prefix+'\n'+dbgStr(node)+ind(f'{alwaysStr} @({sensStr}) ', indLvl) + bodyStr + '\n'
 
 
 def isSafeToUseBlockingAssig(node):
@@ -271,7 +325,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     else:
         bodyStr = dump(node.body, indLvl)
     alwaysStr = 'always_comb' if STYLE.useAlwaysComb else 'always @(*)'
-    return '\n'+ind(f'{alwaysStr} ', indLvl) + bodyStr + '\n'
+    return '\n'+dbgStr(node)+ind(f'{alwaysStr} ', indLvl) + bodyStr + '\n'
 
 
 @dump.register(chipo.Declare)
@@ -285,7 +339,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     out  = '\n' + ind(f"{node.modName()} ", indLvl)
     out += dumpParamPass(node, indLvl)
     out += f" {node._insName()} " + dumpIoPass(node, indLvl)
-    return out
+    return dbgStr(node)+out
 
 
 #-----------------------------------------------------------------------------
@@ -302,8 +356,8 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.If)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if len(node.elifBlock)!=len(node.elifCond):
-        raise TypeError(error("In If/Elif/Else structure, at least one Elif has no condition", node))
-    v = ind('if (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
+        raise TypeError(h.error("In If/Elif/Else structure, at least one Elif has no condition", node))
+    v = dbgStr(node)+ind('if (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
         dump(node.trueBlock, indLvl, ctx=ctx)
     for i, b in enumerate(node.elifBlock):
         v += '\n' + ind('else if (' + dump(node.elifCond[i], ctx=ctx) + ')', 
@@ -315,7 +369,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
 @dump.register(chipo.While)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return ind('while (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
+    return dbgStr(node)+ind('while (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \
            dump(node.trueBlock, indLvl, ctx=ctx)
 
 
@@ -324,7 +378,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     cases = indListAsStr([dump(i, indLvl+1, ctx=ctx) for i in node.cases], 0, sep='\n')
     defStr = ind("default: ", indLvl+1) + dump(node.default, indLvl+1, ctx=ctx) + '\n' \
              if node.default else ""
-    return ind('case (' + dump(node.cond, ctx=ctx) + ')', indLvl) + '\n' + \
+    return dbgStr(node)+ind('case (' + dump(node.cond, ctx=ctx) + ')', indLvl) + '\n' + \
            cases + '\n' + defStr + ind('endcase', indLvl)
 
 
@@ -337,11 +391,12 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.AssignBase)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if node.oper == '<=' and ctx==Ctx.module:
+        dbg = dbgStr(node)
         assign = dump(node, indLvl, ctx=Ctx.useBlocking)
         if STYLE.useLogic:
-            return ind(f"assign {assign}", indLvl)
+            return dbg+ind(f"assign {assign}", indLvl)
         else:
-            return ind(f"always @(*) {assign}", indLvl)
+            return dbg+ind(f"always @(*) {assign}", indLvl)
     else:
         oper = '=' if ctx == Ctx.useBlocking else node.oper
         return ind(dump(node.lhs, ctx=ctx) + " " + oper + " " + \
@@ -391,22 +446,11 @@ def keyPath(key, parent):
 
 @dump.register(chipo.DotExpr)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-
-    typ, parent, key = node.args
-    parentTyp = parent.args[0]
-    keyName = keyPath(key, parent)
-
     if STYLE.useAgreg:
+        raise NotImplementedError
         return f"{node.root.name}.{keyName}"
     else:
-        lsb = node.offset(key)
-        msb = parentTyp.fldWidth(key) + lsb - 1
-
-        lsbStr = dump(chipo.simplify(lsb), ctx=Ctx.compact)
-        msbStr = dump(chipo.simplify(msb), ctx=Ctx.compact)
-
-        suffix = '' if msbStr == lsbStr else f':{lsbStr}'
-        return f"{node.root.name}/*.{keyName}*/[{msbStr}{suffix}]"
+        return dumpSelector(node)
 
 
 @dump.register(chipo.Param)
@@ -476,26 +520,74 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     return node.name
 
 
+def subOffset(node):
+    if isinstance(node, chipo.BitExtract):
+        return node._lsb()
+    if isinstance(node, chipo.DotExpr):
+        return node._parent()._type()._offset(node._key())
+    if isinstance(node, chipo.ItemExtract):
+        return node._parent()._type()._offset(node._idx())
+    return 0
+
+
+def subCmnt(node):
+    if isinstance(node, chipo.BitExtract):
+        lsbStr = dump(chipo.simplify(node._lsb()), ctx=Ctx.compact)
+        msbStr = dump(chipo.simplify(node._msb()), ctx=Ctx.compact)
+        if lsbStr != msbStr:
+            return f"[{msbStr}:{lsbStr}]"
+        return f"[{lsbStr}]"
+    if isinstance(node, chipo.DotExpr):
+        return "."+node._key()
+    if isinstance(node, chipo.ItemExtract):
+        idx = [dump(chipo.simplify(i), ctx=Ctx.compact) for i in node._idx()]
+        idxStr = ",".join(idx)
+        return f"[{idxStr}]"
+    return ''
+
+
+def subSelectorDump(node):
+    if isinstance(node, (chipo.BitExtract, chipo.DotExpr, chipo.ItemExtract)):
+        expr = node._parent()
+        s, base, _, cmnt = subSelectorDump(expr)
+        base += subOffset(node)
+        cmnt.append(subCmnt(node))
+        return s, base, node.width, cmnt
+    if isinstance(node, chipo.Assignable):
+        s = dump(node)
+        return s, 0, node.width, []
+    assert False, f"don't know how to handle {node} in subSelectorDump"
+
+
+def dumpSelector(node):
+    s, lsb, w, cmnt = subSelectorDump(node)
+    msb = lsb + w - 1
+    lsbStr = dump(chipo.simplify(lsb), ctx=Ctx.compact)
+    msbStr = dump(chipo.simplify(msb), ctx=Ctx.compact)
+    cmntStr = '' if len(cmnt) == 1 and isinstance(node, chipo.BitExtract) \
+                 else f"/*{''.join(cmnt)}*/"
+    if simplify.isConst(lsb):
+        if lsbStr != msbStr:
+            return f"{s}{cmntStr}[{msbStr}:{lsbStr}]"
+        return     f"{s}{cmntStr}[{lsbStr}]"
+    else:
+        wStr = dump(chipo.simplify(w), ctx=Ctx.compact)
+        DEFS.add('_GET_MSK', 'w', '(1 << (w)) - 1')
+        DEFS.add('_GET_FLD', 'x, sh, w', '((x) >> (sh)) & `_GET_MSK(w)')
+        return f"`_GET_FLD({s}, {lsbStr}, {wStr}){cmntStr}"
+
+
 #-----------------------------------------------------------------------------
 # Expr -> MultiExpr
 #-----------------------------------------------------------------------------
+@dump.register(chipo.ItemExtract)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return dumpSelector(node)
+
+
 @dump.register(chipo.BitExtract)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    typ, msb, lsb = node.args
-    if isinstance(typ, chipo.DotExpr):
-        _, parent, key = typ.args
-        offs = typ.offset(key)
-
-        msbStr = dump(chipo.simplify(msb+offs), ctx=Ctx.compact)
-        keyName = keyPath(key, parent)
-
-        suff = ":"+dump(chipo.simplify(lsb+offs), ctx=Ctx.compact) if lsb else ""
-        suffC= ":"+dump(lsb) if lsb else ""
-        return f"{typ.root.name}/*.{keyName}[{dump(msb)}{suffC}]*/[{msbStr}{suff}]"
-    else:
-        msbStr = dump(chipo.simplify(msb), ctx=Ctx.compact)
-        suff = ":"+dump(chipo.simplify(lsb), ctx=Ctx.compact) if lsb else ""
-        return paren(node, typ) + f"[{msbStr}{suff}]"
+    return dumpSelector(node)
 
 
 @dump.register(chipo.Concat)
@@ -532,7 +624,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     return f"{node}"
 
 
-#TODO Agreg, Arr, Enu
+#TODO Agreg, Array, Enu
 
 #-----------------------------------------------------------------------------
 # Temporal during Module vlog generation
@@ -620,3 +712,6 @@ def _(typ, indLvl=0):
         return ""
 
 
+@dump.register(chipo.Array)
+def _(typ, indLvl=0):
+    return ""

@@ -7,6 +7,8 @@ sys.path.append("..") # add path to chipo and related
 
 from chipo import *
 
+#in this example IOs is defined as an IoList, so they can be passsed
+#as a group and accessed using . notation
 
 def byName(lst, name):
     for i in lst:
@@ -14,8 +16,6 @@ def byName(lst, name):
             return i
     raise ValueError(h.error('{name} not found in {lst}'))
 
-def NameMapDict(lst):
-    return {x.name:x for x in lst}
 
 class FullAdder(Module):
     def __init__(self, name='FA'):

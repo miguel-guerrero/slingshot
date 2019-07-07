@@ -6,7 +6,7 @@ import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 
-WIDTH = Parameter(8)
+WIDTH = Param(8)
 clk = Clock()
 rst_n = Reset()
 x = Input(WIDTH)

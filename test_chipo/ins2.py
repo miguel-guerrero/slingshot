@@ -8,6 +8,10 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 import vlog
 
+#in this example arguments to FA are pased by name expanding IOs in the call
+
+def NameMapDict(lst):
+    return {x.name:x for x in lst}
 
 class FullAdder(Module):
 
@@ -26,7 +30,8 @@ class FullAdder(Module):
         )
 
     def logic(self):
-        log = FullAdder.FA(**{x.name:x for x in self.IOs})
+        #log = FullAdder.FA(**{x.name:x for x in self.IOs})
+        log = FullAdder.FA(**NameMapDict(self.IOs))
         return Combo(log)
 
 

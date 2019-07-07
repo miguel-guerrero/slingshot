@@ -9,12 +9,12 @@ from chipo import *
 if __name__=='__main__':
     clk = Clock()
     rst_n = Reset()
-    cin = Input()
-    x = Input(8)
-    y = Input(8)
-    sm = Output(9)
-    sm_r = Output(9)
-    sm_zero_r = Output(default=None)
+    cin = In()
+    x = In(8)
+    y = In(8)
+    sm = Out(9)
+    sm_r = Out(9)
+    sm_zero_r = Out(default=None)
 
     adder = Module().Ios(cin, x, y, sm, sm_r, sm_zero_r, clk, rst_n)
 

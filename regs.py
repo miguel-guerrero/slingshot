@@ -29,7 +29,7 @@ import g2p as g
 class Field:
     def __init__(self, w, name, typ, reset):
         if isinstance(w, Signal):
-            self.w = w.width().Eval() if isinstance(w.width(), Expr) else w.width()
+            self.w = w.width.Eval() if isinstance(w.width, Expr) else w.width
             self.name = w.name if name is None else name
             self.reset = w.default if reset is None else reset
         else:
@@ -276,7 +276,7 @@ def genCsrs(rb, clk, rst_n):
     for io in csrMod.getIOs():
         if io.name not in pm.keys():
             topName = io.name[:-4] if io.name.endswith('_val') else io.name
-            pm[io.name] = Signal(io.width(), name=topName)
+            pm[io.name] = Signal(io.width, name=topName)
 
     #create a wrapper of the actually generated csr module with propper 
     #signal renaming and broken field concatenation

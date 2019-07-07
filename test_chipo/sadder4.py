@@ -7,16 +7,16 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 
 if __name__=='__main__':
-    WIDTH = Parameter(8)
-    SWIDTH = Parameter(WIDTH)
+    WIDTH = Param(8)
+    SWIDTH = Param(WIDTH)
     clk = Clock()
     rst_n = Reset()
-    cin = Input()
-    x = Input(WIDTH).Signed()
-    y = Input(WIDTH).Signed()
-    sm = Output(SWIDTH).Signed()
-    sm_r = Output(SWIDTH).Signed()
-    sm_zero_r = Output()
+    cin = In()
+    x = In(WIDTH).Signed()
+    y = In(WIDTH).Signed()
+    sm = Out(SWIDTH).Signed()
+    sm_r = Out(SWIDTH).Signed()
+    sm_zero_r = Out()
     res = Var(SWIDTH).Signed()
 
     adder=(

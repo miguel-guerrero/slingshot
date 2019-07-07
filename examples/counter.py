@@ -6,6 +6,7 @@ import sys
 sys.path.append("..") # add path to chipo and related
 
 from chipo import *
+import vlog
 
 def Counter(cntW=8):
     WIDTH = Param(cntW)
@@ -34,4 +35,5 @@ if __name__=='__main__':
     counter = Counter()
 
     #print verilog code for it
+    vlog.setStyle(debugLevel=3)
     print(counter.vlog(recursive=True))

@@ -6,45 +6,26 @@ import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 
-#testing nested structures
-
 if __name__=='__main__':
-    #W = Param(8)
-    W = 8
-
-
-    Args = Rec() [
-        Field(
-            Rec() [
-                Field(BitVec(W), "x"),
-                Field(BitVec(W), "y"),
-                Field(BitVec(W), "z"),
-                Field(BitVec(W), "w")
-            ], "s1"
-        ),
-        Field(BitVec(), "cin"),
-    ]
-
+    W = Param(8)
     clk = Clock()
     rst_n = Reset()
-    ins = In(Args)
+    cin = Input()
     sm = Out(W+2)
     sm_r = Out(W+2)
     sm_zero_r = Out()
 
+    ArgT = Array(BitVec(20), 10, 5, 2)
+    Arr2 = Array(ArgT, 2, 2)
+
+    ins = Signal(Arr2)
+
     adder = Module()
 
     com = Combo(name='combo_logic')
-    x = Var(W)
-    com += x != ins.s1.x
-    com += sm <= x[3:2] + ins.s1.y + ins.s1.z + ins.s1.w + ins.cin
+    com += sm <= ins[1,1][9,4,1]
     adder += com
 
-    p = Clocked(clk, rst_n, name='registering') [
-        sm_r <= sm,
-        sm_zero_r <= (sm == 0),
-    ]
-    adder += p
     adder.autoGen()
 
     print(adder.vlog())

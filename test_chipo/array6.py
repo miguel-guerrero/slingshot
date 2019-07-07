@@ -7,33 +7,23 @@ sys.path.append("..") # add path to chipo and related
 from chipo import *
 
 if __name__=='__main__':
-    W = Param(8)
-    #W = 8
-    Args = Rec() [
-        Field(BitVec(W), "x"),
-        Field(BitVec(W), "y"),
-        Field(BitVec(W), "z"),
-        Field(BitVec(W), "w"),
-    ]
+    NUM_INP = Param(8)
+    DW = Param(32)
     clk = Clock()
     rst_n = Reset()
-    cin = Input()
-    ins = In(Args)
-    sm = Out(W+2)
-    sm_r = Out(W+2)
-    sm_zero_r = Out()
+    a = In(5)
+    tbl = Out(20)
+
+    ArgT = Array(BitVec(DW), NUM_INP)
+
+    ins = Signal(ArgT)
 
     adder = Module()
 
     com = Combo(name='combo_logic')
-    com += sm <= ins.x + ins.y + ins.z + ins.w + cin
+    com += tbl <= ins[a]
     adder += com
 
-    p = Clocked(clk, rst_n, name='registering') [
-        sm_r <= sm,
-        sm_zero_r <= (sm == 0),
-    ]
-    adder += p
     adder.autoGen()
 
     print(adder.vlog())

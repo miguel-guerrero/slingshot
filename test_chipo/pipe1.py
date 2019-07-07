@@ -10,7 +10,7 @@ import vlog
 
 clk = Clock()
 rst_n = Reset()
-W = Parameter(8)
+W = Param(8)
 x, y = Input(W) ** 2
 add = Signal(W+1)
 add_sqr = Signal(2*W+2)

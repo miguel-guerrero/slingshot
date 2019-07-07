@@ -36,10 +36,12 @@ def tupleize(x):
         x = (x,)
     return x
 
+
 def setUnion(*lst):
     if lst:
         return set.union(*lst)
     return set()
+
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -121,30 +123,39 @@ def red(s):   return f"\033[91m{s}\033[00m"
 def green(s): return f"\033[92m{s}\033[00m"
 def blue(s):  return f"\033[96m{s}\033[00m"
 
-def showErrorLocation(msg, filename, lineno):
-    import sys
-    if sys.stderr.isatty():
-        r, g, b = red, green, blue
+def getFileLines(filename, lineno, isatty=False, showElip=False, ctxLines=3):
+    if isatty:
+        g, b = green, blue
     else:
-        r = g = b = lambda x : x
+        g = b = lambda x : x
     with open(filename) as f:
         lines = f.readlines()
     from_ = max(1, lineno-5)
     to_   = min(len(lines), lineno+5)
-    print(f'{filename}:{lineno}:1 error: {r(msg)}', file=sys.stderr)
-    if from_ > 1:
-        print(f'...', file=sys.stderr)
+    out = ""
+    if showElip and from_ > 1:
+        out += f'...\n'
     for i in range(from_, to_+1):
-        marker = ' '
+        marker = '  '
         text = lines[i-1]
         if i == lineno:
-            marker = '*' 
+            marker = '->' 
             text = b(text)
         else:
             text = g(text)
-        print("%s %5d %s" %(marker, i, text), file=sys.stderr, end='')
-    if to_ < len(lines):
-        print(f'...', file=sys.stderr)
+        out += "%s %5d %s" %(marker, i, text)
+    if showElip and to_ < len(lines):
+        out += '...'
+    return out
+
+
+def showErrorLocation(msg, filename, lineno):
+    import sys
+    isatty = sys.stderr.isatty()
+    r = red if isatty else lambda x : x
+    print(f'{filename}:{lineno}:1 error: {r(msg)}',        file=sys.stderr)
+    print(getFileLines(filename, lineno, isatty, True, 5), file=sys.stderr)
+
 
 def getDbgInfo():
     excludeList = ['__init__', '__call__', 'Input', 'Output']
