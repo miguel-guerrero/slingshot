@@ -40,6 +40,7 @@ class Ctx(Enum):
     compact=3
     useBlocking=3
     module=4
+    lhs=5
 
 Style = namedtuple('Style', ['useLogic', 'useAlwaysFF', 'useAlwaysComb', 
     'useAgreg', 'useEnum', 'indent', 'debugLevel'])
@@ -57,14 +58,19 @@ def setStyle(**kwargs):
 
 class Defines:
     def __init__(self):
-        self.clr()
+        self.removeAll()
 
     def add(self, name, args, val):
-        if self.defs.get(name, None):
-            return
-        self.defs[name] = f"`define {name}({args}) ({val})"
+        macro = f"`define {name}({args}) ({val})"
+        prevDef = self.defs.get(name, None)
+        if prevDef and macro != prevDef:
+            assert False, 'Cannot redefine a macro'
+        self.defs[name] = macro
 
-    def clr(self):
+    def remove(self, name):
+        del self.defs[name] 
+
+    def removeAll(self):
         self.defs = OrderedDict()
 
     def getDefAll(self):
@@ -225,7 +231,7 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 @dump.register(chipo.Module)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
-    DEFS.clr()
+    DEFS.removeAll()
     externalStr = ''
     if recursive:
         doneSet = set()
@@ -399,8 +405,24 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
             return dbg+ind(f"always @(*) {assign}", indLvl)
     else:
         oper = '=' if ctx == Ctx.useBlocking else node.oper
-        return ind(dump(node.lhs, ctx=ctx) + " " + oper + " " + \
-               dump(node.expr, indLvl), indLvl) + ';'
+
+        res = DumpRes()
+        subSelectorDump(node.lhs, res)
+        if res.const:
+            return ind(dump(node.lhs, ctx=Ctx.lhs) + " " + oper + " " + \
+                       dump(node.expr, indLvl), indLvl) + ';'
+        else:
+            DEFS.add('_GET_MSK', 'w', '(1 << (w)) - 1')
+            DEFS.add('_SET_FLD', 'x, sh, w, newval', '(newval << (sh)) | ((x) & ~(`_GET_MSK(w) << (sh)))')
+
+            lsbStr = dump(chipo.simplify(res.base),  ctx=Ctx.compact)
+            wStr   = dump(chipo.simplify(res.width), ctx=Ctx.compact)
+            rhsStr = dump(node.expr)
+            cmntStr = '' if len(res.cmnt) == 1 and isinstance(node, chipo.BitExtract) \
+                         else f"/*{''.join(res.cmnt)}*/"
+            rhs = f"`_SET_FLD({res.s}, {lsbStr}, {wStr}, {rhsStr}){cmntStr}"
+            return ind(dump(node.lhs, ctx=Ctx.lhs) + " " + oper + " " + rhs, indLvl) + ';'
+                    
 
 #-----------------------------------------------------------------------------
 # Expr
@@ -447,10 +469,10 @@ def keyPath(key, parent):
 @dump.register(chipo.DotExpr)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     if STYLE.useAgreg:
-        raise NotImplementedError
+        raise NotImplementedError("useAgreg option coming soon")
         return f"{node.root.name}.{keyName}"
     else:
-        return dumpSelector(node)
+        return dumpSelector(node, ctx)
 
 
 @dump.register(chipo.Param)
@@ -546,35 +568,62 @@ def subCmnt(node):
     return ''
 
 
-def subSelectorDump(node):
+class DumpRes:
+    def __init__(self):
+        self.s = ''
+        self.base = 0
+        self.width = 0
+        self.cmnt = []
+        self.const = True
+        self.concat = False
+
+
+def subSelectorDump(node, res):
     if isinstance(node, (chipo.BitExtract, chipo.DotExpr, chipo.ItemExtract)):
         expr = node._parent()
-        s, base, _, cmnt = subSelectorDump(expr)
-        base += subOffset(node)
-        cmnt.append(subCmnt(node))
-        return s, base, node.width, cmnt
-    if isinstance(node, chipo.Assignable):
-        s = dump(node)
-        return s, 0, node.width, []
-    assert False, f"don't know how to handle {node} in subSelectorDump"
-
-
-def dumpSelector(node):
-    s, lsb, w, cmnt = subSelectorDump(node)
-    msb = lsb + w - 1
-    lsbStr = dump(chipo.simplify(lsb), ctx=Ctx.compact)
-    msbStr = dump(chipo.simplify(msb), ctx=Ctx.compact)
-    cmntStr = '' if len(cmnt) == 1 and isinstance(node, chipo.BitExtract) \
-                 else f"/*{''.join(cmnt)}*/"
-    if simplify.isConst(lsb):
-        if lsbStr != msbStr:
-            return f"{s}{cmntStr}[{msbStr}:{lsbStr}]"
-        return     f"{s}{cmntStr}[{lsbStr}]"
+        subSelectorDump(expr, res)
+        res.base += subOffset(node)
+        res.cmnt.append(subCmnt(node))
+        res.width = node.width
+    elif isinstance(node, chipo.Assignable):
+        res.s = dump(node)
+        res.base = 0
+        res.width = node.width
+        res.cmnt = []
+    elif isinstance(node, chipo.Concat): #TODO
+        res.s = dump(node)
+        res.base = 0
+        res.width = 0
+        res.cmnt = []
+        res.concat = True
     else:
-        wStr = dump(chipo.simplify(w), ctx=Ctx.compact)
-        DEFS.add('_GET_MSK', 'w', '(1 << (w)) - 1')
-        DEFS.add('_GET_FLD', 'x, sh, w', '((x) >> (sh)) & `_GET_MSK(w)')
-        return f"`_GET_FLD({s}, {lsbStr}, {wStr}){cmntStr}"
+        assert False, f"don't know how to handle {node} in subSelectorDump"
+    if isinstance(node, (chipo.BitExtract, chipo.ItemExtract)):
+        res.const = res.const and simplify.isConst(res.base)
+
+
+def dumpSelector(node, ctx):
+    res = DumpRes()
+    subSelectorDump(node, res)
+    msb = res.base + res.width - 1
+    lsbStr = dump(chipo.simplify(res.base), ctx=Ctx.compact)
+    msbStr = dump(chipo.simplify(msb),      ctx=Ctx.compact)
+    cmntStr = '' if len(res.cmnt) == 1 and isinstance(node, chipo.BitExtract) \
+                 else f"/*{''.join(res.cmnt)}*/"
+    if res.const:
+        if lsbStr != msbStr:
+            return f"{res.s}{cmntStr}[{msbStr}:{lsbStr}]"
+        return     f"{res.s}{cmntStr}[{lsbStr}]"
+    else:
+        if ctx == Ctx.lhs:
+            if res.concant:
+                raise NotImplementedError("lhs concat with variable indexing coming soon")
+            return res.s
+        else:
+            wStr = dump(chipo.simplify(res.width), ctx=Ctx.compact)
+            DEFS.add('_GET_MSK', 'w', '(1 << (w)) - 1')
+            DEFS.add('_GET_FLD', 'x, sh, w', '((x) >> (sh)) & `_GET_MSK(w)')
+            return f"`_GET_FLD({res.s}, {lsbStr}, {wStr}){cmntStr}"
 
 
 #-----------------------------------------------------------------------------
@@ -582,12 +631,12 @@ def dumpSelector(node):
 #-----------------------------------------------------------------------------
 @dump.register(chipo.ItemExtract)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return dumpSelector(node)
+    return dumpSelector(node, ctx)
 
 
 @dump.register(chipo.BitExtract)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return dumpSelector(node)
+    return dumpSelector(node, ctx)
 
 
 @dump.register(chipo.Concat)

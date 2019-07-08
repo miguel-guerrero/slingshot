@@ -57,7 +57,7 @@ ins ins3 ins4:
 	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
-array array2 array3 array4 array5 array6:
+array array2 array3 array4 array5 array6 array7:
 	./$@.py > $@.v
 	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
