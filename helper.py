@@ -24,9 +24,9 @@ def listRepr(*args):
 
 #pad suffix number if present for nicer sort
 def modkey(n): 
-    m = re.search(r'^(.+?)(\d+)$', n)
+    m = re.search(r'^(.+?)(\d+)(.*)$', n)
     if m:
-        n = m.group(1) + f"{int(m.group(2)):05}"
+        n = m.group(1) + f"{int(m.group(2)):05}" + m.group(3)
     return n
 
 
