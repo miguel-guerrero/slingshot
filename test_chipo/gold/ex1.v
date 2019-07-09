@@ -16,12 +16,12 @@ module cater
 
 
 
+
 always @(*) begin : combo_logic
-    cat <= {
-        x[3:2],
-        y[2]};
+    cat <= {x[3:2], y[2]};
     cat <= (a ^ b) & cat ^ a;
 end
+
 
 endmodule
 

@@ -641,7 +641,12 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 
 @dump.register(chipo.Concat)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
-    return '{\n'+ indListAsStr([paren(node, x) for x in node.all()], indLvl+1) +'}'
+    dumps = [paren(node, x) for x in node.all()]
+    ln = sum(len(i)+2 for i in dumps) + (indLvl+1)*len(STYLE.indent)
+    if ln < 60:
+        return '{'+ indListAsStr(dumps, 0, ', ') +'}'
+    else:
+        return '{\n'+ indListAsStr(dumps, indLvl+1) +'}'
 
 
 @dump.register(chipo.IfCond)
