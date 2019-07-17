@@ -5,13 +5,13 @@ module fsm (
     input clk,
     input rst_n,
     output logic ctl,
-    output logic done
+    output logic done,
+    output logic [1:0] state
 );
 
 // types
 typedef enum logic [1:0] {IDLE=0, GO=1, DONE=2} States;
 
-States state;
 States state_nxt;
 
 

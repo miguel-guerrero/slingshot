@@ -169,6 +169,10 @@ class TempLogic(chipo.BitVec):
         super().__init__(width=sig.args[0].width, name=sig.name, 
             signed=sig.args[0].signed)
         self.default = sig.default
+        self.raw = sig
+
+    def _type(self):
+        return self.raw._type()
 
 
 class Reg(TempLogic):
@@ -616,7 +620,7 @@ def dumpSelector(node, ctx):
         return     f"{res.s}{cmntStr}[{lsbStr}]"
     else:
         if ctx == Ctx.lhs:
-            if res.concant:
+            if res.concat:
                 raise NotImplementedError("lhs concat with variable indexing coming soon")
             return res.s
         else:
@@ -685,6 +689,9 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
 #-----------------------------------------------------------------------------
 @dump.register(Logic)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    if STYLE.useEnum and isinstance(node._type(), chipo.Enu):
+        typ = node._type().name
+        return ind(f"{typ} {node.name};", indLvl)
     typ = 'logic' + dumpSigned(node)
     if node.width != 1:
         return ind(f"{typ} [{dumpMsb(node)}:0] {node.name};", indLvl)
@@ -718,9 +725,11 @@ def dumpType(typ, indLvl=0):
 @dump.register(chipo.Enu)
 def _(typ, indLvl=0):
     if STYLE.useEnum:
+        assert STYLE.useLogic
         enuLst = [f"{k}={v}" for k,v in typ.dict().items()]
         enuStr = ", ".join(enuLst)
-        return ind(f"typedef enum {{{enuStr}}} {typ.name}", indLvl)
+        szStr = f"[{dumpMsb(typ)}:0] " if typ.width != 1 else ""
+        return ind(f"typedef enum logic {szStr}{{{enuStr}}} {typ.name}", indLvl)
     else:
         enuLst = [f"localparam {k}={v}" for k,v in typ.dict().items()]
         return indListAsStr(enuLst, indLvl, ";\n")

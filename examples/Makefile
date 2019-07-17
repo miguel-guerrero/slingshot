@@ -66,4 +66,4 @@ matmul_simple2:
 
 clean:
 	$(RM) -r __pycache__ *.out *.v build *.xml *.vcd
-	$(RM) *.log 
+	$(RM) *.log *.vg

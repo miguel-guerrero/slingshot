@@ -12,7 +12,7 @@ States = Enu('IDLE', 'GO', 'DONE')
 clk = Clock()
 rst_n = Reset()
 ctl, done = Out() ** 2
-state = Signal(States, default='IDLE')
+state = Output(States, default='IDLE')
 state_nxt = Signal(States)
 
 fsm = Module()

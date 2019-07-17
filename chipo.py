@@ -1687,6 +1687,9 @@ class DotExpr(BinExpr):
     def _parent(self): return self.args[1] # whole parent expression
     def _key(self):    return self.args[2] # selected key
 
+    def __le__(self, rhs):
+        return SigAssign(self, rhs)
+
     @property
     def width(self):   return self._type().width
 
@@ -1701,7 +1704,7 @@ class DotExpr(BinExpr):
         raise KeyError(h.error(f"invalid Rec/Union/Iface field {self.name}.{key}", self))
 
     def lvalue(self):
-        return set([self.args[0]])
+        return self._parent().lvalue()
 
     def Eval(self):
         return self.args[0]
@@ -1768,7 +1771,7 @@ class ItemExtract(MultiExpr):
         return SigAssign(self, rhs)
 
     def lvalue(self):
-        return set([self.args[0]])
+        return self._parent().lvalue()
 
     __hash__ = Expr.__hash__
 
