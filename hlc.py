@@ -32,7 +32,7 @@ from simplify import isIntVal
 # Logic under a block contains a clock edge?
 #------------------------------------------------------------------------------
 def hasWfe(node):
-    return node.any(lambda x : x is ...)
+    return node is ... or hasattr(node, 'any') and node.any(lambda x : x is ...)
 
 #------------------------------------------------------------------------------
 # Pipeline
@@ -437,16 +437,21 @@ class Fsm(Named):
     def toDAG(self):
         def toDagSub(body, nx):
             for stm in reversed(body):
-                if isinstance(stm, If):
+                hasWfe_ = hasWfe(stm);
+                if isinstance(stm, If) and hasWfe_:
                     nLast = toDagSub(stm.falseBlock, nx=nx)
                     for i in reversed(range(len(stm.elifCond))):
                         block = stm.elifBlock[i]
                         cond = stm.elifCond[i]
                         nLast = Node(NodeType.ife, code=cond, bt=toDagSub(block, nx=nx), bf=nLast)
                     n = Node(NodeType.ife, code=stm.cond, bt=toDagSub(stm.trueBlock, nx=nx), bf=nLast)
-                elif isinstance(stm, While):
+                elif isinstance(stm, While) and hasWfe_:
                     n = Node(NodeType.ife, code=stm.cond, bf=nx)
                     n.bt = toDagSub(stm.trueBlock, nx=n)
+                elif isinstance(stm, Do) and hasWfe_:
+                    nife = Node(NodeType.ife, code=stm.cond, bf=nx)
+                    n = toDagSub(stm.body, nx=nife)
+                    nife.bt = n
                 elif stm is ...:
                     n = Node(NodeType.wfe, code=self.wfeCounter, nx=nx)
                     self.wfeCounter += 1
@@ -466,8 +471,6 @@ class Fsm(Named):
         return set([v for v in self.body.assigned() if isinstance(v, Var)])
 
     def dumpTree(self, root:Node):
-        self.root = root
- 
         #create dict that links wfe nodes with its id
         wfeLst = [n for n in Node.all if n.typ == NodeType.wfe]
         wfeCnt = len(wfeLst)
@@ -530,11 +533,22 @@ class Fsm(Named):
                 import sys
                 visitedStr = ', '.join([str(x) for x in visited])
                 print(showFromNode(self.root), file=sys.stderr)
-                raise ValueError(f"SM There is a loop path without ... within "+\
+                raise ValueError(f"SM There is a loop path without clock-edges/... on "+\
                                 f"the set of nodes {visitedStr}. Currently @{node.uid}")
 
             bt, bf, nx = node.bt, node.bf, node.nx
-            if node.typ == NodeType.ife:
+            if node.typ == NodeType.stm:
+                visited.add(node.uid)
+                out += node.code
+                node = node.succ()
+            elif node.typ == NodeType.wfe:
+                if mode == "rel" and node == stateNode:
+                    out += Comment("stay")
+                else:
+                    out += SigAssign(self.state, self.stateName(node)) if self.sigFsm else \
+                           VarAssign(self.state, self.stateName(node))
+                node = None
+            elif node.typ == NodeType.ife:
                 visited.add(node.uid)
                 cond = node.code
                 if isIntVal(cond, 1):
@@ -555,17 +569,6 @@ class Fsm(Named):
                             self.dumpSubtreeFsm(n, mode, stateNode, visited)
                         ]
                     out += ife
-                node = None
-            elif node.typ == NodeType.stm: 
-                visited.add(node.uid)
-                out += node.code
-                node = node.succ()
-            elif node.typ == NodeType.wfe:
-                if mode == "rel" and node == stateNode:
-                    out += Comment("stay")
-                else:
-                    out += SigAssign(self.state, self.stateName(node)) if self.sigFsm else \
-                           VarAssign(self.state, self.stateName(node))
                 node = None
             else:
                 out += Comment(f"// Ignoring node={node} typ={node.typ} code='{node.code}'")
@@ -608,7 +611,7 @@ class Fsm(Named):
             if self.name is None:
                 raise ValueError(h.error('An Fsm must be named', self))
             self.oprefix = "SM_"+self.name.upper()+"_"
-            if self.behav:
+            if self.behav: #non synthesizable, if need to debug transformation code
                 rstLst = (x <= x.default for x in self.body.assigned())
                 rstLst = sorted(rstLst, key=lambda x : x.lhs.name)
                 loopName = f"_loop"
@@ -629,11 +632,11 @@ class Fsm(Named):
                 clocked.hasWfe = True
                 clocked.autoReset = False
                 self.logic_ = clocked
-            else:
+            else: #synthesizable output
                 self.body = Block( While(1).Do(..., *self.body.stmts) ) 
-                root = self.toDAG()
-                self.mergeStates(root)
-                self.logic_ = self.dumpTree(root)
+                self.root = self.toDAG()
+                self.mergeStates(self.root)
+                self.logic_ = self.dumpTree(self.root)
         return self.logic_
 
     @property

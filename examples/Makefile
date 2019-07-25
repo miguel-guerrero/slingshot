@@ -4,7 +4,7 @@ VCOMP=iverilog -g2005-sv
 VRUN=vvp
 DIFF=diff -wbB
 
-all: counter counter2 adder fsm pipe motor_fsm matmul_simple
+all: counter counter2 adder fsm pipe motor_fsm matmul_simple vtpg vtpg_behav
 
 counter:
 	./$@.py > $@.v
@@ -38,31 +38,47 @@ motor_fsm:
 	./$@.py > $@.v
 	$(VCOMP) -o $@.out $@.v tb/motor_tb.v
 	$(VRUN) $@.out > $@.log
-	$(DIFF) gold/$@.v $@.v
 	$(DIFF) gold/$@.log .
+	$(DIFF) gold/$@.v $@.v
 
 motor_fsm_behav:
 	./$@.py > $@.v
 	$(VCOMP) -o $@.out $@.v tb/motor_tb.v
 	$(VRUN) $@.out > $@.log
-	$(DIFF) gold/$@.v $@.v
 	$(DIFF) gold/motor_fsm.log motor_fsm_behav.log
+	$(DIFF) gold/$@.v $@.v
 
 matmul_simple:
 	./$@.py > $@.v
 	$(VCOMP) -o $@.out $@.v tb/matmul_tb.v tb/mem.v
 	$(VRUN) $@.out > $@.log
-	$(DIFF) gold/$@.v $@.v
 	$(DIFF) gold/$@.log .
+	$(DIFF) gold/$@.v $@.v
 	grep -q PASSED $@.log
 
 matmul_simple2:
 	./$@.py > $@.v
 	$(VCOMP) -o $@.out $@.v tb/matmul_tb.v tb/mem.v
 	$(VRUN) $@.out > $@.log
-	$(DIFF) gold/$@.v $@.v
 	$(DIFF) gold/$@.log .
+	$(DIFF) gold/$@.v $@.v
 	grep -q PASSED $@.log
+
+vtpg:
+	./$@.py > $@.v
+	$(VCOMP) -o $@.out $@.v tb/vtpg_tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
+	$(DIFF) gold/$@.v $@.v
+	@#grep -q PASSED $@.log
+
+vtpg_behav:
+	./$@.py -behav > $@.v
+	$(VCOMP) -g2012 -o $@.out $@.v tb/vtpg_tb.v
+	$(VRUN) $@.out > $@.log
+	$(DIFF) gold/$@.log .
+	$(DIFF) gold/$@.v $@.v
+	@#grep -q PASSED $@.log
 
 clean:
 	$(RM) -r __pycache__ *.out *.v build *.xml *.vcd

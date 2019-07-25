@@ -1,0 +1,7 @@
+Do().Loop(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1)))).While(Signal(typ=BitVec(8), name='c'))
+do begin
+    x <= 1;
+end while (c);
+    do begin
+        x <= 1;
+    end while (c);

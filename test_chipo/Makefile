@@ -4,7 +4,7 @@ VCOMP=iverilog -g2001
 VRUN=vvp
 DIFF=diff -wbB
 
-all: reg_test reg_test2 ex1 ex2 ex3 g2p_ex1 g2p_ex2 vlog
+all: reg_test reg_test2 ex1 ex2 ex3 ex4 ex5 g2p_ex1 g2p_ex2 vlog
 
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
  multi_adder multi_adder2 multi_adder3 \
@@ -25,7 +25,7 @@ ex1:
 	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .
 
-ex2 ex3 ex4:
+ex2 ex3 ex4 ex5:
 	./$@.py > $@.log
 	$(DIFF) gold/$@.log .
 

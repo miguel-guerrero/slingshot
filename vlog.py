@@ -377,6 +377,13 @@ def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     return v
 
 
+@dump.register(chipo.Do)
+def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
+    return dbgStr(node) + ind('do ', indLvl) + \
+           dump(node.body, indLvl, ctx=ctx) + \
+           ' while (' + dump(node.cond, ctx=ctx) + ');'
+
+
 @dump.register(chipo.While)
 def _(node, indLvl=0, *, ctx:Ctx = Ctx.default, recursive=False):
     return dbgStr(node)+ind('while (' + dump(node.cond, ctx=ctx) + ')', indLvl) + ' ' + \

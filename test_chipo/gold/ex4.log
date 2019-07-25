@@ -1,34 +1,46 @@
-While(Signal(8, name='a')).Do(Block(SigAssign(Signal(name='x'), CInt(1))))
-while (a) 
+While(Signal(typ=BitVec(8), name='a')).Do(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1))))
+while (a) begin
     x <= 1;
-    while (a) 
+end
+    while (a) begin
         x <= 1;
-Switch(Signal(8, name='a')).Case([CInt(1), CInt(2)]).Do(Block(SigAssign(Signal(name='x'), CInt(1)), SigAssign(Signal(name='x'), CInt(1)))).Case([CInt(3)]).Do(Block(SigAssign(Signal(name='x'), CInt(1)))).Default([SigAssign(Signal(name='x'), CInt(1))])
+    end
+Switch(Signal(typ=BitVec(8), name='a')).Case([CInt(1), CInt(2)]).Do(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1)), SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1)))).Case([CInt(3)]).Do(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1)))).Default(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1))))
 case (a)
     1, 2 : begin
         x <= 1;
         x <= 1;
     end
-    3 : 
+    3 : begin
         x <= 1;
+    end
+    default: begin
+        x <= 1;
+    end
 endcase
     case (a)
         1, 2 : begin
             x <= 1;
             x <= 1;
         end
-        3 : 
+        3 : begin
             x <= 1;
+        end
+        default: begin
+            x <= 1;
+        end
     endcase
-If(Signal(8, name='a')).Then(Block(SigAssign(Signal(name='x'), CInt(1)))).Else(Block(SigAssign(Signal(name='x'), CInt(1)), SigAssign(Signal(name='x'), CInt(1))))
-if (a) 
+If(Signal(typ=BitVec(8), name='a')).Then(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1)))).Else(Block(SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1)), SigAssign(Signal(typ=BitVec(1), name='x'), CInt(1))))
+if (a) begin
     x <= 1;
+end
 else begin
     x <= 1;
     x <= 1;
 end
-    if (a) 
+    if (a) begin
         x <= 1;
+    end
     else begin
         x <= 1;
         x <= 1;

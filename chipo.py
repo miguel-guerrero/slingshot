@@ -643,6 +643,52 @@ class While(AstProcStatement):
         return f'While({self.cond!r}).Do({self.trueBlock!r})'
 
 
+
+#-----------------------------------------------------------
+# AstNode -> AstProcStatement -> Do/While
+#-----------------------------------------------------------
+class Do(AstProcStatement):
+
+    class WhileClass:
+        def __init__(self, parent):
+            super().__init__()
+            self.parent = parent
+
+        def __call__(self, cond):
+            self.parent.cond = WrapExpr(cond)
+            return self.parent
+
+    def __init__(self):
+        super().__init__()
+        self.body = Block()
+        self.cond = WrapExpr(1)
+        self.While = self.WhileClass(parent=self)
+
+    def doLoop(self, stmts):
+        self.body = flattenBlock(stmts)
+        return self
+
+    def __getitem__(self, stmts):
+        return self.doLoop(h.tupleize(stmts))
+
+    def Loop(self, *body):
+        return self.doLoop(body)
+
+    def assigned(self):  return self.apply('assigned', self.all())
+    def used(self):      return self.apply('used', self.all())
+    def paramUsed(self): return self.apply('paramUsed', self.all())
+    def typesUsed(self): return self.apply('typesUsed', self.all())
+
+    def all(self):
+        return [self.cond, self.body]
+
+    def asList(self):    
+        return  self.body.asList()
+
+    def __repr__(self):
+        return f'Do().Loop({self.body!r}).While({self.cond!r})'
+
+
 #-----------------------------------------------------------
 # AstNode -> AstProcStatement -> Switch
 #-----------------------------------------------------------
