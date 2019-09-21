@@ -9,7 +9,7 @@ all: reg_test reg_test2 ex1 ex2 ex3 ex4 ex5 g2p_ex1 g2p_ex2 vlog
 vlog: adder adder2 adder3 adder4 sadder4 adder5 \
  multi_adder multi_adder2 multi_adder3 \
  rec rec2 rec3 rec4 rec5 rec6 rec7 uni uni2 \
- pipe1 enu2 ins ins2 ins3 ins4 \
+ pipe1 enu2 ins ins2 ins3 ins4 ins5 ins6 ins7 ins8 ins9 \
  array array2 array3 array4 array5 array6
 
 reg_test:
@@ -52,7 +52,7 @@ ins2:
 	$(VCOMP) -o $@.out -f file_list.f
 	#$(DIFF) gold/$@.v .
 
-ins ins3 ins4:
+ins ins3 ins4 ins5 ins6 ins7 ins8 ins9:
 	./$@.py > $@.v
 	$(VCOMP) -o $@.out $@.v
 	$(DIFF) gold/$@.v .

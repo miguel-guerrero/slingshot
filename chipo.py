@@ -866,6 +866,13 @@ class Module(AstNode, gencore.ModuleBase, Named):
         self.IOs += ios
         return self
 
+    def __setattr__(self, key, val):
+        if key == 'IOs':
+            if not isinstance(val, h.IoList):
+                object.__setattr__(self, key, h.IoList(val))
+                return
+        object.__setattr__(self, key, val)
+
     def Params(self, *params):
         self.params += params
         return self
@@ -932,11 +939,13 @@ class Module(AstNode, gencore.ModuleBase, Named):
         return self
 
     def autoIOs(self): #declared ones are kept in same order
-        initIoSet = set(self.IOs)
+        ios = self.IOs.asList() if isinstance(self.IOs, h.IoList) else self.IOs
+        initIoSet = set(ios)
         extraIns  = {InCopy(x)  for x in self._autoInputs()}
         extraOuts = {OutCopy(x) for x in self._autoOutputs()}
-        self.IOs += sortedAsList(extraIns - initIoSet) + \
-                    sortedAsList(extraOuts - initIoSet)
+        ios += sortedAsList(extraIns - initIoSet) + \
+               sortedAsList(extraOuts - initIoSet)
+        self.IOs = h.IoList(*ios)
         return self
 
     def autoParams(self): #declared ones are kept in same order

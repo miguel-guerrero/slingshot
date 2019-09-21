@@ -20,7 +20,7 @@ module vtpg
     input [V_BITS-1:0] tVS_START,
     output reg hs,
     output reg [3*PW-1:0] rgb,
-    output reg vld,
+    output reg rgb_vld,
     output reg vs
 );
 
@@ -36,22 +36,22 @@ always @(posedge clk or negedge rst_n) begin : control_clocked
         while (1) begin
             do begin
                 do begin
-                    // hs setting
+                    // create h sync
                     if (tHS_START == x) begin
                         hs <= 1;
                     end
                     else if (tHS_END == x) begin
                         hs <= 0;
                     end
-                    // vld setting
+                    // rgb_vld setting
                     if (tHACT_START == x) begin
-                        vld <= y_active;
+                        rgb_vld <= y_active;
                     end
                     else if (tHACT_END == x) begin
-                        vld <= 0;
+                        rgb_vld <= 0;
                     end
-                    // cnt increment
-                    if (vld) begin
+                    // pixel cnt increment
+                    if (rgb_vld) begin
                         cnt <= cnt + 1;
                     end
                     x <= x + 1;
@@ -78,7 +78,7 @@ always @(posedge clk or negedge rst_n) begin : control_clocked
     end
     cnt <= 0;
     hs <= 0;
-    vld <= 0;
+    rgb_vld <= 0;
     vs <= 0;
     x <= 0;
     y <= 0;
@@ -86,11 +86,7 @@ always @(posedge clk or negedge rst_n) begin : control_clocked
     `WFE
 end
 
-
-always @(*) begin
-    rgb = {cnt, cnt, cnt};
-end
-
+always @(*) rgb = {cnt, cnt, cnt};
 
 endmodule
 

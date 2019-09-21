@@ -5,7 +5,7 @@ parameter PW=8, H_BITS=12, V_BITS=12;
 wire hs;
 wire vs;
 wire [3*PW-1:0] rgb;
-wire vld;
+wire rgb_vld;
 wire [H_BITS-1:0] tHS_START = 10;
 wire [H_BITS-1:0] tHS_END = 20;
 wire [H_BITS-1:0] tHACT_START = 40;
@@ -48,7 +48,7 @@ initial begin
 end
 
 always @(negedge clk) begin
-   $display($time, " hs=", hs, " vs=", vs, " vld=", vld, " rgb=%x", rgb);
+   $display($time, " hs=", hs, " vs=", vs, " vld=", rgb_vld, " rgb=%x", rgb);
 end
 
 initial begin

@@ -45,22 +45,43 @@ def setUnion(*lst):
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
+
+import inspect
+
+def upLocals(ups=1):
+    f = inspect.currentframe()
+    for i in range(ups):
+        f = f.f_back
+    return f.f_locals.items()
+
 class IoList:
     def __init__(self, *lst):
         self._dic = OrderedDict()
-        for x in lst:
-            self._dic[x.name] = x
+        self._prev = None
+        if lst is not None:
+            for x in lst:
+                self.assign(x)
+
+    def assign(self, l):
+        if l is None:
+            return
+        if isinstance(l, (list, tuple)):
+            for _x in l:
+                assert hasattr(_x, 'name')
+                self._dic[_x.name] = _x
+        else:
+            assert hasattr(l, 'name'), f"{l}"
+            self._dic[l.name] = l
 
     def asDict(self):
         return self._dic
 
     def asList(self):
-        return self._dic.keys()
+        return list(self._dic.values())
 
     def __iadd__(self, x):
-        assert hasattr(x, 'name')
-        self._dic[x.name] = x
-
+        self.assign(x)
+        return self
 
     def __getattr__(self, key):
         if key in self._dic:
@@ -68,7 +89,7 @@ class IoList:
         raise KeyError(f'key {key} not found in {self}')
 
     def __setattr__(self, key, val):
-        if key != "_dic":
+        if key != "_dic" and key != '_prev':
             self._dic[key] = val
         else:
             object.__setattr__(self, key, val)
@@ -80,9 +101,21 @@ class IoList:
         lst = list(self._dic.values())
         return lst[idx]
 
+    def __enter__(self): 
+        self._prev = set(k for k,v in upLocals(2))
+        return self
+    
+    def __exit__(self, exc_type, exc_value, exc_traceback): 
+        newList = []
+        newLoc = upLocals(2)
+        for k,v in newLoc:
+            if k not in self._prev:
+                newList.append(v)
+        self.assign(sorted(newList, key=lambda x : x.name))
+        self._prev = None
+
     def __repr__(self):
-        return "IoList(" + ", ".join(f"{k}={v!r}" 
-                for k, v in self.asDict.items()) + ")"
+        return "[" + ", ".join(f"{v!r}" for k, v in self.asDict().items()) + "]"
 
 #------------------------------------------------------------------------------
 #a structure that returns None for not-defined fields
