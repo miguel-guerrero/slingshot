@@ -41,7 +41,7 @@ Additionaly this project has the following goals:
 
 - Readability of generated code specially at leaf level
 - Full Introspection and flexibility
-- Ease / brevety of input with focus on leaf level code
+- Ease / brevity of input with focus on leaf level code
 - Readability of input
 
 # CONTENTS
