@@ -5,10 +5,11 @@
 import sys
 sys.path.append("..") # add path to chipo and related
 from regs import *
+from chipo import *
 
 z = Signal(16)
-regA = Reg( 
-            RW(4, 'x'), 
+regA = Reg(
+            RW(4, 'x'),
             RO(3, 'y'),
             RW(z),
             name='regA'

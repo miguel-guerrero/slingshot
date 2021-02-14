@@ -2,7 +2,7 @@ include ../common/include.mk
 
 VCOMP=iverilog -g2005-sv
 VRUN=vvp
-DIFF=diff -wbB
+DIFF=diff -wbB -I '^VCD'
 
 all: counter counter2 adder fsm pipe motor_fsm matmul_simple vtpg vtpg_behav
 

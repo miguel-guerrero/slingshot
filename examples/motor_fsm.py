@@ -19,12 +19,12 @@ motor_fsm = \
             Wait(activate),
             If (up_limit) [
                 motor_dn <= 1,
-                ...,  
+                ...,
                 Wait(dn_limit),
                 motor_dn <= 0,
             ].Else [
                 motor_up <= 1,
-                ...,  
+                ...,
                 Wait(up_limit),
                 motor_up <= 0,
             ]

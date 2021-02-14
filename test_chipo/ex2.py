@@ -5,6 +5,7 @@
 import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
+import helper as h
 import vlog
 
 if __name__=='__main__':

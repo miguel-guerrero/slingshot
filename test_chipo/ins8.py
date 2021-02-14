@@ -5,6 +5,7 @@
 import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
+import helper as h
 
 #in this example IOs is defined as an IoList, but is passed to FA
 #one by one using . notation
