@@ -30,17 +30,9 @@ from functools import reduce
 import gencore
 import varname
 import helper
+import iolist
 
 trackDebugInfo = True
-
-try:
-    # https://github.com/RussBaz/enforce
-    from enforce import runtime_validation, config
-    config({'mode': 'covariant'})
-except ModuleNotFoundError:
-    def runtime_validation(x):
-        return x
-
 serialNumber = varname.makeCounter()
 
 
@@ -59,7 +51,6 @@ def sortedAsList(s):
 
 # if passed a tuple of statements creates a block with them,
 # but if passed a tuple containing only a block just returns it
-@runtime_validation
 def flattenBlock(aTuple: tuple):
     if len(aTuple) == 1 and isinstance(aTuple[0], Block):
         return aTuple[0]
@@ -566,7 +557,6 @@ class Block(AstProcStatement):
             self.stmts.append(Block.check(x))
         return self
 
-    @runtime_validation
     def doDo(self, stmts: tuple):
         self.stmts += stmts
         return self
@@ -709,7 +699,6 @@ class While(AstProcStatement):
         self.cond = WrapExpr(cond)
         self.trueBlock = Block()
 
-    @runtime_validation
     def doDo(self, stmts: tuple):
         self.trueBlock = flattenBlock(stmts)
         return self
@@ -807,7 +796,6 @@ class Switch(AstProcStatement):
                                       for i in helper.tupleize(*args))
             self.body = Block()
 
-        @runtime_validation
         def doCase(self, stmts: tuple):
             self.body = flattenBlock(stmts)
             return self.parent
@@ -993,8 +981,8 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
 
     def __setattr__(self, key, val):
         if key == 'IOs':
-            if not isinstance(val, helper.IoList):
-                object.__setattr__(self, key, helper.IoList(val))
+            if not isinstance(val, iolist.IoList):
+                object.__setattr__(self, key, iolist.IoList(val))
                 return
         object.__setattr__(self, key, val)
 
@@ -1067,14 +1055,14 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
         return self
 
     def autoIOs(self):  # declared ones are kept in same order
-        ios = self.IOs.asList() if isinstance(self.IOs, helper.IoList) \
+        ios = self.IOs.asList() if isinstance(self.IOs, iolist.IoList) \
               else self.IOs
         initIoSet = set(ios)
-        extraIns = {InCopy(x) for x in self._autoInputs()}
-        extraOuts = {OutCopy(x) for x in self._autoOutputs()}
+        extraIns = {inCopy(x) for x in self._autoInputs()}
+        extraOuts = {outCopy(x) for x in self._autoOutputs()}
         ios += sortedAsList(extraIns - initIoSet) + \
             sortedAsList(extraOuts - initIoSet)
-        self.IOs = helper.IoList(*ios)
+        self.IOs = iolist.IoList(*ios)
         return self
 
     def autoParams(self):  # declared ones are kept in same order
@@ -1101,34 +1089,42 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
             nextIdx[ins.modName()] = i+1
         return self
 
-    def findIO(self, typ):
+    def findIOByType(self, typ):
         return [io for io in self.IOs if isinstance(io, typ)]
 
     def autoConnClockReset(self):
-        countClockedNoClk = countClockedNoRst = 0
+        cntClockedWithoutClk = 0
+        moduleClock = self.findIOByType(Clock)
+        moduleClock = moduleClock[0] if len(moduleClock) == 1 else None
+
+        cntClockedWithoutRst = 0
+        moduleReset = self.findIOByType(Reset)
+        moduleReset = moduleReset[0] if len(moduleReset) == 1 else None
+
         for stm in self.body:
+
+            # if the statement is expected to have a clock
             if hasattr(stm, 'clock'):
+                # but none was given
                 if stm.clock is None:
-                    if countClockedNoClk == 0:
-                        modClock = self.findIO(Clock)
-                        modClock = None if len(modClock) != 1 else modClock[0]
-                    countClockedNoClk += 1
-                    if modClock is None:
+                    # get this module clock (only one expected implicit clock)
+                    cntClockedWithoutClk += 1
+                    if moduleClock is not None:
+                        stm.clock = moduleClock
+                    else:
                         raise ValueError(helper.error(
                             'Could not derived a clock from top for', stm))
-                    stm.clock = modClock
+
             if hasattr(stm, 'reset'):
-                if stm.reset is None and (
-                        not hasattr(stm, 'autoReset') or stm.autoReset):
-                    if countClockedNoRst == 0:
-                        modReset = self.findIO(Reset)
-                        modReset = None if len(modReset) != 1 else modReset[0]
-                    countClockedNoRst += 1
-                    if modReset is None:
-                        raise ValueError(
-                            helper.error(
-                                'Could not derive a reset from top for', stm))
-                    stm.reset = modReset
+                # if the statement is expected to have a reset but doesn't
+                if stm.reset is None and (not hasattr(stm, 'autoReset') or
+                                          stm.autoReset):
+                    cntClockedWithoutRst += 1
+                    if moduleReset is not None:
+                        stm.reset = moduleReset
+                    else:
+                        raise ValueError(helper.error(
+                            'Could not derive a reset from top for', stm))
         return self
 
     def autoExpand(self):  # TODO make sure body can accept tuples
@@ -1155,9 +1151,12 @@ class Module(AstNode, gencore.ModuleBase, varname.Named):
     def autoGen(self):
         return self.autoConnClockReset() \
                    .autoExpand() \
-                   .autoReset().autoIOs() \
-                   .autoSignals().autoParams() \
-                   .autoTypes().autoInstanceName()
+                   .autoReset() \
+                   .autoIOs() \
+                   .autoSignals() \
+                   .autoParams() \
+                   .autoTypes() \
+                   .autoInstanceName()
 
     def elab(self):
         _ = repr(self)  # resolves all names TODO
@@ -1788,7 +1787,6 @@ class Param(UnaryExpr, varname.Named):
 class Assignable(UnaryExpr, varname.Named):
     kind = 'Assignable'
 
-    @runtime_validation
     def __init__(self, typ=None, name=None, default=0):
         varname.Named.__init__(self, name)
         if isinstance(typ, Assignable):  # from other signal/var
@@ -1927,7 +1925,6 @@ class Var(Assignable):
 # ------------------------------------------------------------------------
 # AstNode -> Expr -> BinExpr
 # ------------------------------------------------------------------------
-@runtime_validation
 def isInt(obj) -> bool:
     return isinstance(obj, (CInt, int))
 
@@ -2136,25 +2133,28 @@ class ExprReduce(MultiExpr):
 
 
 class OrReduce(ExprReduce):
-    def __init__(self, rhs): super().__init__('|', rhs)
+    def __init__(self, rhs):
+        super().__init__('|', rhs)
 
 
 class AndReduce(ExprReduce):
-    def __init__(self, rhs): super().__init__('&', rhs)
+    def __init__(self, rhs):
+        super().__init__('&', rhs)
 
 
 class XorReduce(ExprReduce):
-    def __init__(self, rhs): super().__init__('^', rhs)
+    def __init__(self, rhs):
+        super().__init__('^', rhs)
 
 
 # ------------------------------------------------------------------------------
 # More convenience functions
 # ------------------------------------------------------------------------------
-def OutCopy(x):
+def outCopy(x):
     return Out(typ=x.args[0], name=x.name, default=x.default)
 
 
-def InCopy(x):
+def inCopy(x):
     return In(typ=x.args[0], name=x.name, default=x.default)
 
 

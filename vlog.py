@@ -29,13 +29,6 @@ import chipo
 import helper as h
 import simplify
 
-try:
-    from enforce import runtime_validation, config
-    config({'mode': 'covariant'})  # base class type covers type of subclasses
-except ModuleNotFoundError:
-    def runtime_validation(x):
-        return x
-
 
 class Ctx(Enum):
     default = 0
@@ -95,7 +88,6 @@ class Defines:
 DEFS = Defines()
 
 
-@runtime_validation
 def ind(s: str, n: int) -> str:
     return (STYLE.indent*n) + s
 
@@ -131,7 +123,6 @@ def paren(node, expr, ctx=Ctx.default):
     return v
 
 
-@runtime_validation
 def dumpSigned(typ: chipo.Type):
     if typ.signed:
         return ' signed'
@@ -776,7 +767,6 @@ def _(typ, indLvl=0):
         return indListAsStr(enuLst, indLvl, ";\n")
 
 
-@runtime_validation
 def dumpFieldDecl(fld: chipo.Field, indLvl):
     namesStr = ', '.join(fld.names)
     typeStr = ind(fld.typ.name, indLvl+1)

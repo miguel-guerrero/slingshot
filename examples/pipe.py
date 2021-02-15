@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import sys
-sys.path.append("..") # add path to chipo and related
+sys.path.append("..")  # add path to chipo and related
 from chipo import *
 from hlc import Pipeline
 import vlog
 
 # example of auto-pipelining
 
+
 def Abs(x):
     return IfCond(x < 0, -x, x)
-    
+
+
 # IO object definition
 clk = Clock()
 rst_n = Reset()

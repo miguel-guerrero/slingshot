@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
 from hlc import Pipeline
 
+
 # example of auto-pipelining
 
 def Abs(x):
     return IfCond(x < 0, -x, x)
-    
+
+
 # IO object definition
 clk = Clock()
 rst_n = Reset()
@@ -29,7 +31,6 @@ sad_res = Out(W+2)
 
 # flow control results for the pipeline
 sad_vld, sad_rdy = Out() ** 2
-
 
 # Module definition
 pipe = Module(sad_res, sad_vld, sad_rdy)

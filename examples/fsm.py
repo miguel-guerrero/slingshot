@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import sys
 sys.path.append("..") # add path to chipo and related
 
 from chipo import *
 import vlog
+
 
 States = Enu('IDLE', 'GO', 'DONE')
 clk = Clock()
@@ -31,17 +32,18 @@ fsm += Combo() [
             state_nxt <= States.IDLE
         ].
         Default(
-            state_nxt <= 'IDLE', #can also do this, but no checking here
+            state_nxt <= 'IDLE',  # can also do this, but no checking here
             ctl <= 0
         )
 ]
 
-fsm += done <= (state==States.DONE)
+fsm += done <= (state == States.DONE)
 
 fsm += Clocked(clk, rst_n) [
     state <= state_nxt
 ]
 
+# auto insert reset logic etc.
 fsm.autoGen()
 
 vlog.setStyle(useLogic=True, useEnum=True)

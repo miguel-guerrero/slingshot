@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import sys
-sys.path.append("..") # add path to chipo and related
+sys.path.append("..")  # add path to chipo and related
 
 from chipo import *
 from hlc import Fsm, Wait
@@ -27,10 +27,11 @@ mem_wdata = Out(MEM_DW)
 mem_rdata_vld = In()
 mem_rdata = In(MEM_DW)
 
-#mattrix parameters
+# mattrix parameters
 aBASE, bBASE, cBASE = In(MEM_AW) ** 3
 aSTRIDE, bSTRIDE, cSTRIDE = In(DIM_BITS) ** 3
 aROWS, aCOLS, bCOLS = In(DIM_BITS) ** 3
+
 
 def MEM_write(addr, wdata):
     return Block(
@@ -39,24 +40,29 @@ def MEM_write(addr, wdata):
         mem_write <= 1,
         mem_req   <= 1)
 
+
 def MEM_read(addr):
     return Block(
         mem_addr  <= addr,
         mem_write <= 0,
         mem_req   <= 1)
 
+
 def MEM_done():
     return mem_req <= 0
 
+
 def incr(x, inc=1):
-    return x <= x + inc 
+    return x <= x + inc
+
 
 i, j, k = Signal(DIM_BITS) ** 3
 a_i0, a_ik, b_0j, b_kj, c_i0, c_ij = Signal(MEM_AW) ** 6
 acc = Signal(MEM_DW)
 a = Signal(PREC)
 
-matmul = Module() [ 
+
+matmul = Module() [
     Fsm(clk, rst_n, name='matmul_fsm') [
         ret <= 0,
         ...,
@@ -79,8 +85,8 @@ matmul = Module() [
                 ..., MEM_read(b_kj), incr(b_kj, bSTRIDE),
                 While (k != aCOLS) [
                     ..., incr(k),
-                    ..., MEM_read(a_ik), incr(a_ik),          a <= mem_rdata[PREC-1:0],
-                    ..., MEM_read(b_kj), incr(b_kj,bSTRIDE),  incr(acc, a[PREC-1:0]*mem_rdata[PREC-1:0]),
+                    ..., MEM_read(a_ik), incr(a_ik),           a <= mem_rdata[PREC-1:0],
+                    ..., MEM_read(b_kj), incr(b_kj, bSTRIDE),  incr(acc, a[PREC-1:0]*mem_rdata[PREC-1:0]),
                 ],
                 MEM_done(),
                 ..., MEM_write(c_ij, acc), incr(b_0j), incr(c_ij), incr(j),

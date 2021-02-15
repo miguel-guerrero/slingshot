@@ -5,7 +5,7 @@
 import sys
 sys.path.append("..") # add path to chipo and related
 from chipo import *
-import helper as h
+from iolist import IoList
 
 #in this example IOs is defined as an IoList, but is passed to FA
 #one by one using . notation
@@ -14,7 +14,7 @@ class FullAdder(Module):
     def __init__(self, name='FA'):
         super().__init__(name=name)
         ins, outs = (cin, a, b), (cout, s) = In()**3, Out()**2
-        self.IOs = h.IoList(ins, outs)
+        self.IOs = IoList(ins, outs)
         self.body = [Combo(FullAdder.FA(self.IOs))]
 
     @staticmethod

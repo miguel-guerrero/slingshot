@@ -6,22 +6,16 @@ import sys
 sys.path.append("..") # add path to chipo and related
 
 from chipo import *
-import helper as h
+from iolist import IoList
 
 #in this example IOs is defined as an IoList, so they can be passsed
 #as a group and accessed using . notation
-
-def byName(lst, name):
-    for i in lst:
-        if i.name == name:
-            return i
-    raise ValueError(h.error('{name} not found in {lst}'))
 
 
 class FullAdder(Module):
     def __init__(self, name='FA'):
         super().__init__(name=name)
-        self.IOs = h.IoList(In(1, "cin"), In(1, "a"), In(1, "b"), Out(1,"s"), Out(1, "cout"))
+        self.IOs = IoList(In(1, "cin"), In(1, "a"), In(1, "b"), Out(1,"s"), Out(1, "cout"))
         self.body += [self.logic()]
 
     @staticmethod
@@ -32,7 +26,6 @@ class FullAdder(Module):
         )
 
     def logic(self):
-        #return Combo(FullAdder.FA(**self.IOs.asDict()))
         io = self.IOs
         return Combo(FullAdder.FA(io.cin, io.a, io.b, io.s, io.cout))
 

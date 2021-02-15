@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # See https://github.com/miguel-guerrero/slingshot/blob/master/LICENSE
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import sys
-sys.path.append("..") # add path to chipo and related
+sys.path.append("..")  # add path to chipo and related
 
 from chipo import *
 from hlc import Fsm, Wait
 
 # Example of algorithmically defined state machine through Fsm construct
 
+
 def incr(x, inc=1):
-    return x <= x + inc 
+    return x <= x + inc
+
 
 def Matmul(MEM_AW=16, MEM_DW=32, DIM_BITS=16, PREC=16):
     clk = Clock()
@@ -26,7 +28,7 @@ def Matmul(MEM_AW=16, MEM_DW=32, DIM_BITS=16, PREC=16):
     mem_rdata_vld = In()
     mem_rdata = In(MEM_DW)
 
-    #mattrix parameters
+    # mattrix parameters
     aBASE, bBASE, cBASE = In(MEM_AW) ** 3
     aSTRIDE, bSTRIDE, cSTRIDE = In(DIM_BITS) ** 3
     aROWS, aCOLS, bCOLS = In(DIM_BITS) ** 3
@@ -45,7 +47,7 @@ def Matmul(MEM_AW=16, MEM_DW=32, DIM_BITS=16, PREC=16):
     def MEM_done():
         return mem_req <= 0
 
-    #internal signals
+    # internal signals
     i, j, k = Signal(DIM_BITS) ** 3
     a_i0, a_ik, b_0j, b_kj, c_i0, c_ij = Signal(MEM_AW) ** 6
     acc = Signal(MEM_DW)
@@ -90,6 +92,7 @@ def Matmul(MEM_AW=16, MEM_DW=32, DIM_BITS=16, PREC=16):
             ...,
         ]
     ].autoGen()
+
 
 matmul = Matmul()
 print(matmul.vlog())
